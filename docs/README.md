@@ -7,4 +7,5 @@ A family record/album/MP3 collection tracker. Multiple named collections (Vinyl,
 - [Architecture](architecture.md) — repo layout, the stack, how the pieces fit together.
 - [Development process](process.md) — how work happens in this repo: TDD, design-first, branches.
 - [Design brief](design-brief.md) — the product vision: why collections/copies/locations are split the way they are, auth & sharing, metadata lookup.
+- [User stories](user-stories.md) — the framework for UX design: what a person should be able to do, cross-referenced to the issues that back it.
 - [GitHub issues](https://github.com/kevinmcdaniel/vinylTrack/issues) — the living, up-to-date plan. These docs summarize decisions; the issues are the detailed source of truth and change more often.
