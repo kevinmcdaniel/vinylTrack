@@ -6,7 +6,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 vinylTrack is a family record/album/MP3 collection tracker. It supports more than one named **collection** (Vinyl, Square Dance Calls, General MP3s, …), each with its own artists, releases, physical/digital copies, locations, and a want list. It's a shared app across family members (Google sign-in, per-user access, sharing between specific people) and across devices (phone/tablet/computer), with offline support planned for later.
 
-Full design history and the up-to-date plan live in the GitHub issue tracker — issues #1–#17 (as of this writing) cover scaffold, schema, APIs, UI, auth, hosting, album art, and external metadata lookup. Treat the issues as the living spec; this file documents what's actually been built.
+Full design history and the up-to-date plan live in the GitHub issue tracker — issues #1–#18 (as of this writing) cover scaffold, schema, APIs, UI, auth, hosting, album art, external metadata lookup, and design system adaptation. Treat the issues as the living spec; this file documents what's actually been built.
+
+See also [docs/](./docs/README.md) — the human-facing companion to this file (architecture, dev process, design brief), rendered in-app at `/docs`.
 
 Monorepo structure:
 - `be/` — Express.js backend API with Prisma ORM
