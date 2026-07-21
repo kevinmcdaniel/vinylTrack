@@ -1,0 +1,173 @@
+/* ============================================================
+   SquareTrack — Color tokens
+   Two skins of one system:
+     :root            → LIGHT  (editing / reference / sight-calling surfaces)
+     [data-theme=dark]→ DARK   (live-calling floor view — high contrast, calm)
+   Same semantic names resolve in both, so a component is theme-agnostic:
+   set data-theme="dark" (or class .theme-dark) on any ancestor to flip it.
+
+   The DIFFICULTY RAMP (1=easy → 5=hard) is shared across both skins — it is the
+   product's core signal and must read identically everywhere.
+   ============================================================ */
+
+:root {
+  /* ---- Difficulty ramp (shared) ---- */
+  --diff-1: #6fae86;   /* easy   — green   */
+  --diff-2: #9bb06a;   /*        — green-gold */
+  --diff-3: #d8b057;   /* medium — gold    */
+  --diff-4: #dd8a55;   /*        — orange  */
+  --diff-5: #d96a60;   /* hard   — red     */
+  --pip-empty: rgba(120,120,120,0.22);
+
+  /* ---- LIGHT skin ---- */
+  /* surfaces */
+  --surface-app:     #eef1f4;   /* window backdrop */
+  --surface-card:    #ffffff;   /* primary panel */
+  --surface-sunken:  #f4f7fb;   /* inset wells, secondary cards */
+  --surface-accent:  #e7eefc;   /* selected nav / accent-tinted chip */
+  --surface-accent-2:#eef3fb;
+  --surface-inverse: #10233f;   /* navy callout (resolution / target) */
+  --surface-inverse-2:#142031;
+
+  /* lines */
+  --border:        #dbe2e9;
+  --border-strong: #cdd6e0;
+  --row-divider:   #e1e7ee;
+  --hairline:      #eef1f4;
+
+  /* text (1 = strongest) */
+  --text-1: #142031;
+  --text-2: #1b2530;
+  --text-3: #3a4856;
+  --text-4: #5b6878;
+  --text-5: #8a98a8;   /* mono labels */
+  --text-6: #aebccb;   /* ghost / placeholders */
+  --text-on-inverse: #ffffff;
+  --text-on-accent:  #ffffff;
+
+  /* primary accent */
+  --accent:        #2f6fed;
+  --accent-press:  #2257c8;
+  --accent-soft:   #e7eefc;
+  --on-inverse-accent: #6fa0ff;   /* accent legible on the navy callout */
+
+  /* semantic status */
+  --success:      #2f9e63;
+  --success-soft: #e3f3ea;
+  --warn:         #a9701a;   /* amber text */
+  --warn-strong:  #e0a64e;   /* amber line / fill */
+  --warn-soft:    #fbf1df;
+  --danger:       #c2483f;
+  --danger-line:  #e0483f;
+  --danger-soft:  #fdeceb;
+  --info:         #2f9e63;
+
+  /* domain semantics */
+  --designator:      #b8732a;   /* Heads / Boys / Centers activator text */
+  --designator-soft: #f6ede2;
+  --get-out-bg:     #10233f;
+  --get-out-border: #10233f;
+  --get-out-accent: #7fe0a6;
+
+  /* resolution states (sequence import) */
+  --res-resolved:        #2f9e63;            /* calm confirmation dot */
+  --res-unresolved-fg:   #c2483f;
+  --res-unresolved-line: #e0483f;
+  --res-unresolved-bg:   #fdeceb;
+  --res-ambiguous-fg:    #a9701a;
+  --res-ambiguous-line:  #e0a64e;
+  --res-ambiguous-bg:    #fbf1df;
+
+  /* type-badge palette (parser classification) */
+  --badge-call-fg:#2f6fed; --badge-call-bg:#e7eefc;
+  --badge-activator-fg:#7a52c4; --badge-activator-bg:#ece4fb;
+  --badge-filler-fg:#5b6878; --badge-filler-bg:#eef1f4;
+  --badge-tip-fg:#2f9e63; --badge-tip-bg:#e3f3ea;
+  --badge-warning-fg:#a9701a; --badge-warning-bg:#fbf1df;
+  --badge-recovery-fg:#c2483f; --badge-recovery-bg:#fbe7e4;
+
+  /* dancer markers (set / formation diagrams) */
+  --boy:  #2f6fed;            /* filled square */
+  --girl: #2f6fed;            /* ringed circle */
+  --dancer-idle-line: #aab6c4;
+  --hand-link: #e0a64e;       /* hands-joined bar */
+  --facing:    #2f6fed;       /* facing arrow */
+}
+
+/* ============================================================
+   DARK skin — live-calling floor view
+   ============================================================ */
+[data-theme="dark"], .theme-dark {
+  /* surfaces */
+  --surface-app:     #1e2127;
+  --surface-card:    #23272e;
+  --surface-sunken:  rgba(255,255,255,0.03);
+  --surface-accent:  rgba(159,214,176,0.12);
+  --surface-accent-2:rgba(159,214,176,0.08);
+  --surface-inverse: #2a2620;   /* warm get-out panel */
+  --surface-inverse-2:#2a2620;
+
+  /* lines */
+  --border:        rgba(255,255,255,0.08);
+  --border-strong: rgba(255,255,255,0.12);
+  --row-divider:   rgba(255,255,255,0.06);
+  --hairline:      rgba(255,255,255,0.05);
+
+  /* text */
+  --text-1: #f2f3f5;
+  --text-2: #e9ebef;
+  --text-3: #d7dadf;
+  --text-4: #aab2bd;
+  --text-5: #8f9da9;
+  --text-6: #7b818b;
+  --text-on-inverse: #f2f3f5;
+  --text-on-accent:  #16241b;
+
+  /* accent — pastel green is the live-view primary */
+  --accent:        #9fd6b0;
+  --accent-press:  #8bc8a0;
+  --accent-soft:   rgba(159,214,176,0.12);
+  --on-inverse-accent: #e3c389;
+
+  /* semantic status (pastel, low-glare for a dark room) */
+  --success:      #9fd6b0;
+  --success-soft: rgba(159,214,176,0.12);
+  --warn:         #e3c389;
+  --warn-strong:  #e3c389;
+  --warn-soft:    rgba(227,195,137,0.12);
+  --danger:       #e8a89f;
+  --danger-line:  #e8a89f;
+  --danger-soft:  rgba(232,168,159,0.12);
+  --info:         #9fd6b0;
+
+  /* domain semantics */
+  --designator:      #8f9da9;   /* "who" reads back in the live line */
+  --designator-soft: rgba(255,255,255,0.05);
+  --get-out-bg:     #2a2620;
+  --get-out-border: #3c352a;
+  --get-out-accent: #e3c389;
+
+  /* resolution */
+  --res-resolved:        #9fd6b0;
+  --res-unresolved-fg:   #e8a89f;
+  --res-unresolved-line: #e8a89f;
+  --res-unresolved-bg:   rgba(232,168,159,0.12);
+  --res-ambiguous-fg:    #e3c389;
+  --res-ambiguous-line:  #e3c389;
+  --res-ambiguous-bg:    rgba(227,195,137,0.12);
+
+  /* type badges (translucent on dark) */
+  --badge-call-fg:#bcd2ff; --badge-call-bg:rgba(111,160,255,0.16);
+  --badge-activator-fg:#d4c2f5; --badge-activator-bg:rgba(122,82,196,0.22);
+  --badge-filler-fg:#aab2bd; --badge-filler-bg:rgba(255,255,255,0.06);
+  --badge-tip-fg:#9fd6b0; --badge-tip-bg:rgba(159,214,176,0.14);
+  --badge-warning-fg:#e3c389; --badge-warning-bg:rgba(227,195,137,0.14);
+  --badge-recovery-fg:#e8a89f; --badge-recovery-bg:rgba(232,168,159,0.14);
+
+  /* dancer markers */
+  --boy:  #9fd6b0;
+  --girl: #9fd6b0;
+  --dancer-idle-line: rgba(159,214,176,0.6);
+  --hand-link: #e7d6a8;
+  --facing:    #9fd6b0;
+}

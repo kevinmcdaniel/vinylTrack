@@ -1,0 +1,162 @@
+services:
+
+  be:
+    image: vinylbe
+    build:
+      dockerfile: Dockerfile.be
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: ${DB_VINYLTRACK_URL}
+      PORT: ${BE_PORT_INT}
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - ./be:/app/
+      - /app/node_modules
+    networks:
+      - default
+      - vinylnet
+    ports:
+      - ${BE_PORT_EXT}:${BE_PORT_INT}
+    container_name: vinyl.be
+    command: npm run dev
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+
+  migrate:
+    image: vinylbe
+    build:
+      dockerfile: Dockerfile.be
+    environment:
+      DATABASE_URL: ${DB_VINYLTRACK_URL}
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - ./be:/app/
+      - /app/node_modules
+    networks:
+      - default
+      - vinylnet
+    container_name: vinyl.migrate
+    command: npx prisma migrate deploy
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  seed:
+    image: vinylbe
+    build:
+      dockerfile: Dockerfile.be
+    environment:
+      DATABASE_URL: ${DB_VINYLTRACK_URL}
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - ./be:/app/
+      - /app/node_modules
+    networks:
+      - default
+      - vinylnet
+    container_name: vinyl.seed
+    command: npx prisma db seed
+    restart: "no"
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  db:
+    image: postgres:17-alpine
+    restart: always
+    env_file:
+      - path: .env
+        required: true
+    environment:
+      POSTGRES_DB: ${DB_VINYLTRACK_NAME}
+      POSTGRES_USER: ${DB_VINYLTRACK_USER}
+      POSTGRES_PASSWORD: ${DB_VINYLTRACK_PW}
+      PGPORT: ${DB_PORT_INT}
+    command: -p ${DB_PORT_INT}
+    ports:
+      - "${DB_PORT_EXT}:${DB_PORT_INT}"
+    container_name: vinyl.db
+    volumes:
+      - vinyldb_vol:/var/lib/postgresql/data
+    networks:
+      - default
+      - vinylnet
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_VINYLTRACK_USER} -d ${DB_VINYLTRACK_NAME} -p ${DB_PORT_INT}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  fe:
+    image: vinylfe
+    build:
+      dockerfile: Dockerfile.fe
+    environment:
+      NODE_ENV: development
+      PORT: ${FE_PORT_INT}
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - ./fe/public:/app/public
+      - ./fe/src:/app/src
+      # Mount build configs so edits (e.g. tailwind `content`) are live without an image rebuild.
+      - ./fe/tailwind.config.ts:/app/tailwind.config.ts
+      - ./fe/postcss.config.mjs:/app/postcss.config.mjs
+      - ./fe/next.config.ts:/app/next.config.ts
+    networks:
+      - default
+      - vinylnet
+    ports:
+      - ${FE_PORT_EXT}:${FE_PORT_INT}
+    container_name: vinyl.fe
+    command: npm run dev
+    depends_on:
+      be:
+        condition: service_started
+
+  studio:
+    image: vinylstudio
+    build:
+      dockerfile: Dockerfile.be
+    environment:
+      NODE_ENV: development
+      DATABASE_URL: ${DB_VINYLTRACK_URL}
+    env_file:
+      - path: .env
+        required: true
+    volumes:
+      - ./be:/app/
+      - /app/node_modules
+    networks:
+      - default
+      - vinylnet
+    ports:
+      - ${STUDIO_PORT_EXT}:${STUDIO_PORT_INT}
+    container_name: vinyl.studio
+    command: npx prisma studio -p ${STUDIO_PORT_INT} -b none
+    depends_on:
+      seed:
+        condition: service_completed_successfully
+
+networks:
+  vinylnet:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.18.0.0/24
+  default:
+    driver: bridge
+    external: false
+
+volumes:
+  vinyldb_vol:

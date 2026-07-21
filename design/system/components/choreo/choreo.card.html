@@ -1,0 +1,243 @@
+<!-- @dsCard group="Components" viewport="700x420" subtitle="Call step row (spoken | choreo) · formation diagram · get-out" name="Choreo" -->
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body{margin:0;font-family:var(--font-body);background:var(--surface-app);padding:22px;color:var(--text-2);}
+  .eyebrow{font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-5);margin:18px 0 9px;}
+  .eyebrow:first-child{margin-top:0;}
+  .rows{background:var(--surface-card);border:1px solid var(--border);border-radius:var(--r-card);overflow:hidden;}
+  .side{display:flex;gap:18px;align-items:flex-start;}
+  .well{background:var(--surface-card);border:1px solid var(--border);border-radius:var(--r-card);padding:20px;}
+  .dark{padding:16px;background:var(--surface-app);border-radius:var(--r-card);width:300px;}
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head><body>
+<div id="root"></div>
+<!-- Component source below is inlined from the .jsx files in this folder plus their
+     ../badges dependencies (import/export stripped for a no-build browser preview via
+     Babel standalone). Keep in sync by hand. -->
+<script type="text/babel">
+  function DesignatorPill({ text, tone = 'editor' }) {
+    if (!text) return null;
+    if (tone === 'inline') {
+      return (
+        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: 'var(--designator)' }}>
+          {text}{' '}
+        </span>
+      );
+    }
+    return (
+      <span
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 'var(--fs-sm)',
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          color: 'var(--designator)',
+          letterSpacing: '0.5px',
+        }}
+      >
+        {text}
+      </span>
+    );
+  }
+
+  const RAMP = ['var(--diff-1)', 'var(--diff-2)', 'var(--diff-3)', 'var(--diff-4)', 'var(--diff-5)'];
+  function DifficultyPips({ level = 0, max = 5, width = 4, height = 13 }) {
+    const lit = Math.max(0, Math.min(max, Math.round(level)));
+    return (
+      <span style={{ display: 'inline-flex', gap: 'var(--pip-gap)', alignItems: 'flex-end' }}>
+        {Array.from({ length: max }, (_, i) => (
+          <span
+            key={i}
+            style={{
+              width,
+              height,
+              borderRadius: 'var(--pip-radius)',
+              background: i < lit ? RAMP[Math.min(i, RAMP.length - 1)] : 'var(--pip-empty)',
+            }}
+          />
+        ))}
+      </span>
+    );
+  }
+
+  function WarningChip({ level = 'inherent', text }) {
+    const inherent = level === 'inherent';
+    return (
+      <span
+        title={`${inherent ? 'Inherent' : 'Contextual'} warning`}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          border: `1px solid ${inherent ? 'var(--warn-strong)' : 'var(--danger-line)'}`,
+          background: inherent ? 'var(--warn-soft)' : 'var(--danger-soft)',
+          color: inherent ? 'var(--warn)' : 'var(--danger)',
+          borderRadius: 'var(--r-tag)',
+          padding: '3px 8px',
+          fontFamily: 'var(--font-body)',
+          fontSize: 'var(--fs-meta)',
+        }}
+      >
+        <span aria-hidden>▲</span>
+        <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>{level}:</span>
+        <span>{text}</span>
+      </span>
+    );
+  }
+
+  function CallStepRow({
+    index,
+    designator,
+    name,
+    count,
+    resolution = 'resolved',
+    formationIn,
+    formationOut,
+    difficulty = 0,
+    hands,
+    beats,
+    tech,
+    warning,
+  }) {
+    const line =
+      resolution === 'unresolved' ? 'var(--res-unresolved-line)'
+      : resolution === 'ambiguous' ? 'var(--res-ambiguous-line)'
+      : 'transparent';
+    const tint =
+      resolution === 'unresolved' ? 'var(--res-unresolved-bg)'
+      : resolution === 'ambiguous' ? 'var(--res-ambiguous-bg)'
+      : 'transparent';
+    const cell = { padding: '11px 16px', borderLeft: '1px solid var(--row-divider)' };
+    const code = {
+      fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-label)',
+      borderRadius: 'var(--r-tag)', padding: '2px 7px',
+    };
+
+    return (
+      <div
+        style={{
+          display: 'grid',
+          gridTemplateColumns: '40px 1fr 1fr',
+          borderBottom: '1px solid var(--row-divider)',
+          borderLeft: `3px solid ${line}`,
+          background: tint,
+          fontFamily: 'var(--font-body)',
+        }}
+      >
+        <div style={{ padding: '13px 8px', fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-meta)', color: 'var(--text-6)' }}>
+          {index}
+        </div>
+
+        {/* SPOKEN */}
+        <div style={{ ...cell, display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
+          <DesignatorPill text={designator} tone="editor" />
+          <span style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--fs-call-md)', color: 'var(--text-2)' }}>
+            {name}
+          </span>
+          {count != null && count !== '' && (
+            <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-lg)', color: 'var(--text-4)' }}>×{count}</span>
+          )}
+          {warning && <WarningChip level={warning.level || 'inherent'} text={warning.text} />}
+        </div>
+
+        {/* CHOREO */}
+        <div style={{ ...cell, display: 'flex', flexDirection: 'column', gap: 5, minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ ...code, color: 'var(--text-4)', background: 'var(--surface-accent-2)' }}>{formationIn}</span>
+            <span style={{ color: 'var(--text-6)', fontSize: 'var(--fs-meta)' }}>→</span>
+            <span style={{ ...code, color: 'var(--text-2)', background: 'var(--surface-accent)' }}>{formationOut}</span>
+            <span style={{ marginLeft: 2 }}><DifficultyPips level={difficulty} height={12} /></span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12, fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-label)', color: 'var(--text-5)' }}>
+            {hands && <span>hands · {hands}</span>}
+            {beats != null && <span>{beats} beats</span>}
+          </div>
+          {tech && <div style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--fs-meta)', color: 'var(--text-4)' }}>{tech}</div>}
+        </div>
+      </div>
+    );
+  }
+
+  function FormationDiagram({ rows = [], size = 34 }) {
+    const arrowBase = { position: 'absolute', left: '50%', transform: 'translateX(-50%)', width: 0, height: 0, borderLeft: '6px solid transparent', borderRight: '6px solid transparent' };
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center' }}>
+        {rows.map((row, ri) => (
+          <div key={ri} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {row.map((d, di) => (
+              <React.Fragment key={di}>
+                <div style={{ position: 'relative', width: size, height: size }}>
+                  {d.dir === 'up' && <span style={{ ...arrowBase, top: -11, borderBottom: '9px solid var(--facing)' }} />}
+                  {d.dir === 'down' && <span style={{ ...arrowBase, bottom: -11, borderTop: '9px solid var(--facing)' }} />}
+                  <span
+                    style={{
+                      display: 'block',
+                      width: size,
+                      height: size,
+                      borderRadius: d.shape === 'girl' ? '50%' : '4px',
+                      background: 'var(--surface-accent)',
+                      border: '1.5px solid var(--facing)',
+                    }}
+                  />
+                </div>
+                {d.link && <span style={{ width: 14, height: 4, borderRadius: 2, background: 'var(--hand-link)' }} />}
+              </React.Fragment>
+            ))}
+          </div>
+        ))}
+      </div>
+    );
+  }
+
+  function GetOutCard({ label = 'GET-OUT', name, note, from }) {
+    return (
+      <div
+        style={{
+          background: 'var(--get-out-bg)',
+          border: '1px solid var(--get-out-border)',
+          borderRadius: 'var(--r-card)',
+          padding: '16px 18px',
+        }}
+      >
+        <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-label)', letterSpacing: '2px', color: 'var(--get-out-accent)', marginBottom: 4 }}>
+          {label}
+        </div>
+        <div style={{ fontFamily: 'var(--font-display)', fontWeight: 700, fontSize: 'var(--fs-call-lg)', color: 'var(--text-on-inverse)' }}>
+          {name}
+        </div>
+        {note && <div style={{ fontFamily: 'var(--font-body)', fontSize: 'var(--fs-meta)', color: 'rgba(255,255,255,0.62)', marginTop: 5 }}>{note}</div>}
+        {from && <div style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--fs-label)', color: 'rgba(255,255,255,0.45)', marginTop: 7 }}>{from}</div>}
+      </div>
+    );
+  }
+
+  const waves = [
+    [{shape:'boy',dir:'up',link:true},{shape:'girl',dir:'down',link:true},{shape:'boy',dir:'up',link:true},{shape:'girl',dir:'down'}],
+    [{shape:'girl',dir:'down',link:true},{shape:'boy',dir:'up',link:true},{shape:'girl',dir:'down',link:true},{shape:'boy',dir:'up'}],
+  ];
+  function Demo(){
+    return (
+      <div>
+        <div className="eyebrow">Call step rows — spoken | choreo</div>
+        <div className="rows">
+          <CallStepRow index="01" designator="Heads" name="Square Thru" count={4} formationIn="Squared Set" formationOut="Eight Chain Thru" difficulty={1} hands="pull-by" beats={8} tech="Heads only — sides wait"/>
+          <CallStepRow index="07" name="Swing Thru" formationIn="Ocean Waves" formationOut="Ocean Waves" difficulty={2} hands="right, then left" beats={6} tech="Ends turn, centers turn"/>
+          <CallStepRow index="09" name="Tag the Line" resolution="ambiguous" formationIn="Two-Faced Lines" formationOut="Tag" difficulty={3} hands="none" beats={6} warning={{level:'inherent',text:'In — check facing'}}/>
+          <CallStepRow index="11" name="Zoomerang" resolution="unresolved" formationIn="Lines facing" formationOut="—" difficulty={4}/>
+        </div>
+        <div className="eyebrow">Formation diagram &amp; get-out</div>
+        <div className="side">
+          <div className="well"><FormationDiagram rows={waves}/></div>
+          <div style={{width:300}}><GetOutCard name="Allemande Left" note="Corner is home · Right & Left Grand to partner" from="from Corner Box"/></div>
+          <div className="dark theme-dark"><GetOutCard name="Allemande Left" note="Corner is home" from="from Corner Box"/></div>
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body></html>

@@ -1,0 +1,31 @@
+<!-- @dsCard group="Colors" viewport="700x150" subtitle="Sequence-import call resolution: resolved / unresolved / ambiguous" name="Resolution States" -->
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body{margin:0;font-family:var(--font-body);background:var(--surface-app);padding:18px 20px;}
+  .col{display:flex;flex-direction:column;gap:9px;}
+  .row{display:flex;align-items:center;gap:10px;border:1px solid;border-radius:var(--r-cell);padding:9px 12px;font-size:15px;color:var(--text-2);}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none;}
+  .tag{margin-left:auto;font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;}
+</style></head><body>
+  <div class="col">
+    <div class="row" style="border-color:var(--border);background:var(--surface-card)">
+      <span class="dot" style="background:var(--res-resolved)"></span>
+      <b style="font-weight:600">Square Thru</b>
+      <span style="font-family:var(--font-mono);font-size:12px;color:var(--text-4)">Eight Chain Thru</span>
+      <span class="tag" style="color:var(--res-resolved)">resolved</span>
+    </div>
+    <div class="row" style="border-color:var(--res-ambiguous-line);background:var(--res-ambiguous-bg)">
+      <span class="dot" style="background:var(--res-ambiguous-line)"></span>
+      <b style="font-weight:600">Trade</b>
+      <span style="font-family:var(--font-mono);font-size:12px;color:var(--res-ambiguous-fg)">2 calls match — pick one</span>
+      <span class="tag" style="color:var(--res-ambiguous-fg)">ambiguous</span>
+    </div>
+    <div class="row" style="border-color:var(--res-unresolved-line);background:var(--res-unresolved-bg)">
+      <span class="dot" style="background:var(--res-unresolved-line)"></span>
+      <b style="font-weight:600">Zoomerang</b>
+      <span style="font-family:var(--font-mono);font-size:12px;color:var(--res-unresolved-fg)">no match — add call or synonym</span>
+      <span class="tag" style="color:var(--res-unresolved-fg)">unresolved</span>
+    </div>
+  </div>
+</body></html>

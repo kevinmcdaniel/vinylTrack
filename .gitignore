@@ -1,0 +1,36 @@
+node_modules
+# Keep environment variables out of version control
+.env*
+!.env.example
+
+# dependencies
+fe/.pnp
+fe/.pnp.*
+
+# testing
+fe/coverage
+
+# next.js
+fe/.next/
+fe/out/
+
+# production
+fe/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+fe/npm-debug.log*
+fe/yarn-debug.log*
+fe/yarn-error.log*
+fe/.pnpm-debug.log*
+
+# vercel
+fe/.vercel
+
+# typescript
+fe/*.tsbuildinfo
+fe/next-env.d.ts
+be/src/generated/

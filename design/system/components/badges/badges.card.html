@@ -1,0 +1,154 @@
+<!-- @dsCard group="Components" viewport="700x300" subtitle="Difficulty pips · type / designator / warning / level badges" name="Badges" -->
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body{margin:0;font-family:var(--font-body);background:var(--surface-app);padding:22px;color:var(--text-2);}
+  .eyebrow{font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-5);margin:18px 0 9px;}
+  .eyebrow:first-child{margin-top:0;}
+  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head><body>
+<div id="root"></div>
+<!-- Component source below is inlined from the .jsx files in this folder (import/export
+     stripped for a no-build browser preview via Babel standalone). Keep in sync by hand. -->
+<script type="text/babel">
+  const RAMP = ['var(--diff-1)', 'var(--diff-2)', 'var(--diff-3)', 'var(--diff-4)', 'var(--diff-5)'];
+  function DifficultyPips({ level = 0, max = 5, width = 4, height = 13 }) {
+    const lit = Math.max(0, Math.min(max, Math.round(level)));
+    return (
+      <span style={{ display: 'inline-flex', gap: 'var(--pip-gap)', alignItems: 'flex-end' }}>
+        {Array.from({ length: max }, (_, i) => (
+          <span
+            key={i}
+            style={{
+              width,
+              height,
+              borderRadius: 'var(--pip-radius)',
+              background: i < lit ? RAMP[Math.min(i, RAMP.length - 1)] : 'var(--pip-empty)',
+            }}
+          />
+        ))}
+      </span>
+    );
+  }
+
+  const TYPE_KINDS = ['call', 'activator', 'filler', 'tip', 'warning', 'recovery'];
+  function TypeBadge({ kind = 'call' }) {
+    const k = TYPE_KINDS.includes(kind) ? kind : 'filler';
+    return (
+      <span
+        style={{
+          display: 'inline-block',
+          flex: 'none',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 'var(--fs-label)',
+          fontWeight: 600,
+          letterSpacing: '1px',
+          textTransform: 'uppercase',
+          borderRadius: 'var(--r-tag)',
+          padding: '4px 8px',
+          color: `var(--badge-${k}-fg)`,
+          background: `var(--badge-${k}-bg)`,
+        }}
+      >
+        {k}
+      </span>
+    );
+  }
+
+  function DesignatorPill({ text, tone = 'editor' }) {
+    if (!text) return null;
+    if (tone === 'inline') {
+      return (
+        <span style={{ fontFamily: 'var(--font-display)', fontWeight: 500, color: 'var(--designator)' }}>
+          {text}{' '}
+        </span>
+      );
+    }
+    return (
+      <span
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 'var(--fs-sm)',
+          fontWeight: 600,
+          textTransform: 'uppercase',
+          color: 'var(--designator)',
+          letterSpacing: '0.5px',
+        }}
+      >
+        {text}
+      </span>
+    );
+  }
+
+  function WarningChip({ level = 'inherent', text }) {
+    const inherent = level === 'inherent';
+    return (
+      <span
+        title={`${inherent ? 'Inherent' : 'Contextual'} warning`}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          border: `1px solid ${inherent ? 'var(--warn-strong)' : 'var(--danger-line)'}`,
+          background: inherent ? 'var(--warn-soft)' : 'var(--danger-soft)',
+          color: inherent ? 'var(--warn)' : 'var(--danger)',
+          borderRadius: 'var(--r-tag)',
+          padding: '3px 8px',
+          fontFamily: 'var(--font-body)',
+          fontSize: 'var(--fs-meta)',
+        }}
+      >
+        <span aria-hidden>▲</span>
+        <span style={{ fontWeight: 600, textTransform: 'capitalize' }}>{level}:</span>
+        <span>{text}</span>
+      </span>
+    );
+  }
+
+  function LevelBadge({ level = 'PLUS' }) {
+    return (
+      <span
+        style={{
+          fontFamily: 'var(--font-mono)',
+          fontSize: 'var(--fs-label)',
+          letterSpacing: '1.5px',
+          textTransform: 'uppercase',
+          color: 'var(--accent)',
+          border: '1px solid var(--accent)',
+          borderRadius: 'var(--r-tag)',
+          padding: '3px 8px',
+        }}
+      >
+        {level}
+      </span>
+    );
+  }
+
+  function Demo(){
+    return (
+      <div>
+        <div className="eyebrow">Difficulty pips</div>
+        <div className="row">
+          <DifficultyPips level={1}/><DifficultyPips level={3}/><DifficultyPips level={5}/>
+          <LevelBadge level="PLUS"/><LevelBadge level="A-1"/>
+        </div>
+        <div className="eyebrow">Type badges</div>
+        <div className="row">
+          {['call','activator','filler','tip','warning','recovery'].map(k=><TypeBadge key={k} kind={k}/>)}
+        </div>
+        <div className="eyebrow">Designator &amp; warnings</div>
+        <div className="row">
+          <DesignatorPill text="Heads" tone="editor"/>
+          <WarningChip level="inherent" text="In — check facing"/>
+          <WarningChip level="contextual" text="Tight transition"/>
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body></html>

@@ -1,0 +1,41 @@
+/* ============================================================
+   SquareTrack — Layout tokens: spacing, radius, elevation
+   ============================================================ */
+:root {
+  /* Spacing scale (4px base) */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 20px;
+  --sp-6: 24px;
+  --sp-7: 28px;
+  --sp-8: 32px;
+
+  /* Radius — calm, mid-soft. Big surfaces 16–20, chips/cells 5–10, pills full. */
+  --r-screen: 20px;   /* full tablet screen frame */
+  --r-panel:  16px;   /* cards / callouts */
+  --r-card:   12px;   /* inner cards, wells */
+  --r-cell:   9px;    /* call rows, list cells */
+  --r-chip:   7px;    /* segmented toggle, buttons */
+  --r-tag:    5px;    /* badges, code pills */
+  --r-pill:   999px;
+
+  /* Elevation — soft cool shadows; depth comes from a single lifted layer */
+  --shadow-screen: 0 18px 50px rgba(20,40,70,0.14);
+  --shadow-panel:  0 12px 36px rgba(20,40,70,0.12);
+  --shadow-pop:    0 6px 20px rgba(20,40,70,0.16);
+  --shadow-card:   0 1px 3px rgba(20,40,70,0.08);
+
+  /* Pip meter geometry (difficulty) */
+  --pip-w: 4px;
+  --pip-h: 13px;
+  --pip-gap: 2px;
+  --pip-radius: 1px;
+}
+[data-theme="dark"], .theme-dark {
+  --shadow-screen: 0 18px 50px rgba(0,0,0,0.30);
+  --shadow-panel:  0 12px 36px rgba(0,0,0,0.28);
+  --shadow-pop:    0 6px 20px rgba(0,0,0,0.40);
+  --shadow-card:   0 1px 3px rgba(0,0,0,0.30);
+}

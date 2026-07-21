@@ -1,0 +1,16 @@
+
+FROM node:24-alpine
+
+RUN mkdir /app
+
+WORKDIR /app
+
+COPY fe/package.json fe/eslint.config.mjs fe/next.config.ts fe/postcss.config.mjs fe/tailwind.config.ts fe/tsconfig.json ./
+
+RUN chown -R node:node /app
+
+USER node
+
+RUN npm install
+
+CMD ["npm", "run", "dev"]

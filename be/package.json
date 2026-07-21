@@ -1,0 +1,40 @@
+{
+  "name": "be",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "index.js",
+  "keywords": [],
+  "author": "Kevin McDaniel",
+  "license": "ISC",
+  "description": "vinylTrack API — family record/album/MP3 collection tracker",
+  "scripts": {
+    "dev": "npx prisma generate && npx nodemon --exec tsx src/server.ts",
+    "migrate": "npx prisma migrate dev",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint . --max-warnings 0"
+  },
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.5.0",
+    "@prisma/client": "^7.5.0",
+    "express": "^5.2.1"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.4",
+    "@types/express": "^5.0.0",
+    "@types/node": "^22.10.1",
+    "@types/supertest": "^7.2.0",
+    "@vitest/coverage-v8": "^4.1.4",
+    "dotenv": "^17.4.2",
+    "eslint": "^9.39.4",
+    "globals": "^17.6.0",
+    "nodemon": "^3.1.7",
+    "prisma": "^7.5.0",
+    "supertest": "^7.2.2",
+    "tsx": "^4.21.0",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.60.1",
+    "vitest": "^4.1.4"
+  }
+}

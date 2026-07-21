@@ -1,0 +1,5 @@
+/* SquareTrack webfonts.
+   These are Google Fonts. For a fully offline/self-hosted system, swap these
+   @import lines for @font-face rules pointing at local .woff2 files in assets/fonts/.
+   Flagged to Kevin: confirm whether you want self-hosted copies committed. */
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');

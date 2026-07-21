@@ -1,0 +1,35 @@
+/* ============================================================
+   SquareTrack — Typography tokens
+   Three families, used consistently:
+     display  Space Grotesk    — call names, big numbers, screen titles
+     body     Hanken Grotesk    — prose, definitions, list text, buttons
+     mono     IBM Plex Mono     — labels, counts, formation codes, eyebrows, metadata
+   ============================================================ */
+:root {
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-body:    'Hanken Grotesk', system-ui, sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Weights */
+  --fw-regular: 400;
+  --fw-medium:  500;
+  --fw-semibold:600;
+  --fw-bold:    700;
+  --fw-black:   800;
+
+  /* Type scale (px) — calling surfaces run large so calls are readable mid-floor */
+  --fs-call-xl: 30px;   /* live-calling call line */
+  --fs-call-lg: 24px;   /* call detail / get-out name */
+  --fs-call-md: 22px;   /* editor spoken call */
+  --fs-title:   20px;   /* screen titles */
+  --fs-lg:      17px;
+  --fs-body:    15px;   /* default body */
+  --fs-sm:      14px;
+  --fs-meta:    13px;
+  --fs-label:   11px;   /* mono eyebrow labels */
+  --fs-micro:   10px;   /* mono micro labels, legend text */
+
+  /* Mono label treatment — the brand's signature eyebrow */
+  --label-spacing: 1.5px;     /* letter-spacing for mono labels */
+  --label-spacing-wide: 2px;
+}

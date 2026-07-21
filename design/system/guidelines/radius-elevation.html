@@ -1,0 +1,22 @@
+<!-- @dsCard group="Spacing" viewport="700x172" subtitle="Corner radii + the single lifted-layer elevation" name="Radius & Elevation" -->
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../styles.css">
+<style>
+  body{margin:0;font-family:var(--font-body);background:var(--surface-app);padding:20px 22px;}
+  .row{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;}
+  .it{display:flex;flex-direction:column;gap:6px;align-items:center;}
+  .box{width:80px;height:52px;background:var(--surface-card);border:1px solid var(--border);}
+  .lab{font-family:var(--font-mono);font-size:10px;color:var(--text-5);text-align:center;}
+  .lab b{display:block;color:var(--text-2);font-weight:600;}
+</style></head><body>
+  <div class="row">
+    <div class="it"><div class="box" style="border-radius:var(--r-tag)"></div><div class="lab"><b>tag</b>5</div></div>
+    <div class="it"><div class="box" style="border-radius:var(--r-chip)"></div><div class="lab"><b>chip</b>7</div></div>
+    <div class="it"><div class="box" style="border-radius:var(--r-cell)"></div><div class="lab"><b>cell</b>9</div></div>
+    <div class="it"><div class="box" style="border-radius:var(--r-card)"></div><div class="lab"><b>card</b>12</div></div>
+    <div class="it"><div class="box" style="border-radius:var(--r-panel)"></div><div class="lab"><b>panel</b>16</div></div>
+    <div class="it"><div class="box" style="border-radius:var(--r-screen)"></div><div class="lab"><b>screen</b>20</div></div>
+    <div class="it"><div class="box" style="border-radius:var(--r-card);box-shadow:var(--shadow-card);border:none"></div><div class="lab"><b>card</b>shadow</div></div>
+    <div class="it"><div class="box" style="border-radius:var(--r-panel);box-shadow:var(--shadow-panel);border:none"></div><div class="lab"><b>panel</b>shadow</div></div>
+  </div>
+</body></html>

@@ -1,0 +1,132 @@
+<!-- @dsCard group="Components" viewport="700x230" subtitle="Buttons (4 variants) · segmented toggle" name="Controls" -->
+<!DOCTYPE html><html><head><meta charset="utf-8">
+<link rel="stylesheet" href="../../styles.css">
+<style>
+  body{margin:0;font-family:var(--font-body);background:var(--surface-app);padding:22px;color:var(--text-2);}
+  .eyebrow{font-family:var(--font-mono);font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-5);margin:18px 0 9px;}
+  .eyebrow:first-child{margin-top:0;}
+  .row{display:flex;flex-wrap:wrap;gap:12px;align-items:center;}
+</style>
+<script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head><body>
+<div id="root"></div>
+<!-- Component source below is inlined from the .jsx files in this folder (import/export
+     stripped for a no-build browser preview via Babel standalone). Keep in sync by hand. -->
+<script type="text/babel">
+  const SIZES = {
+    sm: { padding: '5px 11px', fontSize: 'var(--fs-meta)' },
+    md: { padding: '8px 14px', fontSize: 'var(--fs-sm)' },
+    lg: { padding: '10px 20px', fontSize: 'var(--fs-body)' },
+  };
+
+  function look(variant, hover) {
+    switch (variant) {
+      case 'secondary':
+        return { background: hover ? 'var(--surface-sunken)' : 'transparent', color: 'var(--text-3)', border: '1px solid var(--border-strong)' };
+      case 'ghost':
+        return { background: hover ? 'var(--surface-accent)' : 'transparent', color: 'var(--accent)', border: '1px solid transparent' };
+      case 'success':
+        return { background: hover ? 'var(--accent-press)' : 'var(--success)', color: '#fff', border: '1px solid transparent' };
+      case 'primary':
+      default:
+        return { background: hover ? 'var(--accent-press)' : 'var(--accent)', color: 'var(--text-on-accent)', border: '1px solid transparent' };
+    }
+  }
+
+  function Button({ children, variant = 'primary', size = 'md', icon, onClick, disabled = false, type = 'button' }) {
+    const [hover, setHover] = React.useState(false);
+    return (
+      <button
+        type={type}
+        onClick={onClick}
+        disabled={disabled}
+        onMouseEnter={() => setHover(true)}
+        onMouseLeave={() => setHover(false)}
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 7,
+          fontFamily: 'var(--font-body)',
+          fontWeight: 600,
+          borderRadius: 'var(--r-chip)',
+          cursor: disabled ? 'not-allowed' : 'pointer',
+          opacity: disabled ? 0.45 : 1,
+          transition: 'background .12s ease',
+          whiteSpace: 'nowrap',
+          ...SIZES[size] || SIZES.md,
+          ...look(variant, hover && !disabled),
+        }}
+      >
+        {icon && <span aria-hidden style={{ fontSize: '1.05em', lineHeight: 1 }}>{icon}</span>}
+        {children}
+      </button>
+    );
+  }
+
+  function SegmentedToggle({ options = [], value, onChange }) {
+    return (
+      <div
+        style={{
+          display: 'inline-flex',
+          border: '1px solid var(--border-strong)',
+          borderRadius: 'var(--r-chip)',
+          overflow: 'hidden',
+          fontFamily: 'var(--font-mono)',
+          fontSize: 'var(--fs-label)',
+        }}
+      >
+        {options.map((opt) => {
+          const v = typeof opt === 'string' ? opt : opt.value;
+          const label = typeof opt === 'string' ? opt : opt.label;
+          const active = v === value;
+          return (
+            <button
+              key={v}
+              type="button"
+              onClick={() => onChange && onChange(v)}
+              style={{
+                padding: '5px 11px',
+                border: 'none',
+                cursor: 'pointer',
+                background: active ? 'var(--surface-accent)' : 'transparent',
+                color: active ? 'var(--text-2)' : 'var(--text-5)',
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+    );
+  }
+
+  function Demo(){
+    const [mode,setMode] = React.useState('Sight');
+    return (
+      <div>
+        <div className="eyebrow">Buttons</div>
+        <div className="row">
+          <Button variant="primary" icon="＋">Call</Button>
+          <Button variant="success">Activate</Button>
+          <Button variant="secondary">Evaluate</Button>
+          <Button variant="ghost">Reorder</Button>
+          <Button variant="primary" disabled>Disabled</Button>
+        </div>
+        <div className="eyebrow">Sizes</div>
+        <div className="row">
+          <Button size="sm">Small</Button>
+          <Button size="md">Medium</Button>
+          <Button size="lg">Large</Button>
+        </div>
+        <div className="eyebrow">Segmented toggle</div>
+        <div className="row">
+          <SegmentedToggle options={['Scripted','Sight']} value={mode} onChange={setMode}/>
+        </div>
+      </div>
+    );
+  }
+  ReactDOM.createRoot(document.getElementById('root')).render(<Demo/>);
+</script>
+</body></html>
