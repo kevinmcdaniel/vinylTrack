@@ -49,9 +49,13 @@ Connection config lives in `.env` at the repo root (copy `.env.example`).
 - `be/src/database.ts` — Prisma client singleton using `@prisma/adapter-pg`
 - `be/src/route/` — Express routers; `index.ts` mounts sub-routers at `/api/*`
 - `be/src/common/` — shared middleware/error handling
-- `be/src/prisma/` — schema (currently empty — see issue #2), `seed.ts`, `migrations/`
+- `be/src/prisma/` — `schema.prisma` (generator/datasource) + `collection.prisma` (domain models), `seed.ts`, `migrations/`
 
-The domain schema (`user`, `collection`, `artist`, `album`, `copy`, `location`, `want_item`, etc.) is designed in issue #2 and its follow-ups (#11 auth/sharing, #14 multiple collections, #15 album art, #16 external metadata) but not yet implemented in code — check the issues before assuming any of these models exist.
+The domain schema (`user`, `collection`, `collection_share`, `artist`, `album`, `album_artist`, `location`, `source`, `copy`, `want_item`) landed in issue #2 (`be/src/prisma/collection.prisma`). Auth (#11), multiple-collection UI (#14), album art (#15), and external metadata (#16) add behavior and a few extra fields on top of this schema but haven't changed its shape yet — check the issues before assuming beyond what's in the `.prisma` file.
+
+Response envelope matches squaretrack's convention (list endpoints always `data: []`, never `null`, HTTP 200; single-resource `data: null` + HTTP 404 when missing; `ValidationError`/`ConflictError`/`NotFoundError`/`AuthError` in `be/src/common/errorHandler.ts` map to 406/409/404/401). Follow it for every new endpoint — see the `artist` CRUD vertical (`be/src/{route,controller,service}/artist*.ts`, issue #3) as the reference implementation.
+
+Auth is stubbed for now (build order intentionally put schema/CRUD ahead of #11's real Google OAuth): endpoints don't yet filter by caller/collection. When #11 lands, wire real session-based scoping into the CRUD services rather than adding it as an afterthought — the `collection`/`collection_share` tables already support it.
 
 ### Frontend structure
 - `fe/src/app/` — Next.js App Router

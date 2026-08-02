@@ -1,0 +1,143 @@
+// Collection domain — see issue #2.
+// user/collection/collection_share carry the auth+sharing model (#11, #14);
+// artist/album/album_artist/location/source/copy/want_item are the catalog.
+
+model user {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  name      String?
+  avatar    String?
+  status    String   @default("pending") // pending | active | denied
+  isAdmin   Boolean  @default(false)
+  ownedCollections collection[]       @relation("collectionOwner")
+  sharedCollections collection_share[]
+  locations location[]
+  createdAt DateTime @default(now())
+}
+
+model collection {
+  id      String             @id @default(uuid())
+  name    String
+  kind    String             // physical | digital — UI hint, not a hard constraint
+  ownerId String
+  owner   user               @relation("collectionOwner", fields: [ownerId], references: [id])
+  notes   String?
+  albums  album[]
+  wantItems want_item[]
+  shares  collection_share[]
+  @@index([ownerId])
+}
+
+// Grants a non-owner user access to a collection. role is a single "full" value for
+// v1 (see #11 open question) — kept as a field rather than hardcoded so viewer/editor
+// roles can be added later without a schema change.
+model collection_share {
+  collectionId String
+  collection   collection @relation(fields: [collectionId], references: [id])
+  userId       String
+  user         user       @relation(fields: [userId], references: [id])
+  role         String     @default("full")
+  @@id([collectionId, userId])
+  @@index([userId])
+}
+
+// Not collection-scoped — the same artist can show up across collections.
+model artist {
+  id       String         @id @default(uuid())
+  name     String
+  sortName String?
+  notes    String?
+  albums   album_artist[]
+  wantItems want_item[]
+  @@index([name])
+}
+
+// The release/edition. Format is edition-specific and lives here, not on copy —
+// two formats of the same title are two album rows, each with their own copies.
+model album {
+  id            String         @id @default(uuid())
+  collectionId  String
+  collection    collection     @relation(fields: [collectionId], references: [id])
+  title         String
+  format        String?        // LP | 45 | 78 | CD | mp3 | ...
+  year          Int?
+  genre         String?
+  notes         String?
+  coverImageUrl String?
+  artists       album_artist[]
+  copies        copy[]
+  wantItems     want_item[]
+  @@index([collectionId])
+  @@index([title])
+}
+
+model album_artist {
+  albumId  String
+  album    album  @relation(fields: [albumId], references: [id])
+  artistId String
+  artist   artist @relation(fields: [artistId], references: [id])
+  @@id([albumId, artistId])
+  @@index([artistId])
+}
+
+// A place a copy can live, physical or digital. parentLocationId is a simple
+// self-referencing parent/child (e.g. Room -> Shelf), not a deep arbitrary tree.
+model location {
+  id                String     @id @default(uuid())
+  name              String
+  kind              String     // physical | digital
+  parentLocationId  String?
+  parent            location?  @relation("locationParent", fields: [parentLocationId], references: [id])
+  children          location[] @relation("locationParent")
+  ownerId           String?
+  owner             user?      @relation(fields: [ownerId], references: [id])
+  notes             String?
+  copies            copy[]
+  @@index([parentLocationId])
+  @@index([ownerId])
+}
+
+model source {
+  id           String  @id @default(uuid())
+  type         String  // person | store | other
+  name         String
+  contactNotes String?
+  copies       copy[]
+}
+
+// One owned instance. One album can have zero, one, or many copies — this is what
+// makes "I own this AND my kid owns it" representable, and what duplicate-purchase
+// detection (#13) is built on.
+model copy {
+  id           String    @id @default(uuid())
+  albumId      String
+  album        album     @relation(fields: [albumId], references: [id])
+  locationId   String
+  location     location  @relation(fields: [locationId], references: [id])
+  sourceId     String?
+  source       source?   @relation(fields: [sourceId], references: [id])
+  dateAcquired DateTime?
+  price        Decimal?  @db.Decimal(10, 2)
+  condition    String?   // not meaningful for most digital copies
+  notes        String?
+  @@index([albumId])
+  @@index([locationId])
+}
+
+// References either an artist or a specific album (not both — app-level validation,
+// no DB constraint per #2 open question). collectionId is required even for an
+// artist-level want, since "more square-dance calls by X" vs "more vinyl by X" differ.
+model want_item {
+  id           String     @id @default(uuid())
+  collectionId String
+  collection   collection @relation(fields: [collectionId], references: [id])
+  artistId     String?
+  artist       artist?    @relation(fields: [artistId], references: [id])
+  albumId      String?
+  album        album?     @relation(fields: [albumId], references: [id])
+  priority     String     // must-have | nice-to-have
+  notes        String?
+  @@index([collectionId])
+  @@index([artistId])
+  @@index([albumId])
+}
