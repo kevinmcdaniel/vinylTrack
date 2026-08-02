@@ -112,6 +112,21 @@ describe('GET /api/album/:id', () => {
     expect(res.status).toBe(404);
     expect(res.body.data).toBeNull();
   });
+
+  it('includes copy rows with resolved location (#5)', async () => {
+    const album = await prisma.album.create({ data: { collectionId, title: `${T}WithCopies` } });
+    const room = await prisma.location.create({ data: { name: `${T}CopyRoom`, kind: 'physical' } });
+    const shelf = await prisma.location.create({
+      data: { name: `${T}CopyShelf`, kind: 'physical', parentLocationId: room.id },
+    });
+    await prisma.copy.create({ data: { albumId: album.id, locationId: shelf.id } });
+
+    const res = await request(app).get(`/api/album/${album.id}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.copies).toHaveLength(1);
+    expect(res.body.data.copies[0].location.id).toBe(shelf.id);
+    expect(res.body.data.copies[0].location.parent.id).toBe(room.id);
+  });
 });
 
 // ── PATCH /api/album/:id ─────────────────────────────────────────────────
