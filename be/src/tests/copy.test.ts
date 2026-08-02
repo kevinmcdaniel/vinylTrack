@@ -2,8 +2,11 @@ import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 import app from '../app.js';
 import { prisma } from '../database.js';
-import { T, cleanupTestData } from './setup.js';
+import { T, cleanupTestData, authHeader, createTestAdmin } from './setup.js';
 
+let owner: { id: string; email: string };
+let outsider: { id: string; email: string };
+let admin: { id: string; email: string };
 let collectionId: string;
 let albumId: string;
 let locationId: string;
@@ -11,7 +14,9 @@ let sourceId: string;
 
 beforeAll(async () => {
   await cleanupTestData();
-  const owner = await prisma.user.create({ data: { email: `${T}copy-owner@example.com`, status: 'active' } });
+  owner = await prisma.user.create({ data: { email: `${T}copy-owner@example.com`, status: 'active' } });
+  outsider = await prisma.user.create({ data: { email: `${T}copy-outsider@example.com`, status: 'active' } });
+  admin = await createTestAdmin('copy-admin');
   const collection = await prisma.collection.create({ data: { name: `${T}CopyColl`, kind: 'physical', ownerId: owner.id } });
   collectionId = collection.id;
   const album = await prisma.album.create({ data: { collectionId, title: `${T}CopyAlbum` } });
@@ -27,7 +32,7 @@ afterAll(async () => { await cleanupTestData(); });
 
 describe('POST /api/copy', () => {
   it('creates a copy with albumId + locationId only', async () => {
-    const res = await request(app).post('/api/copy').send({ albumId, locationId });
+    const res = await request(app).post('/api/copy').set(authHeader(owner.email)).send({ albumId, locationId });
     expect(res.status).toBe(201);
     expect(res.body.data.albumId).toBe(albumId);
     expect(res.body.data.locationId).toBe(locationId);
@@ -36,25 +41,32 @@ describe('POST /api/copy', () => {
   it('creates a copy with source + acquisition fields', async () => {
     const res = await request(app)
       .post('/api/copy')
+      .set(authHeader(owner.email))
       .send({ albumId, locationId, sourceId, price: 24.99, condition: 'VG+', notes: 'test' });
     expect(res.status).toBe(201);
     expect(res.body.data.sourceId).toBe(sourceId);
     expect(res.body.data.condition).toBe('VG+');
   });
 
+  it('returns 403 for an outsider posting a copy against an album they cannot access', async () => {
+    const res = await request(app).post('/api/copy').set(authHeader(outsider.email)).send({ albumId, locationId });
+    expect(res.status).toBe(403);
+  });
+
   it('returns 406 when albumId is missing', async () => {
-    const res = await request(app).post('/api/copy').send({ locationId });
+    const res = await request(app).post('/api/copy').set(authHeader(owner.email)).send({ locationId });
     expect(res.status).toBe(406);
   });
 
   it('returns 406 when locationId is missing', async () => {
-    const res = await request(app).post('/api/copy').send({ albumId });
+    const res = await request(app).post('/api/copy').set(authHeader(owner.email)).send({ albumId });
     expect(res.status).toBe(406);
   });
 
   it('returns 409 for a nonexistent albumId', async () => {
     const res = await request(app)
       .post('/api/copy')
+      .set(authHeader(admin.email))
       .send({ albumId: '00000000-0000-0000-0000-000000000000', locationId });
     expect(res.status).toBe(409);
   });
@@ -65,13 +77,22 @@ describe('POST /api/copy', () => {
 describe('GET /api/copy', () => {
   it('filters by albumId', async () => {
     const copy = await prisma.copy.create({ data: { albumId, locationId } });
-    const res = await request(app).get(`/api/copy?albumId=${albumId}`);
+    const res = await request(app).get(`/api/copy?albumId=${albumId}`).set(authHeader(owner.email));
     expect(res.status).toBe(200);
     expect(res.body.data.some((c: { id: string }) => c.id === copy.id)).toBe(true);
   });
 
   it('returns 200 with [] when no copies match', async () => {
-    const res = await request(app).get('/api/copy?albumId=00000000-0000-0000-0000-000000000000');
+    const res = await request(app)
+      .get('/api/copy?albumId=00000000-0000-0000-0000-000000000000')
+      .set(authHeader(owner.email));
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([]);
+  });
+
+  it('scopes results away from an outsider', async () => {
+    await prisma.copy.create({ data: { albumId, locationId } });
+    const res = await request(app).get(`/api/copy?albumId=${albumId}`).set(authHeader(outsider.email));
     expect(res.status).toBe(200);
     expect(res.body.data).toEqual([]);
   });
@@ -82,14 +103,22 @@ describe('GET /api/copy', () => {
 describe('GET /api/copy/:id', () => {
   it('returns 200 with copy and resolved location', async () => {
     const copy = await prisma.copy.create({ data: { albumId, locationId, sourceId } });
-    const res = await request(app).get(`/api/copy/${copy.id}`);
+    const res = await request(app).get(`/api/copy/${copy.id}`).set(authHeader(owner.email));
     expect(res.status).toBe(200);
     expect(res.body.data.location.id).toBe(locationId);
     expect(res.body.data.source.id).toBe(sourceId);
   });
 
+  it('returns 404 for an outsider', async () => {
+    const copy = await prisma.copy.create({ data: { albumId, locationId } });
+    const res = await request(app).get(`/api/copy/${copy.id}`).set(authHeader(outsider.email));
+    expect(res.status).toBe(404);
+  });
+
   it('returns 404 with data:null for a nonexistent id', async () => {
-    const res = await request(app).get('/api/copy/00000000-0000-0000-0000-000000000000');
+    const res = await request(app)
+      .get('/api/copy/00000000-0000-0000-0000-000000000000')
+      .set(authHeader(owner.email));
     expect(res.status).toBe(404);
     expect(res.body.data).toBeNull();
   });
@@ -100,14 +129,21 @@ describe('GET /api/copy/:id', () => {
 describe('PATCH /api/copy/:id', () => {
   it('updates a copy', async () => {
     const copy = await prisma.copy.create({ data: { albumId, locationId } });
-    const res = await request(app).patch(`/api/copy/${copy.id}`).send({ condition: 'M' });
+    const res = await request(app).patch(`/api/copy/${copy.id}`).set(authHeader(owner.email)).send({ condition: 'M' });
     expect(res.status).toBe(200);
     expect(res.body.data.condition).toBe('M');
+  });
+
+  it('returns 404 for an outsider', async () => {
+    const copy = await prisma.copy.create({ data: { albumId, locationId } });
+    const res = await request(app).patch(`/api/copy/${copy.id}`).set(authHeader(outsider.email)).send({ condition: 'M' });
+    expect(res.status).toBe(404);
   });
 
   it('returns 404 for a nonexistent id', async () => {
     const res = await request(app)
       .patch('/api/copy/00000000-0000-0000-0000-000000000000')
+      .set(authHeader(owner.email))
       .send({ condition: 'M' });
     expect(res.status).toBe(404);
     expect(res.body.data).toBeNull();
@@ -119,15 +155,17 @@ describe('PATCH /api/copy/:id', () => {
 describe('DELETE /api/copy/:id', () => {
   it('deletes an existing copy', async () => {
     const copy = await prisma.copy.create({ data: { albumId, locationId } });
-    const res = await request(app).delete(`/api/copy/${copy.id}`);
+    const res = await request(app).delete(`/api/copy/${copy.id}`).set(authHeader(owner.email));
     expect(res.status).toBe(200);
 
-    const check = await request(app).get(`/api/copy/${copy.id}`);
+    const check = await request(app).get(`/api/copy/${copy.id}`).set(authHeader(owner.email));
     expect(check.status).toBe(404);
   });
 
   it('returns 404 for a nonexistent id', async () => {
-    const res = await request(app).delete('/api/copy/00000000-0000-0000-0000-000000000000');
+    const res = await request(app)
+      .delete('/api/copy/00000000-0000-0000-0000-000000000000')
+      .set(authHeader(owner.email));
     expect(res.status).toBe(404);
     expect(res.body.data).toBeNull();
   });

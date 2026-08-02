@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ValidationError, ConflictError, NotFoundError } from '../common/errorHandler.js';
 import { routeParam } from '../common/utils.js';
+import { accessibleCollectionIds } from '../common/policy.js';
 import {
   listCopiesService,
   getCopyService,
@@ -15,7 +16,8 @@ const isPrismaError = (error: unknown, code: string): boolean =>
 export const listCopies = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { albumId, locationId } = req.query as Record<string, string>;
-    const records = await listCopiesService({ albumId, locationId });
+    const scope = req.user!.isAdmin ? undefined : await accessibleCollectionIds(req.user!.id);
+    const records = await listCopiesService({ albumId, locationId }, scope);
     res.json({ message: 'List of copies', data: records, status: 200 });
   } catch (error) {
     next(error);

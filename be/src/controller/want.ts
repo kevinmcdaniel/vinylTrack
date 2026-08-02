@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ValidationError, ConflictError, NotFoundError } from '../common/errorHandler.js';
 import { routeParam } from '../common/utils.js';
+import { accessibleCollectionIds } from '../common/policy.js';
 import {
   listWantItemsService,
   getWantItemService,
@@ -16,7 +17,8 @@ const isPrismaError = (error: unknown, code: string): boolean =>
 export const listWantItems = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { collectionId } = req.query as Record<string, string>;
-    const records = await listWantItemsService({ collectionId });
+    const scope = req.user!.isAdmin ? undefined : await accessibleCollectionIds(req.user!.id);
+    const records = await listWantItemsService({ collectionId }, scope);
     res.json({ message: 'List of want items', data: records, status: 200 });
   } catch (error) {
     next(error);

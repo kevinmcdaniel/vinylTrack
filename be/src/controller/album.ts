@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ValidationError, ConflictError, NotFoundError } from '../common/errorHandler.js';
 import { routeParam } from '../common/utils.js';
+import { accessibleCollectionIds } from '../common/policy.js';
 import {
   listAlbumsService,
   getAlbumService,
@@ -15,7 +16,8 @@ const isPrismaError = (error: unknown, code: string): boolean =>
 export const listAlbums = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const { collectionId, artistId, format, genre } = req.query as Record<string, string>;
-    const records = await listAlbumsService({ collectionId, artistId, format, genre });
+    const scope = req.user!.isAdmin ? undefined : await accessibleCollectionIds(req.user!.id);
+    const records = await listAlbumsService({ collectionId, artistId, format, genre }, scope);
     res.json({ message: 'List of albums', data: records, status: 200 });
   } catch (error) {
     next(error);
