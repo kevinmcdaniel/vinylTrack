@@ -4,6 +4,7 @@ import { artistRoute } from './artists.js';
 import { albumRoute } from './albums.js';
 import { locationRoute } from './locations.js';
 import { copyRoute } from './copies.js';
+import { wantRoute } from './wants.js';
 
 export const indexRoute = Router();
 
@@ -12,3 +13,4 @@ indexRoute.use('/artist', artistRoute);
 indexRoute.use('/album', albumRoute);
 indexRoute.use('/location', locationRoute);
 indexRoute.use('/copy', copyRoute);
+indexRoute.use('/want', wantRoute);
