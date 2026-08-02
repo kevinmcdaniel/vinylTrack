@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+body { margin: 0; }
+a { color: #6fa0ff; }
+a:hover { color: #9fbcff; }
+</style>
+</helmet>
+<div style="min-height:100vh;background:#161a20;display:flex;flex-direction:column;align-items:center;padding:32px 20px 60px;font-family:'Hanken Grotesk',system-ui,sans-serif;">
+
+  <div style="width:100%;max-width:1200px;display:flex;justify-content:space-between;align-items:center;margin-bottom:28px;flex-wrap:wrap;gap:14px;">
+    <div>
+      <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;color:#f2f3f5;">vinylTrack — responsive wireframes</div>
+      <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:#8f9da9;margin-top:4px;">Search &amp; browse · add to collection · move copies · want list</div>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center;">
+      <div style="display:inline-flex;border:1px solid rgba(255,255,255,0.15);border-radius:9px;overflow:hidden;">
+        <sc-for list="{{ devices }}" as="d" hint-placeholder-count="3">
+          <div onClick="{{ d.onSelect }}" style="padding:8px 14px;cursor:pointer;font-size:13px;font-weight:600;background:{{ d.bg }};color:{{ d.fg }};white-space:nowrap;">{{ d.label }}</div>
+        </sc-for>
+      </div>
+      <div style="display:inline-flex;gap:6px;align-items:center;padding:6px 8px;border:1px solid rgba(255,255,255,0.15);border-radius:9px;">
+        <sc-for list="{{ swatches }}" as="sw" hint-placeholder-count="3">
+          <div onClick="{{ sw.onSelect }}" title="{{ sw.label }}" style="width:26px;height:26px;border-radius:999px;cursor:pointer;background:{{ sw.bg }};border:2px solid {{ sw.ring }};"></div>
+        </sc-for>
+      </div>
+      <div onClick="{{ onToggleFindings }}" style="padding:8px 14px;border-radius:9px;border:1px solid #e3c389;color:#e3c389;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap;">▲ Data model check</div>
+    </div>
+  </div>
+
+  <div style="display:flex;justify-content:center;">
+    <sc-if value="{{ isPro }}">
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" width="{{ 402 }}" height="{{ 874 }}" hint-size="402,874">
+        <dc-import name="VinylTrackApp" is-desktop="{{ false }}" theme="{{ theme }}" hint-size="402,874" style="width:100%;height:100%;"></dc-import>
+      </x-import>
+    </sc-if>
+    <sc-if value="{{ isAirPlus }}">
+      <x-import component-from-global-scope="IOSDevice" from="./ios-frame.jsx" width="{{ 430 }}" height="{{ 932 }}" hint-size="430,932">
+        <dc-import name="VinylTrackApp" is-desktop="{{ false }}" theme="{{ theme }}" hint-size="430,932" style="width:100%;height:100%;"></dc-import>
+      </x-import>
+    </sc-if>
+    <sc-if value="{{ isDesktopMode }}">
+      <x-import component-from-global-scope="ChromeWindow" from="./browser-window.jsx" width="{{ 1240 }}" height="{{ 800 }}" url="vinyltrack.app/collections/vinyl" hint-size="1240,800">
+        <dc-import name="VinylTrackApp" is-desktop="{{ true }}" theme="{{ theme }}" hint-size="1240,800" style="width:100%;height:100%;"></dc-import>
+      </x-import>
+    </sc-if>
+  </div>
+
+  <sc-if value="{{ findingsOpen }}">
+    <div style="position:fixed;inset:0;background:rgba(10,14,20,0.6);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;">
+      <div style="width:100%;max-width:640px;max-height:85vh;overflow:auto;background:#1e2127;border:1px solid rgba(255,255,255,0.08);border-radius:16px;padding:24px;box-sizing:border-box;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:19px;color:#f2f3f5;">Data model &amp; architecture check</div>
+          <div onClick="{{ onToggleFindings }}" style="cursor:pointer;color:#8f9da9;font-size:20px;">×</div>
+        </div>
+        <div style="font-size:13px;color:#aab2bd;margin-bottom:18px;">schema.prisma has no models yet — these wireframes are built against the planned shape (issue #2: user/collection/artist/album/copy/location/want_item). Flagging where a screen assumes something the plan doesn't yet cover, before this gets built.</div>
+        <div style="display:flex;flex-direction:column;gap:10px;">
+          <sc-for list="{{ findings }}" as="f" hint-placeholder-count="6">
+            <div style="border:1px solid rgba(227,195,137,0.35);background:rgba(227,195,137,0.08);border-radius:10px;padding:12px 14px;">
+              <div style="font-weight:700;font-size:14px;color:#e3c389;margin-bottom:4px;">▲ {{ f.title }}</div>
+              <div style="font-size:13px;color:#d7dadf;line-height:1.5;">{{ f.note }}</div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+
+class Component extends DCLogic {
+  state = { device: 'pro', findingsOpen: false, theme: 'classic' };
+  selectDevice = (d) => this.setState({ device: d });
+  selectTheme = (t) => this.setState({ theme: t });
+  onToggleFindings = () => this.setState((s) => ({ findingsOpen: !s.findingsOpen }));
+
+  renderVals() {
+    const s = this.state;
+    const opts = [
+      { id: 'pro', label: 'iPhone 17 Pro' },
+      { id: 'airplus', label: 'iPhone Air Plus' },
+      { id: 'desktop', label: 'Desktop' },
+    ];
+    const devices = opts.map((o) => ({ ...o, onSelect: () => this.selectDevice(o.id), bg: s.device === o.id ? '#2f6fed' : 'transparent', fg: s.device === o.id ? '#fff' : '#aab2bd' }));
+
+    const swatchOpts = [
+      { id: 'classic', label: 'Classic (light)', bg: '#2f6fed' },
+      { id: 'warm', label: 'Warm record-store', bg: '#b5502f' },
+      { id: 'dark', label: 'Dark', bg: '#5b8cff' },
+    ];
+    const swatches = swatchOpts.map((o) => ({ ...o, onSelect: () => this.selectTheme(o.id), ring: s.theme === o.id ? '#fff' : 'rgba(255,255,255,0.2)' }));
+
+    const findings = [
+      { title: 'Schema not built yet', note: 'be/src/prisma/schema.prisma currently has no models. Everything here assumes the planned user/collection/artist/album/copy/location/want_item shape from issue #2 \u2014 worth confirming that shape before building these screens for real.' },
+      { title: 'Cross-family duplicate check needs a visibility exception', note: 'The "does anyone already own this?" check (used in Add a copy) has to see copies in collections you don\u2019t own or have shared access to \u2014 that cuts against "I only ever see collections shared with me." The model needs an explicit narrow exception for this one query.' },
+      { title: 'Copies are collection-scoped \u2014 moving between collections isn\u2019t modeled', note: 'The Move-copy sheet only supports moving locations within the same collection. Per the design brief, collections don\u2019t cross-reference each other, so a copy can\u2019t be reassigned from Vinyl to Square Dance Calls without deleting and recreating it. If "move between collections" is a real need, that\u2019s a model change, not just a UI one.' },
+      { title: 'Want-item \u2192 copy conversion has no explicit link', note: '"Mark as found" is supposed to turn a want item straight into a real copy. The planned model doesn\u2019t yet show a field connecting a copy back to the want_item it fulfilled, or how an artist-level want item (no specific album) resolves once found.' },
+      { title: 'Barcode/photo-scan candidates aren\u2019t a modeled entity', note: 'The confirm-from-candidates flow (Add a copy, step 1) needs a staging structure between "scanned something" and "album + copy exist." Issues #16/#17 describe the UX but not this intermediate shape.' },
+      { title: 'Auth &amp; sharing aren\u2019t implemented', note: 'Pending-approval, admin approve/deny, and per-collection sharing (issue #11) have no backend yet \u2014 the Account screen here is a placeholder for that flow, not a working one.' },
+    ];
+
+    return {
+      isPro: s.device === 'pro', isAirPlus: s.device === 'airplus', isDesktopMode: s.device === 'desktop',
+      devices, findingsOpen: s.findingsOpen, onToggleFindings: this.onToggleFindings, findings,
+      theme: s.theme, swatches,
+    };
+  }
+}
+
+</script>
+</body>
+</html>

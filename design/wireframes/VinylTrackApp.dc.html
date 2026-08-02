@@ -1,0 +1,796 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+
+<helmet>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Hanken+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+</style>
+</helmet>
+<div style="width:100%;height:100%;display:flex;flex-direction:column;background:var(--bg);font-family:'Hanken Grotesk',system-ui,sans-serif;color:var(--text);overflow:hidden;position:relative;{{ themeVars }}">
+
+  <!-- ===== MOBILE SHELL ===== -->
+  <sc-if value="{{ showMobile }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;height:100%;">
+      <div style="flex:none;padding:58px 16px 12px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;">
+        <sc-if value="{{ mobileShowBack }}">
+          <div onClick="{{ mobileBack }}" style="cursor:pointer;color:var(--text-secondary);font-size:20px;line-height:1;padding:2px 6px 2px 0;">←</div>
+        </sc-if>
+        <div style="flex:1;font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:20px;letter-spacing:-0.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ mobileHeaderTitle }}</div>
+        <sc-if value="{{ mobileShowAdd }}">
+          <div onClick="{{ onAddFresh }}" style="width:32px;height:32px;border-radius:999px;background:var(--primary);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-size:18px;cursor:pointer;flex:none;">＋</div>
+        </sc-if>
+      </div>
+
+      <div style="flex:1;overflow:auto;">
+
+        <!-- HOME -->
+        <sc-if value="{{ isHomeScreen }}">
+          <div style="padding:16px;">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px;">Your collections</div>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <sc-for list="{{ collectionsWithCounts }}" as="c" hint-placeholder-count="3">
+                <div onClick="{{ c.onOpen }}" style="background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 1px 3px rgba(20,40,70,0.08);cursor:pointer;">
+                  <div>
+                    <div style="font-family:'Space Grotesk',sans-serif;font-weight:600;font-size:17px;">{{ c.name }}</div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-muted);margin-top:4px;">{{ c.countLabel }}</div>
+                  </div>
+                  <div style="color:var(--chevron);font-size:18px;">→</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- BROWSE -->
+        <sc-if value="{{ isBrowseScreen }}">
+          <div style="padding:14px 16px;">
+            <input value="{{ searchQuery }}" onChange="{{ onSearchChange }}" placeholder="Search title or artist" style="width:100%;box-sizing:border-box;border:1px solid var(--border);background:var(--surface-alt);border-radius:999px;padding:10px 16px;font-size:15px;font-family:'Hanken Grotesk',sans-serif;color:var(--text);margin-bottom:10px;"/>
+            <div style="display:flex;gap:8px;margin-bottom:14px;overflow:auto;">
+              <sc-for list="{{ filterChips }}" as="chip" hint-placeholder-count="3">
+                <div onClick="{{ chip.onToggle }}" style="flex:none;font-family:'IBM Plex Mono',monospace;font-size:12px;padding:6px 12px;border-radius:999px;border:1px solid var(--border-strong);cursor:pointer;white-space:nowrap;background:{{ chip.bg }};color:{{ chip.fg }};">{{ chip.label }}</div>
+              </sc-for>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;overflow:hidden;">
+              <sc-for list="{{ filteredAlbums }}" as="a" hint-placeholder-count="3">
+                <div onClick="{{ a.onOpen }}" style="display:flex;align-items:center;gap:12px;padding:12px 14px;border-bottom:1px solid var(--border-light);cursor:pointer;">
+                  <div style="width:44px;height:44px;flex:none;border-radius:6px;background:repeating-linear-gradient(135deg,var(--border-light),var(--border-light) 6px,var(--surface-alt) 6px,var(--surface-alt) 12px);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:9px;color:var(--text-muted);">{{ a.format }}</div>
+                  <div style="flex:1;min-width:0;">
+                    <div style="font-weight:600;font-size:15px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ a.title }}</div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-muted);margin-top:2px;">{{ a.meta }}</div>
+                  </div>
+                  <div style="color:var(--chevron);">→</div>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ALBUM DETAIL -->
+        <sc-if value="{{ isAlbumScreen }}">
+          <div style="padding:18px 16px 90px;">
+            <div style="width:100%;max-width:220px;aspect-ratio:1;margin:0 auto 16px;border-radius:10px;background:repeating-linear-gradient(135deg,var(--border-light),var(--border-light) 8px,var(--surface-alt) 8px,var(--surface-alt) 16px);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);">COVER ART</div>
+            <div style="text-align:center;">
+              <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:22px;">{{ currentAlbum.title }}</div>
+              <div style="font-size:16px;color:var(--text-secondary);margin-top:4px;">{{ currentAlbum.artist }}</div>
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-muted);margin-top:8px;">{{ currentAlbum.metaLine }}</div>
+            </div>
+            <sc-if value="{{ currentAlbum.hasCredits }}">
+              <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light);">
+                <sc-for list="{{ currentAlbum.credits }}" as="cr" hint-placeholder-count="2">
+                  <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-tertiary);padding:4px 0;"><span>{{ cr.k }}</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--text-secondary);">{{ cr.v }}</span></div>
+                </sc-for>
+              </div>
+            </sc-if>
+            <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light);">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px;">{{ currentAlbum.copiesLabel }}</div>
+              <sc-if value="{{ currentAlbum.hasCopies }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <sc-for list="{{ currentAlbum.copies }}" as="cp" hint-placeholder-count="2">
+                    <div onClick="{{ cp.onMove }}" style="display:flex;align-items:center;gap:10px;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;">
+                      <div style="width:30px;height:30px;border-radius:999px;background:{{ cp.avatarBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex:none;">{{ cp.initial }}</div>
+                      <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;font-size:14px;">{{ cp.owner }}</div>
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);">{{ cp.location }}</div>
+                      </div>
+                      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:3px 7px;border-radius:5px;background:{{ cp.condBg }};color:{{ cp.condFg }};flex:none;">{{ cp.condition }}</div>
+                      <div style="color:var(--chevron);">→</div>
+                    </div>
+                  </sc-for>
+                </div>
+              </sc-if>
+              <sc-if value="{{ currentAlbum.noCopies }}">
+                <div style="text-align:center;color:var(--text-tertiary);font-size:14px;padding:20px 0;">No copies yet — the family doesn't own this one.</div>
+              </sc-if>
+              <div onClick="{{ onAddForAlbum }}" style="margin-top:14px;text-align:center;border:1px solid var(--primary);color:var(--primary);border-radius:7px;padding:10px;font-weight:600;font-size:14px;cursor:pointer;">Add another copy</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- WANT LIST -->
+        <sc-if value="{{ isWantScreen }}">
+          <div style="padding:14px 16px 40px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;">Want list</div>
+              <div onClick="{{ onOpenAddWant }}" style="font-size:13px;font-weight:600;color:var(--primary);cursor:pointer;">+ Add</div>
+            </div>
+            <sc-if value="{{ addWantOpen }}">
+              <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px;display:flex;flex-direction:column;gap:8px;">
+                <div style="display:inline-flex;border:1px solid var(--border-strong);border-radius:7px;overflow:hidden;width:fit-content;font-family:'IBM Plex Mono',monospace;font-size:11px;">
+                  <div onClick="{{ setWantTypeAlbum }}" style="padding:5px 11px;cursor:pointer;background:{{ wantTypeAlbumBg }};color:{{ wantTypeAlbumFg }};">Album</div>
+                  <div onClick="{{ setWantTypeArtist }}" style="padding:5px 11px;cursor:pointer;background:{{ wantTypeArtistBg }};color:{{ wantTypeArtistFg }};">Artist</div>
+                </div>
+                <input value="{{ newWantText }}" onChange="{{ onNewWantTextChange }}" placeholder="{{ newWantPlaceholder }}" style="border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:14px;font-family:'Hanken Grotesk',sans-serif;"/>
+                <div style="display:inline-flex;border:1px solid var(--border-strong);border-radius:7px;overflow:hidden;width:fit-content;font-family:'IBM Plex Mono',monospace;font-size:11px;">
+                  <div onClick="{{ setPriorityMust }}" style="padding:5px 11px;cursor:pointer;background:{{ priorityMustBg }};color:{{ priorityMustFg }};">Must-have</div>
+                  <div onClick="{{ setPriorityNice }}" style="padding:5px 11px;cursor:pointer;background:{{ priorityNiceBg }};color:{{ priorityNiceFg }};">Nice-to-have</div>
+                </div>
+                <div style="display:flex;gap:8px;margin-top:4px;">
+                  <div onClick="{{ onSaveWant }}" style="flex:1;text-align:center;background:var(--primary);color:var(--primary-text);border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;">Save</div>
+                  <div onClick="{{ onCancelAddWant }}" style="flex:1;text-align:center;border:1px solid var(--border-strong);color:var(--text-secondary);border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;">Cancel</div>
+                </div>
+              </div>
+            </sc-if>
+            <div style="display:flex;flex-direction:column;gap:10px;">
+              <sc-for list="{{ wantItems }}" as="w" hint-placeholder-count="2">
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px;">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                    <div style="font-weight:600;font-size:15px;">{{ w.label }}</div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:3px 8px;border-radius:999px;background:{{ w.priBg }};color:{{ w.priFg }};flex:none;">{{ w.priLabel }}</div>
+                  </div>
+                  <div onClick="{{ w.onCheck }}" style="margin-top:8px;font-size:13px;font-weight:600;color:var(--primary);cursor:pointer;">{{ w.checkLabel }}</div>
+                  <sc-if value="{{ w.isChecking }}">
+                    <div style="margin-top:8px;padding:10px;border-radius:8px;background:{{ w.resultBg }};color:{{ w.resultFg }};font-size:13px;">{{ w.result }}</div>
+                  </sc-if>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- ACCOUNT -->
+        <sc-if value="{{ isAccountScreen }}">
+          <div style="padding:14px 16px 40px;">
+            <div style="background:var(--warn-bg);border:1px solid var(--warn-border);color:var(--warn-text);border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:16px;">▲ Auth &amp; sharing (issue #11) aren't built in the backend yet — this screen is a placeholder for that flow.</div>
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+              <div style="width:44px;height:44px;border-radius:999px;background:var(--primary);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-weight:700;">K</div>
+              <div>
+                <div style="font-weight:600;font-size:16px;">Kevin</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);">Signed in with Google</div>
+              </div>
+            </div>
+            <div style="border-top:1px solid var(--border-light);padding-top:14px;margin-bottom:16px;">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">Shared with</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;"><div style="width:26px;height:26px;border-radius:999px;background:var(--accent-purple);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">M</div><div style="flex:1;font-size:14px;">Maddie</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);">Full access</div></div>
+                <div style="display:flex;align-items:center;gap:10px;"><div style="width:26px;height:26px;border-radius:999px;background:var(--accent-green);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">D</div><div style="flex:1;font-size:14px;">Dad</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);">Full access</div></div>
+              </div>
+              <div style="margin-top:10px;border:1px solid var(--border-strong);color:var(--chevron);border-radius:7px;padding:9px;text-align:center;font-size:13px;cursor:not-allowed;">Share this collection</div>
+            </div>
+            <div style="border-top:1px solid var(--border-light);padding-top:14px;">
+              <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">Pending access requests</div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div style="display:flex;align-items:center;gap:10px;background:var(--surface-alt);border-radius:8px;padding:10px;">
+                  <div style="flex:1;"><div style="font-size:14px;font-weight:600;">Sam R.</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);">sam@example.com</div></div>
+                  <div style="font-size:12px;font-weight:600;color:var(--accent-green);cursor:pointer;">Approve</div>
+                  <div style="font-size:12px;font-weight:600;color:var(--danger-text);cursor:pointer;">Deny</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+
+      <div style="flex:none;display:flex;border-top:1px solid var(--border);background:var(--surface);">
+        <sc-for list="{{ mobileTabs }}" as="t" hint-placeholder-count="3">
+          <div onClick="{{ t.onSelect }}" style="flex:1;text-align:center;padding:12px 0 10px;cursor:pointer;border-top:2px solid {{ t.borderColor }};color:{{ t.color }};font-weight:{{ t.weight }};font-size:12px;font-family:'IBM Plex Mono',monospace;letter-spacing:0.5px;">{{ t.label }}</div>
+        </sc-for>
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== DESKTOP SHELL ===== -->
+  <sc-if value="{{ showDesktop }}" hint-placeholder-val="{{ true }}">
+    <div style="display:flex;flex-direction:column;height:100%;">
+      <div style="flex:none;display:flex;align-items:center;gap:24px;padding:0 20px;height:56px;border-bottom:1px solid var(--border);background:var(--surface);">
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;">vinylTrack</div>
+        <div style="display:flex;gap:4px;">
+          <sc-for list="{{ desktopTabs }}" as="t" hint-placeholder-count="3">
+            <div onClick="{{ t.onSelect }}" style="padding:7px 14px;border-radius:7px;cursor:pointer;font-size:14px;font-weight:600;background:{{ t.bg }};color:{{ t.fg }};">{{ t.label }}</div>
+          </sc-for>
+        </div>
+        <div style="flex:1;"></div>
+        <div style="width:32px;height:32px;border-radius:999px;background:var(--primary);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">K</div>
+      </div>
+
+      <div style="flex:1;display:flex;overflow:hidden;">
+
+        <sc-if value="{{ isCollectionsTab }}" hint-placeholder-val="{{ true }}">
+          <div style="width:230px;flex:none;border-right:1px solid var(--border);background:var(--surface);padding:16px 12px;overflow:auto;">
+            <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px;padding:0 6px;">Collections</div>
+            <sc-for list="{{ collectionsWithCounts }}" as="c" hint-placeholder-count="3">
+              <div onClick="{{ c.onOpen }}" style="padding:10px 10px;border-radius:8px;cursor:pointer;background:{{ c.railBg }};margin-bottom:4px;">
+                <div style="font-weight:600;font-size:14px;color:{{ c.railFg }};">{{ c.name }}</div>
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);margin-top:2px;">{{ c.countLabel }}</div>
+              </div>
+            </sc-for>
+          </div>
+
+          <div style="width:340px;flex:none;border-right:1px solid var(--border);background:var(--surface-alt);overflow:auto;">
+            <sc-if value="{{ hasCollection }}" hint-placeholder-val="{{ true }}">
+              <div style="padding:14px;">
+                <input value="{{ searchQuery }}" onChange="{{ onSearchChange }}" placeholder="Search title or artist" style="width:100%;box-sizing:border-box;border:1px solid var(--border);background:var(--surface);border-radius:999px;padding:9px 14px;font-size:14px;font-family:'Hanken Grotesk',sans-serif;margin-bottom:10px;"/>
+                <div style="display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap;">
+                  <sc-for list="{{ filterChips }}" as="chip" hint-placeholder-count="3">
+                    <div onClick="{{ chip.onToggle }}" style="font-family:'IBM Plex Mono',monospace;font-size:11px;padding:5px 10px;border-radius:999px;border:1px solid var(--border-strong);cursor:pointer;background:{{ chip.bg }};color:{{ chip.fg }};">{{ chip.label }}</div>
+                  </sc-for>
+                </div>
+                <div style="display:flex;flex-direction:column;gap:6px;">
+                  <sc-for list="{{ filteredAlbums }}" as="a" hint-placeholder-count="3">
+                    <div onClick="{{ a.onOpen }}" style="display:flex;align-items:center;gap:10px;padding:10px;border-radius:8px;cursor:pointer;background:{{ a.rowBg }};border:1px solid {{ a.rowBorder }};">
+                      <div style="width:36px;height:36px;flex:none;border-radius:6px;background:repeating-linear-gradient(135deg,var(--border-light),var(--border-light) 6px,var(--surface-alt) 6px,var(--surface-alt) 12px);"></div>
+                      <div style="flex:1;min-width:0;">
+                        <div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ a.title }}</div>
+                        <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);">{{ a.meta }}</div>
+                      </div>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ noCollection }}">
+              <div style="padding:40px 20px;text-align:center;color:var(--text-muted);font-size:13px;">Choose a collection on the left.</div>
+            </sc-if>
+          </div>
+
+          <div style="flex:1;background:var(--surface);overflow:auto;position:relative;">
+            <sc-if value="{{ currentAlbum }}" hint-placeholder-val="{{ true }}">
+              <div style="padding:24px 28px 60px;max-width:560px;">
+                <div style="display:flex;gap:20px;">
+                  <div style="width:140px;height:140px;flex:none;border-radius:10px;background:repeating-linear-gradient(135deg,var(--border-light),var(--border-light) 8px,var(--surface-alt) 8px,var(--surface-alt) 16px);display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--text-muted);">COVER ART</div>
+                  <div>
+                    <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:24px;">{{ currentAlbum.title }}</div>
+                    <div style="font-size:16px;color:var(--text-secondary);margin-top:4px;">{{ currentAlbum.artist }}</div>
+                    <div style="font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--text-muted);margin-top:8px;">{{ currentAlbum.metaLine }}</div>
+                    <div onClick="{{ onAddForAlbum }}" style="margin-top:14px;display:inline-block;background:var(--primary);color:var(--primary-text);border-radius:7px;padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;">+ Add a copy</div>
+                  </div>
+                </div>
+                <sc-if value="{{ currentAlbum.hasCredits }}">
+                  <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light);display:grid;grid-template-columns:1fr 1fr;gap:6px 20px;">
+                    <sc-for list="{{ currentAlbum.credits }}" as="cr" hint-placeholder-count="2">
+                      <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--text-tertiary);"><span>{{ cr.k }}</span><span style="font-family:'IBM Plex Mono',monospace;color:var(--text-secondary);">{{ cr.v }}</span></div>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-light);">
+                  <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:10px;">{{ currentAlbum.copiesLabel }}</div>
+                  <sc-if value="{{ currentAlbum.hasCopies }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;flex-direction:column;gap:8px;">
+                      <sc-for list="{{ currentAlbum.copies }}" as="cp" hint-placeholder-count="2">
+                        <div onClick="{{ cp.onMove }}" style="display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:10px;padding:10px 12px;cursor:pointer;">
+                          <div style="width:28px;height:28px;border-radius:999px;background:{{ cp.avatarBg }};color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex:none;">{{ cp.initial }}</div>
+                          <div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:13px;">{{ cp.owner }}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);">{{ cp.location }}</div></div>
+                          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:3px 7px;border-radius:5px;background:{{ cp.condBg }};color:{{ cp.condFg }};">{{ cp.condition }}</div>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ currentAlbum.noCopies }}">
+                    <div style="color:var(--text-tertiary);font-size:14px;">No copies yet — the family doesn't own this one.</div>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-if>
+            <sc-if value="{{ noAlbum }}">
+              <div style="padding:60px 20px;text-align:center;color:var(--text-muted);font-size:13px;">Select an album to see its copies and locations.</div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isWantScreen }}">
+          <div style="flex:1;overflow:auto;padding:24px;display:flex;justify-content:center;">
+            <div style="width:100%;max-width:640px;">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;">Want list</div>
+                <div onClick="{{ onOpenAddWant }}" style="font-size:13px;font-weight:600;color:var(--primary);cursor:pointer;">+ Add</div>
+              </div>
+              <sc-if value="{{ addWantOpen }}">
+                <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:14px;display:flex;flex-direction:column;gap:8px;">
+                  <div style="display:inline-flex;border:1px solid var(--border-strong);border-radius:7px;overflow:hidden;width:fit-content;font-family:'IBM Plex Mono',monospace;font-size:11px;">
+                    <div onClick="{{ setWantTypeAlbum }}" style="padding:5px 11px;cursor:pointer;background:{{ wantTypeAlbumBg }};color:{{ wantTypeAlbumFg }};">Album</div>
+                    <div onClick="{{ setWantTypeArtist }}" style="padding:5px 11px;cursor:pointer;background:{{ wantTypeArtistBg }};color:{{ wantTypeArtistFg }};">Artist</div>
+                  </div>
+                  <input value="{{ newWantText }}" onChange="{{ onNewWantTextChange }}" placeholder="{{ newWantPlaceholder }}" style="border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:14px;font-family:'Hanken Grotesk',sans-serif;max-width:320px;"/>
+                  <div style="display:inline-flex;border:1px solid var(--border-strong);border-radius:7px;overflow:hidden;width:fit-content;font-family:'IBM Plex Mono',monospace;font-size:11px;">
+                    <div onClick="{{ setPriorityMust }}" style="padding:5px 11px;cursor:pointer;background:{{ priorityMustBg }};color:{{ priorityMustFg }};">Must-have</div>
+                    <div onClick="{{ setPriorityNice }}" style="padding:5px 11px;cursor:pointer;background:{{ priorityNiceBg }};color:{{ priorityNiceFg }};">Nice-to-have</div>
+                  </div>
+                  <div style="display:flex;gap:8px;margin-top:4px;max-width:320px;">
+                    <div onClick="{{ onSaveWant }}" style="flex:1;text-align:center;background:var(--primary);color:var(--primary-text);border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;">Save</div>
+                    <div onClick="{{ onCancelAddWant }}" style="flex:1;text-align:center;border:1px solid var(--border-strong);color:var(--text-secondary);border-radius:7px;padding:8px;font-size:13px;font-weight:600;cursor:pointer;">Cancel</div>
+                  </div>
+                </div>
+              </sc-if>
+              <div style="display:flex;flex-direction:column;gap:10px;">
+                <sc-for list="{{ wantItems }}" as="w" hint-placeholder-count="2">
+                  <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;">
+                    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+                      <div style="font-weight:600;font-size:15px;">{{ w.label }}</div>
+                      <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;font-weight:600;padding:3px 8px;border-radius:999px;background:{{ w.priBg }};color:{{ w.priFg }};flex:none;">{{ w.priLabel }}</div>
+                    </div>
+                    <div onClick="{{ w.onCheck }}" style="margin-top:8px;font-size:13px;font-weight:600;color:var(--primary);cursor:pointer;">{{ w.checkLabel }}</div>
+                    <sc-if value="{{ w.isChecking }}">
+                      <div style="margin-top:8px;padding:10px;border-radius:8px;background:{{ w.resultBg }};color:{{ w.resultFg }};font-size:13px;">{{ w.result }}</div>
+                    </sc-if>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ isAccountScreen }}">
+          <div style="flex:1;overflow:auto;padding:24px;display:flex;justify-content:center;">
+            <div style="width:100%;max-width:560px;">
+              <div style="background:var(--warn-bg);border:1px solid var(--warn-border);color:var(--warn-text);border-radius:8px;padding:10px 12px;font-size:13px;margin-bottom:16px;">▲ Auth &amp; sharing (issue #11) aren't built in the backend yet — this screen is a placeholder for that flow.</div>
+              <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;">
+                <div style="width:44px;height:44px;border-radius:999px;background:var(--primary);color:var(--primary-text);display:flex;align-items:center;justify-content:center;font-weight:700;">K</div>
+                <div><div style="font-weight:600;font-size:16px;">Kevin</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);">Signed in with Google</div></div>
+              </div>
+              <div style="border-top:1px solid var(--border-light);padding-top:14px;margin-bottom:16px;">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">Shared with</div>
+                <div style="display:flex;flex-direction:column;gap:8px;">
+                  <div style="display:flex;align-items:center;gap:10px;"><div style="width:26px;height:26px;border-radius:999px;background:var(--accent-purple);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">M</div><div style="flex:1;font-size:14px;">Maddie</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);">Full access</div></div>
+                  <div style="display:flex;align-items:center;gap:10px;"><div style="width:26px;height:26px;border-radius:999px;background:var(--accent-green);color:#fff;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;">D</div><div style="flex:1;font-size:14px;">Dad</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);">Full access</div></div>
+                </div>
+                <div style="margin-top:10px;border:1px solid var(--border-strong);color:var(--chevron);border-radius:7px;padding:9px;text-align:center;font-size:13px;cursor:not-allowed;max-width:200px;">Share this collection</div>
+              </div>
+              <div style="border-top:1px solid var(--border-light);padding-top:14px;">
+                <div style="font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:1.5px;color:var(--text-muted);text-transform:uppercase;margin-bottom:8px;">Pending access requests</div>
+                <div style="display:flex;align-items:center;gap:10px;background:var(--surface-alt);border-radius:8px;padding:10px;">
+                  <div style="flex:1;"><div style="font-size:14px;font-weight:600;">Sam R.</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);">sam@example.com</div></div>
+                  <div style="font-size:12px;font-weight:600;color:var(--accent-green);cursor:pointer;">Approve</div>
+                  <div style="font-size:12px;font-weight:600;color:var(--danger-text);cursor:pointer;">Deny</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </sc-if>
+
+  <!-- ===== SHEET (shared, positioned per device) ===== -->
+  <sc-if value="{{ sheetOpen }}">
+    <div style="position:absolute;inset:0;background:rgba(20,32,49,0.45);display:flex;align-items:{{ sheetAlign }};justify-content:center;z-index:100;">
+      <div style="width:{{ sheetWidth }};max-height:{{ sheetMaxHeight }};overflow:auto;background:var(--surface);border-radius:{{ sheetRadius }};box-shadow:0 12px 36px rgba(20,40,70,0.24);padding:18px;box-sizing:border-box;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px;">{{ sheetTitle }}</div>
+          <div onClick="{{ onCloseSheet }}" style="cursor:pointer;color:var(--text-muted);font-size:18px;">×</div>
+        </div>
+
+        <!-- Add Copy: Step 1 -->
+        <sc-if value="{{ isStep1 }}">
+          <input value="{{ candidateSearch }}" onChange="{{ onCandidateSearchChange }}" placeholder="Search title or artist" style="width:100%;box-sizing:border-box;border:1px solid var(--border);background:var(--surface-alt);border-radius:999px;padding:9px 14px;font-size:14px;font-family:'Hanken Grotesk',sans-serif;margin-bottom:10px;"/>
+          <div style="display:flex;gap:8px;margin-bottom:14px;">
+            <div style="flex:1;border:1px solid var(--border-strong);color:var(--text-secondary);border-radius:7px;padding:9px;text-align:center;font-size:13px;">Scan barcode</div>
+            <div style="flex:1;border:1px solid var(--border-strong);color:var(--text-secondary);border-radius:7px;padding:9px;text-align:center;font-size:13px;">Photograph cover</div>
+          </div>
+          <div style="font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--chevron);margin-bottom:10px;">Camera flow is a placeholder — see Data model check.</div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <sc-for list="{{ candidates }}" as="cand" hint-placeholder-count="3">
+              <div onClick="{{ cand.onPick }}" style="display:flex;align-items:center;gap:10px;border:1px solid var(--border);border-radius:9px;padding:10px;cursor:pointer;">
+                <div style="width:36px;height:36px;flex:none;border-radius:6px;background:repeating-linear-gradient(135deg,var(--border-light),var(--border-light) 6px,var(--surface-alt) 6px,var(--surface-alt) 12px);"></div>
+                <div style="flex:1;"><div style="font-weight:600;font-size:13px;">{{ cand.title }}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);">{{ cand.meta }}</div></div>
+                <div style="color:var(--primary);font-size:13px;font-weight:600;">Use →</div>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+
+        <!-- Add Copy: Step 2 (duplicate check) -->
+        <sc-if value="{{ isStep2 }}">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+            <div style="width:36px;height:36px;flex:none;border-radius:6px;background:repeating-linear-gradient(135deg,var(--border-light),var(--border-light) 6px,var(--surface-alt) 6px,var(--surface-alt) 12px);"></div>
+            <div><div style="font-weight:600;font-size:14px;">{{ addCopyAlbum.title }}</div><div style="font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--text-muted);">{{ addCopyAlbum.artist }}</div></div>
+          </div>
+          <div style="padding:12px;border-radius:8px;background:{{ dupeBg }};color:{{ dupeFg }};font-size:13px;margin-bottom:14px;">{{ dupeText }}</div>
+          <sc-if value="{{ wantMatchNote }}">
+            <div style="padding:10px;border-radius:8px;background:var(--primary-bg);color:var(--primary);font-size:12px;margin-bottom:14px;">{{ wantMatchNote }}</div>
+          </sc-if>
+          <div style="display:flex;gap:8px;">
+            <sc-if value="{{ showStepBack }}"><div onClick="{{ onAddCopyBack }}" style="flex:1;text-align:center;border:1px solid var(--border-strong);color:var(--text-secondary);border-radius:7px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;">Back</div></sc-if>
+            <div onClick="{{ onAddCopyNext }}" style="flex:2;text-align:center;background:var(--primary);color:var(--primary-text);border-radius:7px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;">Continue</div>
+          </div>
+        </sc-if>
+
+        <!-- Add Copy: Step 3 (location form) -->
+        <sc-if value="{{ isStep3 }}">
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div>
+              <div style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);margin-bottom:6px;">ROOM</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <sc-for list="{{ roomOptions }}" as="r" hint-placeholder-count="4">
+                  <div onClick="{{ r.onSelect }}" style="padding:6px 11px;border-radius:999px;border:1px solid var(--border-strong);cursor:pointer;font-size:12px;background:{{ r.bg }};color:{{ r.fg }};">{{ r.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);margin-bottom:6px;">SHELF / DETAIL</div>
+              <input value="{{ formShelf }}" onChange="{{ onFormShelfChange }}" placeholder="e.g. Shelf 2" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:14px;font-family:'Hanken Grotesk',sans-serif;"/>
+            </div>
+            <div>
+              <div style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);margin-bottom:6px;">PRICE PAID</div>
+              <input value="{{ formPrice }}" onChange="{{ onFormPriceChange }}" placeholder="$0.00" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:14px;font-family:'Hanken Grotesk',sans-serif;"/>
+            </div>
+            <div style="border:1px dashed var(--border-strong);border-radius:8px;padding:14px;text-align:center;color:var(--chevron);font-size:12px;">+ Attach a photo</div>
+            <div style="display:flex;gap:8px;margin-top:4px;">
+              <div onClick="{{ onAddCopyBack }}" style="flex:1;text-align:center;border:1px solid var(--border-strong);color:var(--text-secondary);border-radius:7px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;">Back</div>
+              <div onClick="{{ onSaveNewCopy }}" style="flex:2;text-align:center;background:var(--accent-green);color:#fff;border-radius:7px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;">Save copy</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <!-- Move Copy -->
+        <sc-if value="{{ isMoveSheet }}">
+          <div style="font-size:13px;color:var(--text-tertiary);margin-bottom:12px;">{{ moveSummary }}</div>
+          <div style="display:flex;flex-direction:column;gap:10px;">
+            <div>
+              <div style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);margin-bottom:6px;">NEW ROOM</div>
+              <div style="display:flex;gap:6px;flex-wrap:wrap;">
+                <sc-for list="{{ roomOptions }}" as="r" hint-placeholder-count="4">
+                  <div onClick="{{ r.onSelect }}" style="padding:6px 11px;border-radius:999px;border:1px solid var(--border-strong);cursor:pointer;font-size:12px;background:{{ r.bg }};color:{{ r.fg }};">{{ r.label }}</div>
+                </sc-for>
+              </div>
+            </div>
+            <div>
+              <div style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:var(--text-muted);margin-bottom:6px;">SHELF / DETAIL</div>
+              <input value="{{ formShelf }}" onChange="{{ onFormShelfChange }}" placeholder="e.g. Shelf 2" style="width:100%;box-sizing:border-box;border:1px solid var(--border);border-radius:7px;padding:8px 10px;font-size:14px;font-family:'Hanken Grotesk',sans-serif;"/>
+            </div>
+            <div style="opacity:0.5;padding:9px;border:1px solid var(--border-strong);border-radius:7px;font-size:12px;color:var(--text-tertiary);cursor:not-allowed;">Move to a different collection</div>
+            <div style="font-size:11px;color:var(--warn-text);">▲ Not supported — copies are scoped to one collection. See Data model check.</div>
+            <div onClick="{{ onSaveMove }}" style="margin-top:4px;text-align:center;background:var(--primary);color:var(--primary-text);border-radius:7px;padding:9px;font-size:13px;font-weight:600;cursor:pointer;">Move copy</div>
+          </div>
+        </sc-if>
+
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;isDesktop&quot;: {&quot;editor&quot;: null, &quot;default&quot;: false, &quot;tsType&quot;: &quot;boolean&quot;}, &quot;theme&quot;: {&quot;editor&quot;: &quot;enum&quot;, &quot;default&quot;: &quot;classic&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;options&quot;: [&quot;classic&quot;, &quot;warm&quot;, &quot;dark&quot;]}}">
+
+const ROOMS = ['Living Room', "Maddie's Room", 'Dad\'s Place', 'Garage', 'Office'];
+
+const THEMES = {
+  classic: {
+    bg: '#eef1f4', surface: '#fff', surfaceAlt: '#f4f7fb', border: '#dbe2e9', borderLight: '#e1e7ee', borderStrong: '#cdd6e0',
+    text: '#142031', textSecondary: '#3a4856', textTertiary: '#5b6878', textMuted: '#8a98a8', chevron: '#aebccb',
+    primary: '#2f6fed', primaryText: '#fff', primaryBg: '#e7eefc', primaryBorder: '#c7d9fb',
+    accentPurple: '#7a52c4', accentGreen: '#2f9e63', successBg: '#e3f3ea',
+    warnBg: '#fbf1df', warnBorder: '#e0a64e', warnText: '#a9701a', dangerBg: '#fdeceb', dangerText: '#c2483f',
+  },
+  warm: {
+    bg: '#f7f1e6', surface: '#fffaf2', surfaceAlt: '#f0e6d2', border: '#e3d5bb', borderLight: '#ecdfc7', borderStrong: '#d8c7a3',
+    text: '#2c2118', textSecondary: '#5a4a34', textTertiary: '#7a6852', textMuted: '#9c8b6f', chevron: '#c2ae8a',
+    primary: '#b5502f', primaryText: '#fff', primaryBg: '#f3ded1', primaryBorder: '#e4b79a',
+    accentPurple: '#7d5a8c', accentGreen: '#5f7d4f', successBg: '#e6ecdc',
+    warnBg: '#f6e3c4', warnBorder: '#cf9a3e', warnText: '#8a5a12', dangerBg: '#f3ddd6', dangerText: '#a8402c',
+  },
+  dark: {
+    bg: '#14161b', surface: '#1d2027', surfaceAlt: '#23262d', border: '#2b2f38', borderLight: '#262a32', borderStrong: '#383d47',
+    text: '#eef1f4', textSecondary: '#c3c9d4', textTertiary: '#9aa2b0', textMuted: '#737b8a', chevron: '#565e6b',
+    primary: '#5b8cff', primaryText: '#fff', primaryBg: '#223256', primaryBorder: '#33487a',
+    accentPurple: '#a480e0', accentGreen: '#4fbf82', successBg: '#1d3327',
+    warnBg: '#3a2f18', warnBorder: '#a9761f', warnText: '#e3b767', dangerBg: '#3a2020', dangerText: '#e2685a',
+  },
+};
+
+function makeAlbums() {
+  return {
+    vinyl: [
+      { id: 'a1', title: 'Blue Train', artist: 'John Coltrane', year: 1957, format: 'LP', genre: 'Jazz', label: 'Blue Note',
+        credits: [{ k: 'Producer', v: 'Alfred Lion' }, { k: 'Engineer', v: 'Rudy Van Gelder' }],
+        copies: [{ id: 'c1', owner: 'Kevin', location: 'Living Room \u2192 Shelf 2', condition: 'VG+' }] },
+      { id: 'a2', title: 'Rumours', artist: 'Fleetwood Mac', year: 1977, format: 'LP', genre: 'Rock', label: 'Warner Bros.',
+        credits: [{ k: 'Producer', v: 'Ken Caillat' }],
+        copies: [
+          { id: 'c2', owner: 'Kevin', location: 'Living Room \u2192 Shelf 1', condition: 'NM' },
+          { id: 'c3', owner: 'Maddie', location: "Maddie's Room \u2192 Crate A", condition: 'VG' },
+        ] },
+      { id: 'a3', title: 'Kind of Blue', artist: 'Miles Davis', year: 1959, format: 'LP', genre: 'Jazz', label: 'Columbia',
+        credits: [{ k: 'Producer', v: 'Irving Townsend' }], copies: [] },
+    ],
+    sqdance: [
+      { id: 's1', title: 'Basic Figures Vol. 3', artist: 'Bob Newman', year: 1998, format: 'MP3', genre: 'Square Dance', label: '\u2014',
+        credits: [], copies: [{ id: 'c4', owner: 'Dad', location: 'Garage \u2192 Box 3', condition: '\u2014' }] },
+    ],
+    mp3: [
+      { id: 'm1', title: 'Pastel Blues', artist: 'Nina Simone', year: 1965, format: 'MP3', genre: 'Soul', label: 'Philips',
+        credits: [], copies: [{ id: 'c5', owner: 'Dad', location: '/media/dad/music/nina-simone', condition: '\u2014' }] },
+    ],
+  };
+}
+
+class Component extends DCLogic {
+  state = {
+    activeTab: 'collections', collectionId: null, albumId: null,
+    searchQuery: '', activeFilters: [],
+    sheet: null, addCopyStep: 1, addCopyAlbumId: null, activeCopyId: null,
+    formRoom: '', formShelf: '', formPrice: '', candidateSearch: '',
+    addWantOpen: false, wantCheckOpenId: null, newWantType: 'album', newWantText: '', newWantPriority: 'nice',
+    albumsByCollection: makeAlbums(),
+    wantlist: [
+      { id: 'w1', kind: 'album', title: 'Kind of Blue', artist: 'Miles Davis', priority: 'must' },
+      { id: 'w2', kind: 'artist', artist: 'Nina Simone', priority: 'nice' },
+    ],
+  };
+
+  selectTab = (tab) => this.setState({ activeTab: tab, sheet: null, albumId: tab === 'collections' ? this.state.albumId : null });
+  openCollection = (id) => this.setState({ collectionId: id, albumId: null, searchQuery: '' });
+  backToHome = () => this.setState({ collectionId: null, albumId: null });
+  openAlbum = (id) => this.setState({ albumId: id });
+  backToBrowse = () => this.setState({ albumId: null });
+  onSearchChange = (e) => this.setState({ searchQuery: e.target.value });
+  toggleFilter = (f) => this.setState((s) => ({ activeFilters: s.activeFilters.includes(f) ? s.activeFilters.filter((x) => x !== f) : [...s.activeFilters, f] }));
+
+  openAddCopy = (albumId) => this.setState({ sheet: 'addCopy', addCopyStep: albumId ? 2 : 1, addCopyAlbumId: albumId, formRoom: '', formShelf: '', formPrice: '' });
+  closeSheet = () => this.setState({ sheet: null, addCopyStep: 1, addCopyAlbumId: null, activeCopyId: null });
+  onAddCopyBack = () => this.setState((s) => ({ addCopyStep: Math.max(1, s.addCopyStep - 1) }));
+  onAddCopyNext = () => this.setState((s) => ({ addCopyStep: s.addCopyStep + 1 }));
+  onCandidateSearchChange = (e) => this.setState({ candidateSearch: e.target.value });
+
+  pickCandidate = (cand) => {
+    if (cand.albumId) { this.setState({ addCopyAlbumId: cand.albumId, addCopyStep: 2 }); return; }
+    this.setState((s) => {
+      const newId = 'new-' + Date.now();
+      const coll = { ...s.albumsByCollection };
+      const list = [...(coll[s.collectionId] || [])];
+      list.push({ id: newId, title: cand.title, artist: cand.artist, year: cand.year, format: 'LP', genre: '\u2014', label: cand.label, credits: [], copies: [] });
+      coll[s.collectionId] = list;
+      return { albumsByCollection: coll, addCopyAlbumId: newId, addCopyStep: 2 };
+    });
+  };
+
+  onFormShelfChange = (e) => this.setState({ formShelf: e.target.value });
+  onFormPriceChange = (e) => this.setState({ formPrice: e.target.value });
+  selectRoom = (r) => this.setState({ formRoom: r });
+
+  onSaveNewCopy = () => {
+    const s = this.state;
+    if (!s.addCopyAlbumId) { this.closeSheet(); return; }
+    const room = s.formRoom || ROOMS[0];
+    const shelf = s.formShelf || 'unspecified';
+    this.setState((s2) => {
+      const coll = { ...s2.albumsByCollection };
+      const list = coll[s2.collectionId].map((a) => a.id === s2.addCopyAlbumId
+        ? { ...a, copies: [...a.copies, { id: 'c' + Date.now(), owner: 'Kevin', location: `${room} \u2192 ${shelf}`, condition: '\u2014' }] }
+        : a);
+      coll[s2.collectionId] = list;
+      return { albumsByCollection: coll, sheet: null, addCopyStep: 1, addCopyAlbumId: null, albumId: s2.addCopyAlbumId };
+    });
+  };
+
+  openMoveCopy = (copyId) => this.setState({ sheet: 'moveCopy', activeCopyId: copyId, formRoom: '', formShelf: '' });
+  onSaveMove = () => {
+    const s = this.state;
+    if (!s.formRoom && !s.formShelf) { this.closeSheet(); return; }
+    const room = s.formRoom || ROOMS[0];
+    const shelf = s.formShelf || 'unspecified';
+    this.setState((s2) => {
+      const coll = { ...s2.albumsByCollection };
+      const list = coll[s2.collectionId].map((a) => ({
+        ...a,
+        copies: a.copies.map((c) => c.id === s2.activeCopyId ? { ...c, location: `${room} \u2192 ${shelf}` } : c),
+      }));
+      coll[s2.collectionId] = list;
+      return { albumsByCollection: coll, sheet: null, activeCopyId: null };
+    });
+  };
+
+  toggleWantCheck = (id) => this.setState((s) => ({ wantCheckOpenId: s.wantCheckOpenId === id ? null : id }));
+  onOpenAddWant = () => this.setState({ addWantOpen: true, newWantType: 'album', newWantText: '', newWantPriority: 'nice' });
+  onCancelAddWant = () => this.setState({ addWantOpen: false });
+  onNewWantTextChange = (e) => this.setState({ newWantText: e.target.value });
+  setWantTypeAlbum = () => this.setState({ newWantType: 'album' });
+  setWantTypeArtist = () => this.setState({ newWantType: 'artist' });
+  setPriorityMust = () => this.setState({ newWantPriority: 'must' });
+  setPriorityNice = () => this.setState({ newWantPriority: 'nice' });
+  onSaveWant = () => {
+    const s = this.state;
+    if (!s.newWantText.trim()) { this.setState({ addWantOpen: false }); return; }
+    const item = s.newWantType === 'album'
+      ? { id: 'w' + Date.now(), kind: 'album', title: s.newWantText, artist: '', priority: s.newWantPriority }
+      : { id: 'w' + Date.now(), kind: 'artist', artist: s.newWantText, priority: s.newWantPriority };
+    this.setState((s2) => ({ wantlist: [...s2.wantlist, item], addWantOpen: false }));
+  };
+
+  renderVals() {
+    const s = this.state;
+    const isDesktop = !!this.props.isDesktop;
+    const palette = THEMES[this.props.theme] || THEMES.classic;
+    const OWNER_COLOR = { Kevin: palette.primary, Maddie: palette.accentPurple, Dad: palette.accentGreen };
+    const COND_COLOR = {
+      'NM': { bg: palette.successBg, fg: palette.accentGreen },
+      'VG+': { bg: palette.primaryBg, fg: palette.primary },
+      'VG': { bg: palette.warnBg, fg: palette.warnText },
+      '\u2014': { bg: palette.bg, fg: palette.textMuted },
+    };
+    const themeVars = Object.entries(palette).map(([k, v]) => {
+      const cssKey = '--' + k.replace(/[A-Z]/g, (m) => '-' + m.toLowerCase());
+      return `${cssKey}:${v};`;
+    }).join('');
+
+    const albums = s.collectionId ? (s.albumsByCollection[s.collectionId] || []) : [];
+    const q = s.searchQuery.trim().toLowerCase();
+    const filtered = q ? albums.filter((a) => a.title.toLowerCase().includes(q) || a.artist.toLowerCase().includes(q)) : albums;
+
+    const collectionMeta = { vinyl: 'Vinyl', sqdance: 'Square Dance Calls', mp3: 'General MP3s' };
+    const collectionsWithCounts = Object.keys(collectionMeta).map((id) => {
+      const list = s.albumsByCollection[id] || [];
+      const count = list.reduce((n, a) => n + a.copies.length, 0);
+      return {
+        id, name: collectionMeta[id], countLabel: `${count} cop${count === 1 ? 'y' : 'ies'} \u00b7 ${list.length} titles`,
+        onOpen: () => this.openCollection(id),
+        railBg: s.collectionId === id ? palette.primaryBg : 'transparent',
+        railFg: s.collectionId === id ? palette.primary : palette.text,
+      };
+    });
+
+    const filterChips = ['Artist', 'Format', 'Genre'].map((f) => {
+      const active = s.activeFilters.includes(f);
+      return { label: f, onToggle: () => this.toggleFilter(f), bg: active ? palette.primaryBg : palette.surface, fg: active ? palette.primary : palette.textSecondary };
+    });
+
+    const filteredAlbums = filtered.map((a) => ({
+      id: a.id, title: a.title, format: a.format,
+      meta: `${a.artist} \u00b7 ${a.year} \u00b7 ${a.format}`,
+      onOpen: () => this.openAlbum(a.id),
+      rowBg: s.albumId === a.id ? palette.primaryBg : palette.surface,
+      rowBorder: s.albumId === a.id ? palette.primaryBorder : palette.border,
+    }));
+
+    const albumById = (id) => albums.find((a) => a.id === id) || null;
+    const rawCurrentAlbum = s.albumId ? albumById(s.albumId) : null;
+    const currentAlbum = rawCurrentAlbum ? {
+      title: rawCurrentAlbum.title, artist: rawCurrentAlbum.artist,
+      metaLine: `${rawCurrentAlbum.format} \u00b7 ${rawCurrentAlbum.year} \u00b7 ${rawCurrentAlbum.genre}`,
+      hasCredits: rawCurrentAlbum.credits.length > 0, credits: rawCurrentAlbum.credits,
+      copiesLabel: `Copies you own (${rawCurrentAlbum.copies.length})`,
+      hasCopies: rawCurrentAlbum.copies.length > 0, noCopies: rawCurrentAlbum.copies.length === 0,
+      copies: rawCurrentAlbum.copies.map((cp) => ({
+        id: cp.id, owner: cp.owner, location: cp.location, condition: cp.condition,
+        initial: cp.owner[0], avatarBg: OWNER_COLOR[cp.owner] || palette.textTertiary,
+        condBg: (COND_COLOR[cp.condition] || COND_COLOR['\u2014']).bg,
+        condFg: (COND_COLOR[cp.condition] || COND_COLOR['\u2014']).fg,
+        onMove: () => this.openMoveCopy(cp.id),
+      })),
+    } : null;
+
+    const addCopyAlbumRaw = s.addCopyAlbumId ? albumById(s.addCopyAlbumId) : null;
+    const addCopyAlbum = addCopyAlbumRaw ? { title: addCopyAlbumRaw.title, artist: addCopyAlbumRaw.artist } : { title: '', artist: '' };
+    let dupeText = '', dupeBg = palette.successBg, dupeFg = palette.accentGreen, wantMatchNote = '';
+    if (addCopyAlbumRaw) {
+      const others = addCopyAlbumRaw.copies.filter((c) => c.owner !== 'Kevin');
+      if (others.length > 0) {
+        dupeText = `\u26a0 ${others[0].owner} already has a copy \u2014 ${others[0].location}`;
+        dupeBg = palette.warnBg; dupeFg = palette.warnText;
+      } else if (addCopyAlbumRaw.copies.length > 0) {
+        dupeText = `You already have a copy \u2014 ${addCopyAlbumRaw.copies[0].location}`;
+        dupeBg = palette.primaryBg; dupeFg = palette.primary;
+      } else {
+        dupeText = '\u2713 No one in the family owns this yet.';
+      }
+      if (addCopyAlbumRaw.title === 'Kind of Blue') {
+        wantMatchNote = 'This matches a want-list item (must-have). The model has no explicit link from a want item to the copy that fulfills it \u2014 see Data model check.';
+      }
+    }
+
+    const candidatesRaw = [
+      { id: 'cand1', albumId: 'a1', title: 'Blue Train', artist: 'John Coltrane', year: 1957, label: 'Blue Note' },
+      { id: 'cand2', albumId: 'a3', title: 'Kind of Blue', artist: 'Miles Davis', year: 1959, label: 'Columbia' },
+      { id: 'cand3', albumId: null, title: 'Tapestry', artist: 'Carole King', year: 1971, label: 'Ode Records' },
+    ];
+    const candidates = candidatesRaw.map((c) => ({ ...c, meta: `${c.artist} \u00b7 ${c.year} \u00b7 ${c.label}`, onPick: () => this.pickCandidate(c) }));
+
+    const roomOptions = ROOMS.map((r) => ({ label: r, onSelect: () => this.selectRoom(r), bg: s.formRoom === r ? palette.primaryBg : palette.surface, fg: s.formRoom === r ? palette.primary : palette.textSecondary }));
+
+    const activeCopy = s.activeCopyId ? (albums.flatMap((a) => a.copies.map((c) => ({ ...c, albumTitle: a.title }))).find((c) => c.id === s.activeCopyId)) : null;
+    const moveSummary = activeCopy ? `${activeCopy.albumTitle} \u2014 ${activeCopy.owner} \u2014 currently ${activeCopy.location}` : '';
+
+    const wantResults = {
+      w1: 'Not found in anyone\u2019s collection yet.',
+      w2: 'Dad already has "Pastel Blues" \u2014 General MP3s \u2192 /media/dad/music/nina-simone',
+    };
+    const wantItems = s.wantlist.map((w) => {
+      const label = w.kind === 'album' ? `${w.title}${w.artist ? ' \u2014 ' + w.artist : ''}` : `${w.artist} \u2014 anything`;
+      const isChecking = s.wantCheckOpenId === w.id;
+      const result = wantResults[w.id] || 'No copies found in the family collections.';
+      const found = /already has/.test(result);
+      return {
+        id: w.id, label, priLabel: w.priority === 'must' ? 'Must-have' : 'Nice-to-have',
+        priBg: w.priority === 'must' ? palette.dangerBg : palette.bg, priFg: w.priority === 'must' ? palette.dangerText : palette.textTertiary,
+        onCheck: () => this.toggleWantCheck(w.id), checkLabel: isChecking ? 'Hide check' : 'Check family collection',
+        isChecking, result, resultBg: found ? palette.successBg : palette.surfaceAlt, resultFg: found ? palette.accentGreen : palette.textTertiary,
+      };
+    });
+
+    const newWantPlaceholder = s.newWantType === 'album' ? 'Album title' : 'Artist name';
+
+    return {
+      themeVars,
+      showMobile: !isDesktop, showDesktop: isDesktop,
+      mobileShowBack: s.activeTab === 'collections' && (s.collectionId !== null),
+      mobileBack: () => (s.albumId ? this.backToBrowse() : this.backToHome()),
+      mobileHeaderTitle: s.activeTab !== 'collections' ? (s.activeTab === 'wantlist' ? 'Want List' : 'Account')
+        : (currentAlbum ? currentAlbum.title : (s.collectionId ? collectionMeta[s.collectionId] : 'vinylTrack')),
+      mobileShowAdd: s.activeTab === 'collections' && s.collectionId && !s.albumId,
+      onAddFresh: () => this.openAddCopy(null),
+      isHomeScreen: s.activeTab === 'collections' && !s.collectionId,
+      isBrowseScreen: s.activeTab === 'collections' && s.collectionId && !s.albumId,
+      isAlbumScreen: s.activeTab === 'collections' && s.albumId && !!currentAlbum,
+      isWantScreen: s.activeTab === 'wantlist',
+      isAccountScreen: s.activeTab === 'account',
+      isCollectionsTab: s.activeTab === 'collections',
+      collectionsWithCounts, filterChips, filteredAlbums, currentAlbum,
+      searchQuery: s.searchQuery, onSearchChange: this.onSearchChange,
+      onAddForAlbum: () => this.openAddCopy(s.albumId),
+      hasCollection: !!s.collectionId, noCollection: !s.collectionId, noAlbum: !currentAlbum,
+
+      mobileTabs: [
+        { id: 'collections', label: 'HOME', onSelect: () => this.selectTab('collections') },
+        { id: 'wantlist', label: 'WANT LIST', onSelect: () => this.selectTab('wantlist') },
+        { id: 'account', label: 'ACCOUNT', onSelect: () => this.selectTab('account') },
+      ].map((t) => ({ ...t, borderColor: s.activeTab === t.id ? palette.primary : 'transparent', color: s.activeTab === t.id ? palette.primary : palette.textMuted, weight: s.activeTab === t.id ? 700 : 500 })),
+      desktopTabs: [
+        { id: 'collections', label: 'Collections', onSelect: () => this.selectTab('collections') },
+        { id: 'wantlist', label: 'Want List', onSelect: () => this.selectTab('wantlist') },
+        { id: 'account', label: 'Account', onSelect: () => this.selectTab('account') },
+      ].map((t) => ({ ...t, bg: s.activeTab === t.id ? palette.primaryBg : 'transparent', fg: s.activeTab === t.id ? palette.primary : palette.textSecondary })),
+
+      addWantOpen: s.addWantOpen, onOpenAddWant: this.onOpenAddWant, onCancelAddWant: this.onCancelAddWant,
+      newWantText: s.newWantText, onNewWantTextChange: this.onNewWantTextChange, newWantPlaceholder,
+      setWantTypeAlbum: this.setWantTypeAlbum, setWantTypeArtist: this.setWantTypeArtist,
+      wantTypeAlbumBg: s.newWantType === 'album' ? palette.primaryBg : 'transparent', wantTypeAlbumFg: s.newWantType === 'album' ? palette.primary : palette.textMuted,
+      wantTypeArtistBg: s.newWantType === 'artist' ? palette.primaryBg : 'transparent', wantTypeArtistFg: s.newWantType === 'artist' ? palette.primary : palette.textMuted,
+      setPriorityMust: this.setPriorityMust, setPriorityNice: this.setPriorityNice,
+      priorityMustBg: s.newWantPriority === 'must' ? palette.dangerBg : 'transparent', priorityMustFg: s.newWantPriority === 'must' ? palette.dangerText : palette.textMuted,
+      priorityNiceBg: s.newWantPriority === 'nice' ? palette.primaryBg : 'transparent', priorityNiceFg: s.newWantPriority === 'nice' ? palette.primary : palette.textMuted,
+      onSaveWant: this.onSaveWant, wantItems,
+
+      sheetOpen: !!s.sheet,
+      sheetAlign: isDesktop ? 'center' : 'flex-end',
+      sheetWidth: isDesktop ? '440px' : '100%',
+      sheetMaxHeight: isDesktop ? '80%' : '86%',
+      sheetRadius: isDesktop ? '16px' : '16px 16px 0 0',
+      sheetTitle: s.sheet === 'moveCopy' ? 'Move copy' : (s.addCopyStep === 1 ? 'Add a copy \u2014 find the album' : s.addCopyStep === 2 ? 'Add a copy \u2014 check first' : 'Add a copy \u2014 where does it live?'),
+      onCloseSheet: this.closeSheet,
+      isStep1: s.sheet === 'addCopy' && s.addCopyStep === 1,
+      isStep2: s.sheet === 'addCopy' && s.addCopyStep === 2,
+      isStep3: s.sheet === 'addCopy' && s.addCopyStep === 3,
+      isMoveSheet: s.sheet === 'moveCopy',
+      candidateSearch: s.candidateSearch, onCandidateSearchChange: this.onCandidateSearchChange, candidates,
+      addCopyAlbum, dupeText, dupeBg, dupeFg, wantMatchNote,
+      showStepBack: !!addCopyAlbumRaw && s.addCopyAlbumId !== s.addCopyAlbumId,
+      onAddCopyBack: this.onAddCopyBack, onAddCopyNext: this.onAddCopyNext,
+      roomOptions, formShelf: s.formShelf, onFormShelfChange: this.onFormShelfChange,
+      formPrice: s.formPrice, onFormPriceChange: this.onFormPriceChange,
+      onSaveNewCopy: this.onSaveNewCopy,
+      moveSummary, onSaveMove: this.onSaveMove,
+    };
+  }
+}
+
+</script>
+</body>
+</html>
