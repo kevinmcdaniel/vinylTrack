@@ -28,7 +28,10 @@ export const listAlbumsService = async (filters: {
 };
 
 export const getAlbumService = async (id: string) => {
-  const album = await prisma.album.findUnique({ where: { id }, include: withArtists });
+  const album = await prisma.album.findUnique({
+    where: { id },
+    include: { ...withArtists, copies: { include: { location: { include: { parent: true } }, source: true } } },
+  });
   if (!album) return null;
   return flattenArtists(album);
 };
