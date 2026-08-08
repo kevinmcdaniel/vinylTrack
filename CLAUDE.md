@@ -55,7 +55,13 @@ The domain schema (`user`, `collection`, `collection_share`, `artist`, `album`, 
 
 Response envelope matches squaretrack's convention (list endpoints always `data: []`, never `null`, HTTP 200; single-resource `data: null` + HTTP 404 when missing; `ValidationError`/`ConflictError`/`NotFoundError`/`AuthError` in `be/src/common/errorHandler.ts` map to 406/409/404/401). Follow it for every new endpoint — see the `artist` CRUD vertical (`be/src/{route,controller,service}/artist*.ts`, issue #3) as the reference implementation.
 
-Auth is stubbed for now (build order intentionally put schema/CRUD ahead of #11's real Google OAuth): endpoints don't yet filter by caller/collection. When #11 lands, wire real session-based scoping into the CRUD services rather than adding it as an afterthought — the `collection`/`collection_share` tables already support it.
+**Authorization scaffolding is real, not a no-op stub** (#26, ahead of #11's real Google OAuth). `be/src/common/authorize.ts`'s `identifyUser` middleware (mounted globally in `app.ts`) resolves `req.user` from an `x-user-email` dev header against the seeded `user` table, falling back to `AUTH_BOOTSTRAP_OWNER_EMAIL` when no header is sent — that's the *only* thing #11 needs to replace (swap the header lookup for a real JWT/session decode; nothing downstream should change). `requireActiveUser`/`requireAdmin` gate on that. `be/src/common/policy.ts` is the actual access-control layer:
+- `album`/`copy`/`want_item` are collection-scoped (copy via its album) — list results are always filtered to the caller's owned+shared collections (`requireCollectionAccess` for `:id` routes → 404 if inaccessible, masking existence; `requireCollectionAccessForCreate` → 403 on POST into a collection you don't belong to, since you supplied that id yourself). Admins bypass all of it.
+- `artist` is global/unscoped — any active user can read/write; delete is `requireAdmin`-gated (403) since one family member shouldn't be able to remove catalog data others depend on.
+- `location` has no `collectionId` — write access follows `ownerId` (owner or admin only; unowned locations are writable by any active user for v1). Read is open to any active user.
+- No `/api/collection` CRUD exists yet, so "admin can delete a collection they don't own" isn't wired up anywhere yet — noted as a gap in issue #26, not built.
+
+See `be/src/route/*.ts` for how each route wires these in, and the doc comment at the top of `policy.ts` for the resource/action matrix.
 
 ### Frontend structure
 - `fe/src/app/` — Next.js App Router

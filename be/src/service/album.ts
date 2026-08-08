@@ -7,16 +7,24 @@ const flattenArtists = <T extends { artists: { artist: unknown }[] }>(album: T) 
   return { ...rest, artists: artists.map((a) => a.artist) };
 };
 
-export const listAlbumsService = async (filters: {
-  collectionId?: string;
-  artistId?: string;
-  format?: string;
-  genre?: string;
-}) => {
+// accessibleCollectionIds: undefined = no restriction (admin caller);
+// otherwise results are always confined to this set, intersected with an
+// explicit collectionId filter if the caller also supplied one.
+export const listAlbumsService = async (
+  filters: { collectionId?: string; artistId?: string; format?: string; genre?: string },
+  accessibleCollectionIds: string[] | undefined,
+) => {
   const { collectionId, artistId, format, genre } = filters;
+  const scopedCollectionIds = accessibleCollectionIds
+    ? collectionId
+      ? accessibleCollectionIds.filter((id) => id === collectionId)
+      : accessibleCollectionIds
+    : collectionId
+      ? [collectionId]
+      : undefined;
   const albums = await prisma.album.findMany({
     where: {
-      ...(collectionId ? { collectionId } : {}),
+      ...(scopedCollectionIds ? { collectionId: { in: scopedCollectionIds } } : {}),
       ...(format ? { format } : {}),
       ...(genre ? { genre } : {}),
       ...(artistId ? { artists: { some: { artistId } } } : {}),

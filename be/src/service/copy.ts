@@ -2,12 +2,20 @@ import { prisma } from '../database.js';
 
 const withRelations = { location: { include: { parent: true } }, source: true } as const;
 
-export const listCopiesService = async (filters: { albumId?: string; locationId?: string }) => {
+// accessibleCollectionIds: undefined = no restriction (admin caller);
+// otherwise results are confined to copies whose album belongs to one of
+// these collections. Copies have no collectionId of their own — scoping
+// goes through the album relation.
+export const listCopiesService = async (
+  filters: { albumId?: string; locationId?: string },
+  accessibleCollectionIds: string[] | undefined,
+) => {
   const { albumId, locationId } = filters;
   return prisma.copy.findMany({
     where: {
       ...(albumId ? { albumId } : {}),
       ...(locationId ? { locationId } : {}),
+      ...(accessibleCollectionIds ? { album: { collectionId: { in: accessibleCollectionIds } } } : {}),
     },
     include: withRelations,
   });

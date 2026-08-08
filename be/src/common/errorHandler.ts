@@ -7,6 +7,13 @@ export class AuthError extends Error {
   }
 }
 
+export class ForbiddenError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'ForbiddenError';
+  }
+}
+
 export class ValidationError extends Error {
   constructor(message: string) {
     super(message);
@@ -35,6 +42,8 @@ export const errorHandler = (err: Error, _req: Request, res: Response, next: Nex
   }
   if (err instanceof AuthError) {
     res.status(401).json({ data: null, message: err.message, status: 401 });
+  } else if (err instanceof ForbiddenError) {
+    res.status(403).json({ data: null, message: err.message, status: 403 });
   } else if (err instanceof ValidationError) {
     res.status(406).json({ data: {}, message: err.message, status: 406 });
   } else if (err instanceof ConflictError) {

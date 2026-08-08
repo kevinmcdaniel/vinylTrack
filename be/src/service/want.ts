@@ -1,9 +1,22 @@
 import { prisma } from '../database.js';
 
-export const listWantItemsService = async (filters: { collectionId?: string }) => {
+// accessibleCollectionIds: undefined = no restriction (admin caller);
+// otherwise scoped to this set, intersected with an explicit collectionId
+// filter if the caller also supplied one.
+export const listWantItemsService = async (
+  filters: { collectionId?: string },
+  accessibleCollectionIds: string[] | undefined,
+) => {
   const { collectionId } = filters;
+  const scopedCollectionIds = accessibleCollectionIds
+    ? collectionId
+      ? accessibleCollectionIds.filter((id) => id === collectionId)
+      : accessibleCollectionIds
+    : collectionId
+      ? [collectionId]
+      : undefined;
   return prisma.want_item.findMany({
-    where: { ...(collectionId ? { collectionId } : {}) },
+    where: { ...(scopedCollectionIds ? { collectionId: { in: scopedCollectionIds } } : {}) },
     include: { artist: true, album: true },
     orderBy: { priority: 'asc' },
   });
