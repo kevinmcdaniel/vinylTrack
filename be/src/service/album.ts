@@ -11,10 +11,10 @@ const flattenArtists = <T extends { artists: { artist: unknown }[] }>(album: T) 
 // otherwise results are always confined to this set, intersected with an
 // explicit collectionId filter if the caller also supplied one.
 export const listAlbumsService = async (
-  filters: { collectionId?: string; artistId?: string; format?: string; genre?: string },
+  filters: { collectionId?: string; artistId?: string; format?: string; genre?: string; q?: string },
   accessibleCollectionIds: string[] | undefined,
 ) => {
-  const { collectionId, artistId, format, genre } = filters;
+  const { collectionId, artistId, format, genre, q } = filters;
   const scopedCollectionIds = accessibleCollectionIds
     ? collectionId
       ? accessibleCollectionIds.filter((id) => id === collectionId)
@@ -28,6 +28,9 @@ export const listAlbumsService = async (
       ...(format ? { format } : {}),
       ...(genre ? { genre } : {}),
       ...(artistId ? { artists: { some: { artistId } } } : {}),
+      // Title search for the browse UI (#7). ANDed with everything above, so
+      // it can never widen the accessible-collection scope.
+      ...(q ? { title: { contains: q, mode: 'insensitive' as const } } : {}),
     },
     include: withArtists,
     orderBy: { title: 'asc' },
@@ -38,7 +41,12 @@ export const listAlbumsService = async (
 export const getAlbumService = async (id: string) => {
   const album = await prisma.album.findUnique({
     where: { id },
-    include: { ...withArtists, copies: { include: { location: { include: { parent: true } }, source: true } } },
+    include: {
+      ...withArtists,
+      // kind lets the UI de-emphasize condition/source for digital collections (#14).
+      collection: { select: { id: true, name: true, kind: true } },
+      copies: { include: { location: { include: { parent: true } }, source: true } },
+    },
   });
   if (!album) return null;
   return flattenArtists(album);

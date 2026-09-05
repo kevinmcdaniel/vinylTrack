@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ValidationError, NotFoundError } from '../common/errorHandler.js';
 import { routeParam } from '../common/utils.js';
+import { accessibleCollectionIds } from '../common/policy.js';
 import {
   listArtistsService,
   getArtistService,
@@ -21,7 +22,8 @@ export const listArtists = async (_req: Request, res: Response, next: NextFuncti
 export const getArtist = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = routeParam(req.params.id);
-    const record = await getArtistService(id);
+    const scope = req.user!.isAdmin ? undefined : await accessibleCollectionIds(req.user!.id);
+    const record = await getArtistService(id, scope);
     if (!record) throw new NotFoundError(`Artist id:${id} not found.`);
     res.json({ message: 'Artist by id', data: record, status: 200 });
   } catch (error) {
@@ -43,6 +45,8 @@ export const createArtist = async (req: Request, res: Response, next: NextFuncti
 export const updateArtist = async (req: Request, res: Response, next: NextFunction) => {
   try {
     const id = routeParam(req.params.id);
+    // Unscoped on purpose: existence check only. Artist rows are global, so a
+    // caller who can see none of the artist's albums must still get 200, not 404.
     const existing = await getArtistService(id);
     if (!existing) throw new NotFoundError(`Artist id:${id} not found.`);
     const { name, sortName, notes } = req.body;
