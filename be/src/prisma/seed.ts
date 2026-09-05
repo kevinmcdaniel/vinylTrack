@@ -24,12 +24,17 @@ async function main() {
   const alex = await prisma.user.create({
     data: { email: 'alex@example.com', name: 'Alex', status: 'active' },
   });
+  // Active, but owns nothing and is shared nothing — the "outsider" identity the
+  // Bruno collection (#34) needs to exercise the 403/404 access paths.
+  await prisma.user.create({
+    data: { email: 'jamie@example.com', name: 'Jamie', status: 'active' },
+  });
 
   const vinyl = await prisma.collection.create({
-    data: { name: 'Vinyl', kind: 'physical', ownerId: kevin.id },
+    data: { name: 'Squakville Vinyl', kind: 'physical', ownerId: kevin.id },
   });
   const calls = await prisma.collection.create({
-    data: { name: 'Square Dance Calls', kind: 'digital', ownerId: kevin.id },
+    data: { name: 'Square Dance Music', kind: 'digital', ownerId: kevin.id },
   });
   await prisma.collection_share.create({
     data: { collectionId: vinyl.id, userId: alex.id, role: 'full' },
@@ -78,7 +83,7 @@ async function main() {
     data: { collectionId: vinyl.id, artistId: milesDavis.id, priority: 'nice-to-have', notes: 'anything else by him' },
   });
 
-  console.log('seed: done — 2 users, 2 collections, 2 artists, 2 albums, 3 copies, 1 want item');
+  console.log('seed: done — 3 users, 2 collections, 2 artists, 2 albums, 3 copies, 1 want item');
 }
 
 main()

@@ -266,3 +266,57 @@ describe('DELETE /api/album/:id', () => {
     expect(res.body.data).toBeNull();
   });
 });
+
+// ── GET /api/album — title search + collection on detail (#33) ────────────
+
+describe('GET /api/album?q=', () => {
+  it('matches a case-insensitive substring of the title', async () => {
+    await prisma.album.create({ data: { collectionId, title: `${T}Searchable Hymnal` } });
+    const res = await request(app).get(`/api/album?q=${encodeURIComponent('hymn')}`).set(authHeader(owner.email));
+    expect(res.status).toBe(200);
+    expect(res.body.data.map((a: { title: string }) => a.title)).toContain(`${T}Searchable Hymnal`);
+  });
+
+  it('excludes albums whose title does not match', async () => {
+    await prisma.album.create({ data: { collectionId, title: `${T}NoMatchHere` } });
+    const res = await request(app).get(`/api/album?q=${encodeURIComponent('hymn')}`).set(authHeader(owner.email));
+    expect(res.body.data.map((a: { title: string }) => a.title)).not.toContain(`${T}NoMatchHere`);
+  });
+
+  it('combines with collectionId', async () => {
+    await prisma.album.create({ data: { collectionId: otherCollectionId, title: `${T}Searchable Elsewhere` } });
+    const res = await request(app)
+      .get(`/api/album?q=${encodeURIComponent('searchable')}&collectionId=${collectionId}`)
+      .set(authHeader(owner.email));
+    const titles = res.body.data.map((a: { title: string }) => a.title);
+    expect(titles).toContain(`${T}Searchable Hymnal`);
+    expect(titles).not.toContain(`${T}Searchable Elsewhere`);
+  });
+
+  it('never escapes the caller accessible-collection scope', async () => {
+    const res = await request(app)
+      .get(`/api/album?q=${encodeURIComponent('searchable')}`)
+      .set(authHeader(outsider.email));
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([]);
+  });
+
+  it('returns 200 with [] when nothing matches', async () => {
+    const res = await request(app)
+      .get(`/api/album?q=${encodeURIComponent('zzzznomatchzzzz')}`)
+      .set(authHeader(owner.email));
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([]);
+  });
+});
+
+describe('GET /api/album/:id — collection', () => {
+  it('includes the owning collection id, name and kind', async () => {
+    const album = await prisma.album.create({ data: { collectionId: otherCollectionId, title: `${T}DigitalDetail` } });
+    const res = await request(app).get(`/api/album/${album.id}`).set(authHeader(owner.email));
+    expect(res.status).toBe(200);
+    expect(res.body.data.collection.id).toBe(otherCollectionId);
+    expect(res.body.data.collection.name).toBe(`${T}OtherColl`);
+    expect(res.body.data.collection.kind).toBe('digital');
+  });
+});

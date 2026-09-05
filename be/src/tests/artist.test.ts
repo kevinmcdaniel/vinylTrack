@@ -80,7 +80,9 @@ describe('GET /api/artist/:id', () => {
     const album = await prisma.album.create({ data: { collectionId: collection.id, title: `${T}Album` } });
     await prisma.album_artist.create({ data: { albumId: album.id, artistId: artist.id } });
 
-    const res = await request(app).get(`/api/artist/${artist.id}`).set(authHeader(member.email));
+    // Queried as the collection's owner: linked albums are scoped to the
+    // caller's accessible collections (#33), so `member` would correctly see none.
+    const res = await request(app).get(`/api/artist/${artist.id}`).set(authHeader(owner.email));
     expect(res.status).toBe(200);
     expect(res.body.data.albums).toBeInstanceOf(Array);
     expect(res.body.data.albums.some((a: { id: string }) => a.id === album.id)).toBe(true);
@@ -142,5 +144,89 @@ describe('DELETE /api/artist/:id', () => {
       .set(authHeader(admin.email));
     expect(res.status).toBe(404);
     expect(res.body.data).toBeNull();
+  });
+});
+
+// ── GET /api/artist/:id — album scoping (#33) ─────────────────────────────
+
+describe('GET /api/artist/:id album scoping', () => {
+  let artistId: string;
+  let accessibleAlbumId: string;
+  let hiddenAlbumId: string;
+  let collOwner: { id: string; email: string };
+  let shared: { id: string; email: string };
+  let outsider: { id: string; email: string };
+  let scopeAdmin: { id: string; email: string };
+
+  beforeAll(async () => {
+    collOwner = await prisma.user.create({ data: { email: `${T}scope-owner@example.com`, status: 'active' } });
+    shared = await prisma.user.create({ data: { email: `${T}scope-shared@example.com`, status: 'active' } });
+    outsider = await prisma.user.create({ data: { email: `${T}scope-outsider@example.com`, status: 'active' } });
+    scopeAdmin = await createTestAdmin('scope-admin');
+
+    const openColl = await prisma.collection.create({
+      data: { name: `${T}ScopeShared`, kind: 'physical', ownerId: collOwner.id },
+    });
+    const closedColl = await prisma.collection.create({
+      data: { name: `${T}ScopeClosed`, kind: 'physical', ownerId: collOwner.id },
+    });
+    await prisma.collection_share.create({ data: { collectionId: openColl.id, userId: shared.id, role: 'full' } });
+
+    const artist = await prisma.artist.create({ data: { name: `${T}ScopedArtist` } });
+    artistId = artist.id;
+    const accessible = await prisma.album.create({ data: { collectionId: openColl.id, title: `${T}VisibleAlbum` } });
+    const hidden = await prisma.album.create({ data: { collectionId: closedColl.id, title: `${T}HiddenAlbum` } });
+    accessibleAlbumId = accessible.id;
+    hiddenAlbumId = hidden.id;
+    await prisma.album_artist.create({ data: { albumId: accessible.id, artistId: artist.id } });
+    await prisma.album_artist.create({ data: { albumId: hidden.id, artistId: artist.id } });
+  });
+
+  const albumIds = (body: { data: { albums: { id: string }[] } }) => body.data.albums.map((a) => a.id);
+
+  it('does not leak albums from collections the caller cannot access', async () => {
+    const res = await request(app).get(`/api/artist/${artistId}`).set(authHeader(outsider.email));
+    expect(res.status).toBe(200);
+    expect(res.body.data.name).toBe(`${T}ScopedArtist`);
+    expect(res.body.data.albums).toEqual([]);
+  });
+
+  it('shows a shared member only the album in the collection shared with them', async () => {
+    const res = await request(app).get(`/api/artist/${artistId}`).set(authHeader(shared.email));
+    expect(res.status).toBe(200);
+    expect(albumIds(res.body)).toEqual([accessibleAlbumId]);
+  });
+
+  it('shows the collection owner both of their own albums', async () => {
+    const res = await request(app).get(`/api/artist/${artistId}`).set(authHeader(collOwner.email));
+    expect(albumIds(res.body).sort()).toEqual([accessibleAlbumId, hiddenAlbumId].sort());
+  });
+
+  it('an admin sees albums across all collections', async () => {
+    const res = await request(app).get(`/api/artist/${artistId}`).set(authHeader(scopeAdmin.email));
+    expect(albumIds(res.body).sort()).toEqual([accessibleAlbumId, hiddenAlbumId].sort());
+  });
+
+  it('labels each album with the collection it belongs to (#7)', async () => {
+    const res = await request(app).get(`/api/artist/${artistId}`).set(authHeader(shared.email));
+    const album = res.body.data.albums[0];
+    expect(album.collection.name).toBe(`${T}ScopeShared`);
+    expect(album.collection.id).toBeTruthy();
+  });
+
+  it('still resolves the artist row itself for a caller with no collection access', async () => {
+    const lonely = await prisma.artist.create({ data: { name: `${T}UnlinkedArtist` } });
+    const res = await request(app).get(`/api/artist/${lonely.id}`).set(authHeader(outsider.email));
+    expect(res.status).toBe(200);
+    expect(res.body.data.name).toBe(`${T}UnlinkedArtist`);
+  });
+
+  it('a non-admin can still PATCH an artist whose albums are all invisible to them', async () => {
+    const res = await request(app)
+      .patch(`/api/artist/${artistId}`)
+      .set(authHeader(outsider.email))
+      .send({ notes: 'still editable' });
+    expect(res.status).toBe(200);
+    expect(res.body.data.notes).toBe('still editable');
   });
 });

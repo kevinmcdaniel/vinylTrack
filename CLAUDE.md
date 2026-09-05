@@ -59,7 +59,7 @@ Response envelope matches squaretrack's convention (list endpoints always `data:
 - `album`/`copy`/`want_item` are collection-scoped (copy via its album) — list results are always filtered to the caller's owned+shared collections (`requireCollectionAccess` for `:id` routes → 404 if inaccessible, masking existence; `requireCollectionAccessForCreate` → 403 on POST into a collection you don't belong to, since you supplied that id yourself). Admins bypass all of it.
 - `artist` is global/unscoped — any active user can read/write; delete is `requireAdmin`-gated (403) since one family member shouldn't be able to remove catalog data others depend on.
 - `location` has no `collectionId` — write access follows `ownerId` (owner or admin only; unowned locations are writable by any active user for v1). Read is open to any active user.
-- No `/api/collection` CRUD exists yet, so "admin can delete a collection they don't own" isn't wired up anywhere yet — noted as a gap in issue #26, not built.
+- `collection` is **read-only** (`GET /api/collection`, `GET /api/collection/:id`, #33) — the list is scoped to owned+shared, `:id` 404s when inaccessible. No collection create/update/delete exists, so "admin can delete a collection they don't own" isn't wired up anywhere yet — noted as a gap in issue #26, not built.
 
 See `be/src/route/*.ts` for how each route wires these in, and the doc comment at the top of `policy.ts` for the resource/action matrix.
 

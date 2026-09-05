@@ -5,7 +5,13 @@
 //
 //   resource     | read (list/:id)          | create                    | update/delete
 //   -------------|---------------------------|---------------------------|---------------------------
+//   collection   | requireActiveUser +       | (not built — #26)         | (not built — #26)
+//                | scoped to accessible      |                           |
+//                | collections (list), or    |                           |
+//                | 404 if :id not accessible |                           |
 //   artist       | requireActiveUser         | requireActiveUser         | requireAdmin (delete only)
+//                | (row is global; :id's     |                           |
+//                | linked albums are scoped) |                           |
 //   album/copy/  | requireActiveUser +       | requireActiveUser +       | requireActiveUser +
 //   want_item    | scoped to accessible      | requireCollectionAccess-  | requireCollectionAccess
 //                | collections (list), or    | ForCreate                 | (404 if not accessible)

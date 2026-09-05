@@ -15,9 +15,9 @@ const isPrismaError = (error: unknown, code: string): boolean =>
 
 export const listAlbums = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { collectionId, artistId, format, genre } = req.query as Record<string, string>;
+    const { collectionId, artistId, format, genre, q } = req.query as Record<string, string>;
     const scope = req.user!.isAdmin ? undefined : await accessibleCollectionIds(req.user!.id);
-    const records = await listAlbumsService({ collectionId, artistId, format, genre }, scope);
+    const records = await listAlbumsService({ collectionId, artistId, format, genre, q }, scope);
     res.json({ message: 'List of albums', data: records, status: 200 });
   } catch (error) {
     next(error);
