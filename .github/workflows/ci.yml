@@ -47,6 +47,88 @@ jobs:
       - run: npx prisma migrate deploy
       - run: npm run test
 
+  api:
+    name: BE API collection (Bruno)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: be
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_USER: vinyltrack
+          POSTGRES_PASSWORD: citestpw
+          POSTGRES_DB: vinyltrack
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vinyltrack -d vinyltrack"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      DB_VINYLTRACK_URL: postgresql://vinyltrack:citestpw@localhost:5432/vinyltrack
+      AUTH_BOOTSTRAP_OWNER_EMAIL: kevin@example.com
+      # bruno/environments/local.bru points baseUrl at localhost:5202 and
+      # src/server.ts reads PORT, so binding here lets CI run the collection
+      # through the same `npm run test:api` and the same environment file a
+      # developer uses locally — no --env-var baseUrl override to drift.
+      PORT: "5202"
+      BRUNO_JUNIT: ${{ github.workspace }}/bruno-junit.xml
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: be/package-lock.json
+      - run: npm ci
+      - run: npx prisma generate
+      - run: npx prisma migrate deploy
+      # The collection drives the x-user-email dev identities (#26) and asserts
+      # on seeded rows, so it needs the seed, not just the schema.
+      - run: npx prisma db seed
+
+      - name: Start API and wait for /api/health
+        run: |
+          # tsx directly, not `npm run dev` — that is nodemon with file watching,
+          # which has no business in CI.
+          npx tsx src/server.ts > "$RUNNER_TEMP/api.log" 2>&1 &
+          for i in $(seq 1 60); do
+            # Quiet: a refused connection is the expected case while booting.
+            if curl -fs "http://localhost:$PORT/api/health" > /dev/null 2>&1; then
+              echo "API answered /api/health on port $PORT after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::API never answered http://localhost:$PORT/api/health"
+          cat "$RUNNER_TEMP/api.log"
+          exit 1
+
+      - name: Run Bruno collection
+        # `test:api` already carries --bail, so the run stops at the first
+        # failing request instead of cascading; the report still lists every
+        # request, with the unrun ones marked skipped.
+        run: npm run test:api -- --reporter-junit "$BRUNO_JUNIT"
+
+      - name: Summarize collection results
+        if: always()
+        run: python3 ../.github/scripts/bruno-summary.py "$BRUNO_JUNIT" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: API log
+        if: failure()
+        run: cat "$RUNNER_TEMP/api.log"
+
+      - name: Upload JUnit report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: bruno-junit
+          path: bruno-junit.xml
+          if-no-files-found: warn
+
   fe:
     name: FE typecheck + lint
     runs-on: ubuntu-latest

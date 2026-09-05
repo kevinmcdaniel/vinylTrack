@@ -34,3 +34,6 @@ fe/.vercel
 fe/*.tsbuildinfo
 fe/next-env.d.ts
 be/src/generated/
+
+# CI: Bruno JUnit report (.github/workflows/ci.yml `api` job)
+bruno-junit.xml
