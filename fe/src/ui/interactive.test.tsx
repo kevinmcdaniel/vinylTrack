@@ -24,12 +24,15 @@ const collection = (id: string, name: string, albumCount: number): Collection =>
 });
 
 describe('CollectionSwitcher', () => {
-  const collections = [collection('c1', 'Vinyl', 12), collection('c2', 'Square Dance Calls', 3)];
+  const collections = [
+    collection('c1', 'Squakville Vinyl', 12),
+    collection('c2', 'Square Dance Music', 3),
+  ];
 
   it('lists every accessible collection with its size', () => {
     render(<CollectionSwitcher collections={collections} currentId="c1" />);
-    expect(screen.getByRole('option', { name: 'Vinyl (12)' })).toBeInTheDocument();
-    expect(screen.getByRole('option', { name: 'Square Dance Calls (3)' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Squakville Vinyl (12)' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Square Dance Music (3)' })).toBeInTheDocument();
   });
 
   it('shows the collection currently being browsed as selected', () => {
