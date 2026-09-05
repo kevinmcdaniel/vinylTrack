@@ -20,8 +20,8 @@ assert {
 }
 
 script:post-response {
-  const vinyl = res.body.data.find(c => c.name === "Vinyl");
-  const calls = res.body.data.find(c => c.name === "Square Dance Calls");
+  const vinyl = res.body.data.find(c => c.name === "Squakville Vinyl");
+  const calls = res.body.data.find(c => c.name === "Square Dance Music");
   bru.setVar("vinylCollectionId", vinyl.id);
   bru.setVar("digitalCollectionId", calls.id);
 }
@@ -33,12 +33,12 @@ tests {
 
   test("includes both seeded collections", function() {
     const names = res.body.data.map(c => c.name);
-    expect(names).to.include("Vinyl");
-    expect(names).to.include("Square Dance Calls");
+    expect(names).to.include("Squakville Vinyl");
+    expect(names).to.include("Square Dance Music");
   });
 
   test("carries an album count for the switcher", function() {
-    const vinyl = res.body.data.find(c => c.name === "Vinyl");
+    const vinyl = res.body.data.find(c => c.name === "Squakville Vinyl");
     expect(vinyl.albumCount).to.be.a("number");
   });
 }

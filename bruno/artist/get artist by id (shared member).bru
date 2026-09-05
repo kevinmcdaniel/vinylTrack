@@ -26,7 +26,7 @@ tests {
 
   test("each album is labelled with its collection (#7)", function() {
     const album = res.body.data.albums.find(a => a.title === "Kind of Blue");
-    expect(album.collection.name).to.equal("Vinyl");
+    expect(album.collection.name).to.equal("Squakville Vinyl");
     expect(album.collection.id).to.be.a("string");
   });
 }
