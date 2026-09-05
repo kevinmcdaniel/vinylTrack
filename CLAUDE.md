@@ -38,6 +38,12 @@ npm run lint       # ESLint (flat config, max-warnings 0)
 npm run typecheck  # tsc --noEmit
 ```
 
+### API testing (`bruno/`)
+```bash
+cd be && npm run test:api   # bru run --env local -r, against a running+seeded stack on :5202
+```
+Bruno collection covering every resource over HTTP, with assertions on status and response envelope. One folder per resource, ordered by dependency (collection → artist → location → album → copy → want → cleanup); ids chain through runtime vars and the `cleanup` folder removes everything a run creates, so runs are idempotent. Identity is the `x-user-email` dev header driven by an env var (`ownerEmail`/`sharedEmail`/`outsiderEmail`/`unknownEmail` mapping to the seeded users), which is what makes the #26 access rules testable from outside the process. This is a *complement* to `npm run test`, not a replacement — supertest never boots a listener, so it can't catch what only breaks over the wire or against realistically-linked seed data.
+
 ### Database
 Connection config lives in `.env` at the repo root (copy `.env.example`).
 

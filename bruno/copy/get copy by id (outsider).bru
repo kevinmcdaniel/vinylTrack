@@ -1,0 +1,21 @@
+meta {
+  name: get copy by id (outsider)
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/copy/{{copyId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{outsiderEmail}}
+}
+
+assert {
+  res.status: eq 404
+  res.body.status: eq 404
+  res.body.data: isNull
+}

@@ -1,0 +1,35 @@
+meta {
+  name: get album by id
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/api/album/{{albumId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("includes its artists", function() {
+    expect(res.body.data.artists).to.be.an("array").with.lengthOf(1);
+  });
+
+  test("includes the owning collection so the UI knows physical vs digital (#33)", function() {
+    expect(res.body.data.collection.name).to.equal("Vinyl");
+    expect(res.body.data.collection.kind).to.equal("physical");
+  });
+
+  test("carries a copies array even when empty", function() {
+    expect(res.body.data.copies).to.be.an("array");
+  });
+}

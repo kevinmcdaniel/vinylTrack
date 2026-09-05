@@ -1,0 +1,33 @@
+meta {
+  name: update want
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{baseUrl}}/api/want/{{artistWantId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "priority": "must-have",
+    "notes": "bumped by the bruno run"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("persists the edit", function() {
+    expect(res.body.data.priority).to.equal("must-have");
+  });
+}

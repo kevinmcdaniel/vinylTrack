@@ -1,0 +1,30 @@
+meta {
+  name: update artist (outsider)
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{baseUrl}}/api/artist/{{milesDavisId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{outsiderEmail}}
+}
+
+body:json {
+  {
+    "notes": "artists are globally writable"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+docs {
+  Not a mistake: `artist` is deliberately global and unscoped (see policy.ts) — any active user may write it. Only DELETE is admin-gated.
+}

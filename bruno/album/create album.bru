@@ -1,0 +1,41 @@
+meta {
+  name: create album
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/album
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "collectionId": "{{vinylCollectionId}}",
+    "title": "_BRUNO_ Test Album",
+    "format": "LP",
+    "year": 1971,
+    "genre": "Test",
+    "artistIds": ["{{artistId}}"]
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.status: eq 201
+}
+
+script:post-response {
+  bru.setVar("albumId", res.body.data.id);
+}
+
+tests {
+  test("writes the album_artist credits", function() {
+    expect(res.body.data.artists.map(a => a.id)).to.include(bru.getVar("artistId"));
+  });
+}

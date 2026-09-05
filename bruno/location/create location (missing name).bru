@@ -1,0 +1,26 @@
+meta {
+  name: create location (missing name)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/location
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "kind": "physical"
+  }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}

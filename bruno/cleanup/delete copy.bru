@@ -1,0 +1,20 @@
+meta {
+  name: delete copy
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{baseUrl}}/api/copy/{{copyId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}

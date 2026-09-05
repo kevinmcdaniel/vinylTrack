@@ -1,0 +1,32 @@
+meta {
+  name: update artist
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{baseUrl}}/api/artist/{{artistId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "notes": "edited by the bruno run"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("persists the edit", function() {
+    expect(res.body.data.notes).to.equal("edited by the bruno run");
+  });
+}

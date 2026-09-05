@@ -1,0 +1,34 @@
+meta {
+  name: search albums by title
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/album?q=blue
+  body: none
+  auth: inherit
+}
+
+params:query {
+  q: blue
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+script:post-response {
+  bru.setVar("kindOfBlueId", res.body.data.find(a => a.title === "Kind of Blue").id);
+}
+
+tests {
+  test("matches a case-insensitive substring of the title (#33)", function() {
+    expect(res.body.data.map(a => a.title)).to.include("Kind of Blue");
+  });
+}

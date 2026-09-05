@@ -1,0 +1,34 @@
+meta {
+  name: get artist by id (outsider)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/artist/{{milesDavisId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{outsiderEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("resolves the artist row — artist is global", function() {
+    expect(res.body.data.name).to.equal("Miles Davis");
+  });
+
+  test("but leaks no album from a collection they cannot access (#33)", function() {
+    expect(res.body.data.albums).to.be.an("array").that.is.empty;
+  });
+}
+
+docs {
+  Regression guard for the leak closed in #33: artist rows are global, but the linked-album list is scoped to the caller's collections.
+}

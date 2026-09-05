@@ -1,0 +1,44 @@
+meta {
+  name: list collections
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/collection
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+script:post-response {
+  const vinyl = res.body.data.find(c => c.name === "Vinyl");
+  const calls = res.body.data.find(c => c.name === "Square Dance Calls");
+  bru.setVar("vinylCollectionId", vinyl.id);
+  bru.setVar("digitalCollectionId", calls.id);
+}
+
+tests {
+  test("list data is an array, never null", function() {
+    expect(res.body.data).to.be.an("array");
+  });
+
+  test("includes both seeded collections", function() {
+    const names = res.body.data.map(c => c.name);
+    expect(names).to.include("Vinyl");
+    expect(names).to.include("Square Dance Calls");
+  });
+
+  test("carries an album count for the switcher", function() {
+    const vinyl = res.body.data.find(c => c.name === "Vinyl");
+    expect(vinyl.albumCount).to.be.a("number");
+  });
+}

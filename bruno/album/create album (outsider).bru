@@ -1,0 +1,32 @@
+meta {
+  name: create album (outsider)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/album
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{outsiderEmail}}
+}
+
+body:json {
+  {
+    "collectionId": "{{vinylCollectionId}}",
+    "title": "_BRUNO_ Not Yours"
+  }
+}
+
+assert {
+  res.status: eq 403
+  res.body.status: eq 403
+  res.body.data: isNull
+}
+
+docs {
+  403, not 404: the caller supplied the collectionId themselves, so there is nothing to hide by masking it.
+}

@@ -1,0 +1,32 @@
+meta {
+  name: get artist by id (shared member)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/artist/{{milesDavisId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{sharedEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("sees the album in the collection shared with them", function() {
+    expect(res.body.data.albums.map(a => a.title)).to.include("Kind of Blue");
+  });
+
+  test("each album is labelled with its collection (#7)", function() {
+    const album = res.body.data.albums.find(a => a.title === "Kind of Blue");
+    expect(album.collection.name).to.equal("Vinyl");
+    expect(album.collection.id).to.be.a("string");
+  });
+}

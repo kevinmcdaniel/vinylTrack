@@ -1,0 +1,21 @@
+meta {
+  name: list collections (unknown identity)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/collection
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{unknownEmail}}
+}
+
+assert {
+  res.status: eq 401
+  res.body.status: eq 401
+  res.body.data: isNull
+}

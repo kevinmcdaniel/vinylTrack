@@ -1,0 +1,27 @@
+meta {
+  name: create copy (nonexistent albumId)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/copy
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "albumId": "{{missingId}}",
+    "locationId": "{{childLocationId}}"
+  }
+}
+
+assert {
+  res.status: eq 409
+  res.body.status: eq 409
+}

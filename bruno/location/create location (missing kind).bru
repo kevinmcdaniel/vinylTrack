@@ -1,0 +1,26 @@
+meta {
+  name: create location (missing kind)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/location
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "name": "_BRUNO_ No Kind"
+  }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}

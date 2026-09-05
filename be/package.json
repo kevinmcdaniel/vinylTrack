@@ -6,11 +6,12 @@
   "keywords": [],
   "author": "Kevin McDaniel",
   "license": "ISC",
-  "description": "vinylTrack API — family record/album/MP3 collection tracker",
+  "description": "vinylTrack API \u2014 family record/album/MP3 collection tracker",
   "scripts": {
     "dev": "npx prisma generate && npx nodemon --exec tsx src/server.ts",
     "migrate": "npx prisma migrate dev",
     "test": "vitest run",
+    "test:api": "cd ../bruno && bru run --env local -r",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0"
@@ -25,6 +26,7 @@
     "@types/express": "^5.0.0",
     "@types/node": "^22.10.1",
     "@types/supertest": "^7.2.0",
+    "@usebruno/cli": "^4.1.0",
     "@vitest/coverage-v8": "^4.1.4",
     "dotenv": "^17.4.2",
     "eslint": "^9.39.4",

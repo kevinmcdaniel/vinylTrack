@@ -1,0 +1,34 @@
+meta {
+  name: list copies by album
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/copy?albumId={{albumId}}
+  body: none
+  auth: inherit
+}
+
+params:query {
+  albumId: {{albumId}}
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("list data is an array, never null", function() {
+    expect(res.body.data).to.be.an("array");
+  });
+
+  test("finds the copy just created", function() {
+    expect(res.body.data.map(c => c.id)).to.include(bru.getVar("copyId"));
+  });
+}

@@ -1,0 +1,25 @@
+meta {
+  name: get collection by id (outsider)
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/collection/{{vinylCollectionId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{outsiderEmail}}
+}
+
+assert {
+  res.status: eq 404
+  res.body.status: eq 404
+  res.body.data: isNull
+}
+
+docs {
+  404 rather than 403 on purpose: an inaccessible collection must read the same as one that does not exist, so existence is not leaked.
+}

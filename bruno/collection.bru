@@ -1,0 +1,47 @@
+auth {
+  mode: none
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+docs {
+  # vinylTrack API
+
+  Exercises the API over HTTP against a running stack — the thing the
+  in-process supertest suite structurally cannot do (it imports `app.ts`
+  directly and never boots a listener).
+
+  ## Running
+
+  Start the stack and seed it, then:
+
+      docker compose up -d
+      docker compose run --rm seed
+      cd be && npm run test:api
+
+  Or open this folder in the Bruno app and pick the `local` environment.
+
+  ## Identities
+
+  Caller identity is the `x-user-email` dev header (#26), defaulted here at
+  the collection level and overridden per request. The seeded users are:
+
+  | var             | user                | access                          |
+  |-----------------|---------------------|---------------------------------|
+  | `ownerEmail`    | kevin@example.com   | admin; owns both collections    |
+  | `sharedEmail`   | alex@example.com    | shared on Vinyl only            |
+  | `outsiderEmail` | jamie@example.com   | owns nothing, shared nothing    |
+  | `unknownEmail`  | nobody@example.com  | not a user at all — expects 401 |
+
+  `ownerEmail` is *also* the admin, so admin-gated requests use it too;
+  non-admin negative cases use `sharedEmail`.
+
+  ## Ordering
+
+  Requests run in `seq` order and chain ids through runtime vars, so the
+  folders are ordered by dependency: collection -> artist -> location ->
+  album -> copy -> want -> cleanup. The `cleanup` folder removes everything
+  the run created, so repeated runs stay idempotent.
+}

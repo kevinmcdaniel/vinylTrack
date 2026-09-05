@@ -1,0 +1,35 @@
+meta {
+  name: list locations
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/location
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+script:post-response {
+  bru.setVar("basementId", res.body.data.find(l => l.name === "Basement").id);
+}
+
+tests {
+  test("list data is an array, never null", function() {
+    expect(res.body.data).to.be.an("array");
+  });
+
+  test("resolves the parent chain the UI renders as a path", function() {
+    const shelf = res.body.data.find(l => l.name === "Shelf 3");
+    expect(shelf.parent.name).to.equal("Basement");
+  });
+}

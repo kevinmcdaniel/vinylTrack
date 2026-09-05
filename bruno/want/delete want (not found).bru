@@ -1,0 +1,21 @@
+meta {
+  name: delete want (not found)
+  type: http
+  seq: 16
+}
+
+delete {
+  url: {{baseUrl}}/api/want/{{missingId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 404
+  res.body.status: eq 404
+  res.body.data: isNull
+}

@@ -1,0 +1,27 @@
+meta {
+  name: create album (nonexistent collectionId)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/album
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "collectionId": "{{missingId}}",
+    "title": "_BRUNO_ Nowhere"
+  }
+}
+
+assert {
+  res.status: eq 409
+  res.body.status: eq 409
+}

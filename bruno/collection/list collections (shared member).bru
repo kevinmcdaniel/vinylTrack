@@ -1,0 +1,28 @@
+meta {
+  name: list collections (shared member)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/collection
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{sharedEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("sees only the collection shared with them", function() {
+    const names = res.body.data.map(c => c.name);
+    expect(names).to.include("Vinyl");
+    expect(names).to.not.include("Square Dance Calls");
+  });
+}

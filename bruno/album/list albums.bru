@@ -1,0 +1,30 @@
+meta {
+  name: list albums
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/album
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+script:post-response {
+  bru.setVar("plusCallsId", res.body.data.find(a => a.title === "Plus Program Calls").id);
+}
+
+tests {
+  test("list data is an array, never null", function() {
+    expect(res.body.data).to.be.an("array");
+  });
+}

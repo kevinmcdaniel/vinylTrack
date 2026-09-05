@@ -1,0 +1,31 @@
+meta {
+  name: mark want found (already found)
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/api/want/{{albumWantId}}/found
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "locationId": "{{childLocationId}}"
+  }
+}
+
+assert {
+  res.status: eq 404
+  res.body.status: eq 404
+  res.body.data: isNull
+}
+
+docs {
+  The want was consumed by the previous request, so it is gone — proves the conversion actually removed it.
+}

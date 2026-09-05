@@ -1,0 +1,27 @@
+meta {
+  name: update want (outsider)
+  type: http
+  seq: 11
+}
+
+patch {
+  url: {{baseUrl}}/api/want/{{artistWantId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{outsiderEmail}}
+}
+
+body:json {
+  {
+    "priority": "nice-to-have"
+  }
+}
+
+assert {
+  res.status: eq 404
+  res.body.status: eq 404
+  res.body.data: isNull
+}

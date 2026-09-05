@@ -1,0 +1,26 @@
+meta {
+  name: create album (missing collectionId)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/album
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "title": "_BRUNO_ Orphan"
+  }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}

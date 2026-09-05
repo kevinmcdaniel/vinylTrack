@@ -1,0 +1,21 @@
+meta {
+  name: get album by id (not found)
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/api/album/{{missingId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 404
+  res.body.status: eq 404
+  res.body.data: isNull
+}

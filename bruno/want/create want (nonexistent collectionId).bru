@@ -1,0 +1,28 @@
+meta {
+  name: create want (nonexistent collectionId)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/want
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "collectionId": "{{missingId}}",
+    "artistId": "{{artistId}}",
+    "priority": "must-have"
+  }
+}
+
+assert {
+  res.status: eq 409
+  res.body.status: eq 409
+}

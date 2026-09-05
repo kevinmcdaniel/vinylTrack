@@ -1,0 +1,34 @@
+meta {
+  name: search albums by title (outsider)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/album?q=blue
+  body: none
+  auth: inherit
+}
+
+params:query {
+  q: blue
+}
+
+headers {
+  x-user-email: {{outsiderEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("scoped away entirely, as an empty array rather than null", function() {
+    expect(res.body.data).to.be.an("array").that.is.empty;
+  });
+}
+
+docs {
+  Search must never widen access scope — q is ANDed with the caller's accessible collections.
+}

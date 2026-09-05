@@ -1,0 +1,25 @@
+meta {
+  name: delete artist (non-admin)
+  type: http
+  seq: 10
+}
+
+delete {
+  url: {{baseUrl}}/api/artist/{{artistId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{sharedEmail}}
+}
+
+assert {
+  res.status: eq 403
+  res.body.status: eq 403
+  res.body.data: isNull
+}
+
+docs {
+  Delete is admin-gated so one family member cannot remove catalog data others depend on. The actual delete happens in the cleanup folder, as the admin.
+}

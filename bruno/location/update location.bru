@@ -1,0 +1,26 @@
+meta {
+  name: update location
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{baseUrl}}/api/location/{{locationId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "notes": "edited by the bruno run"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}

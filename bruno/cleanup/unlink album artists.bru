@@ -1,0 +1,36 @@
+meta {
+  name: unlink album artists
+  type: http
+  seq: 3
+}
+
+patch {
+  url: {{baseUrl}}/api/album/{{albumId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "artistIds": []
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("album_artist rows are gone", function() {
+    expect(res.body.data.artists).to.be.an("array").that.is.empty;
+  });
+}
+
+docs {
+  Workaround, not a step anyone should have to take: DELETE /api/album/:id currently 500s when the album still has album_artist rows (#36). Remove this request once #36 is fixed.
+}
