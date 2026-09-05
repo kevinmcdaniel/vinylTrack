@@ -31,10 +31,10 @@ async function main() {
   });
 
   const vinyl = await prisma.collection.create({
-    data: { name: 'Vinyl', kind: 'physical', ownerId: kevin.id },
+    data: { name: 'Squakville Vinyl', kind: 'physical', ownerId: kevin.id },
   });
   const calls = await prisma.collection.create({
-    data: { name: 'Square Dance Calls', kind: 'digital', ownerId: kevin.id },
+    data: { name: 'Square Dance Music', kind: 'digital', ownerId: kevin.id },
   });
   await prisma.collection_share.create({
     data: { collectionId: vinyl.id, userId: alex.id, role: 'full' },
