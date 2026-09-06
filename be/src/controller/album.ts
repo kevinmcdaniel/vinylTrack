@@ -15,9 +15,14 @@ const isPrismaError = (error: unknown, code: string): boolean =>
 
 export const listAlbums = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { collectionId, artistId, format, genre, q } = req.query as Record<string, string>;
+    const { collectionId, artistId, format, genre, q, includeCopies } = req.query as Record<string, string>;
     const scope = req.user!.isAdmin ? undefined : await accessibleCollectionIds(req.user!.id);
-    const records = await listAlbumsService({ collectionId, artistId, format, genre, q }, scope);
+    const records = await listAlbumsService(
+      // Anything but an explicit `true` leaves copies off — a typo in the
+      // query string should give the cheap default, not the expensive one.
+      { collectionId, artistId, format, genre, q, includeCopies: includeCopies === 'true' },
+      scope,
+    );
     res.json({ message: 'List of albums', data: records, status: 200 });
   } catch (error) {
     next(error);

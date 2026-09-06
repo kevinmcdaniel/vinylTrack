@@ -13,13 +13,27 @@ const formatAcquired = (copy: Copy): string | null => {
 /**
  * One owned instance. A title can have several (mine and my kid's, #13), so
  * these are always rendered as a list — never collapsed to "owned: yes".
+ *
+ * The owner sits next to the location because that is the question being
+ * answered in a record store: not "is this owned" but "whose is it, and do I
+ * still want a second one". It shows for digital copies too, where condition
+ * and source are hidden.
  */
 export default function CopyRow({ copy, collectionKind }: { copy: Copy; collectionKind: string }) {
   const physical = showsPhysicalDetail(collectionKind);
   const acquired = physical ? formatAcquired(copy) : null;
+  const ownerName = copy.location.owner?.name;
   return (
     <li className="rounded-lg border border-black/10 p-3 dark:border-white/15">
       <LocationPath location={copy.location} />
+      {ownerName && (
+        <>
+          <span aria-hidden="true" className="mx-1.5 opacity-40">
+            ·
+          </span>
+          <span className="text-sm opacity-70">{ownerName}</span>
+        </>
+      )}
       {physical && copy.condition && (
         <span className="ml-2 rounded bg-black/5 px-1.5 py-0.5 text-xs dark:bg-white/10">
           {copy.condition}

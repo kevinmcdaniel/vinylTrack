@@ -72,6 +72,8 @@ Response envelope matches squaretrack's convention (list endpoints always `data:
 
 See `be/src/route/*.ts` for how each route wires these in, and the doc comment at the top of `policy.ts` for the resource/action matrix.
 
+**Duplicate check (#13).** `GET /api/album?includeCopies=true` returns each matching album with its `copies`, so "does anyone already own this, and where" is one request rather than one `GET /api/album/:id` per row — that's what the want-list/shopping screen (#8) is built on. It is opt-in because the browse list (#7) never renders copies and shouldn't pay for the join, and *only* adds detail to a result, never a result: copies come through the album relation, so the accessible-collection scope still decides what comes back. A copy's owner is `location.owner` (`copy` has no owner of its own), selected down to `{ id, name }` — never the `user` row, which carries an email.
+
 ### Frontend structure
 - `fe/src/app/` — Next.js App Router; the browse UI (#7) lives under the `(app)` group
 - `fe/src/lib/` — `api.ts` (server-only API client), `types.ts` (BE response shapes), `filters.ts` (pure helpers)

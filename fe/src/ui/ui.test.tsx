@@ -7,7 +7,7 @@ import type { Album, Copy, Location } from '@/lib/types';
 
 const location = (over: Partial<Location> = {}): Location => ({
   id: 'l', name: 'Shelf 3', kind: 'physical', parentLocationId: 'p',
-  parent: { id: 'p', name: 'Basement' }, ...over,
+  parent: { id: 'p', name: 'Basement' }, owner: null, ...over,
 });
 
 const copy = (over: Partial<Copy> = {}): Copy => ({
@@ -85,5 +85,47 @@ describe('CopyRow', () => {
   it('renders a bare row when only the location is known', () => {
     render(<CopyRow collectionKind="physical" copy={copy()} />);
     expect(screen.getByText('Basement → Shelf 3')).toBeInTheDocument();
+  });
+
+  // The whole point of listing copies rather than collapsing them to
+  // "owned: yes" is knowing whose it is before you buy a second one (#13).
+  it('names the family member whose copy it is', () => {
+    render(
+      <CopyRow
+        collectionKind="physical"
+        copy={copy({ location: location({ owner: { id: 'u1', name: 'Alex' } }) })}
+      />,
+    );
+    expect(screen.getByText('Alex')).toBeInTheDocument();
+  });
+
+  it('shows the owner for a digital copy too, where condition and source are hidden', () => {
+    render(
+      <CopyRow
+        collectionKind="digital"
+        copy={copy({
+          location: location({ name: 'iCloud Drive/Music', parent: null, owner: { id: 'u1', name: 'Alex' } }),
+          condition: 'VG+',
+        })}
+      />,
+    );
+    expect(screen.getByText('Alex')).toBeInTheDocument();
+    expect(screen.queryByText('VG+')).not.toBeInTheDocument();
+  });
+
+  it('says nothing about ownership for a communal location', () => {
+    render(<CopyRow collectionKind="physical" copy={copy({ location: location({ owner: null }) })} />);
+    expect(screen.queryByText(/·/)).not.toBeInTheDocument();
+  });
+
+  it('falls back to nothing rather than a blank byline when the owner has no name', () => {
+    render(
+      <CopyRow
+        collectionKind="physical"
+        copy={copy({ location: location({ owner: { id: 'u1', name: null } }) })}
+      />,
+    );
+    expect(screen.getByText('Basement → Shelf 3')).toBeInTheDocument();
+    expect(screen.queryByText(/·/)).not.toBeInTheDocument();
   });
 });

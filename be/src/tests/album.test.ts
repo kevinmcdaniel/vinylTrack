@@ -320,3 +320,144 @@ describe('GET /api/album/:id — collection', () => {
     expect(res.body.data.collection.kind).toBe('digital');
   });
 });
+
+// ── GET /api/album?includeCopies= (#13) ──────────────────────────────────
+//
+// The duplicate check: "does this title exist anywhere in the family
+// collection, and where". Matching is already covered by q/artistId/
+// collectionId above; what this adds is the answer — the copies, with enough
+// of the location to say *whose* it is, in one request rather than N+1.
+
+describe('GET /api/album?includeCopies=', () => {
+  let dupAlbumId: string;
+  let dupShelfId: string;
+  let dupRoomId: string;
+
+  beforeAll(async () => {
+    const album = await prisma.album.create({ data: { collectionId, title: `${T}Dup Check Target` } });
+    const room = await prisma.location.create({
+      data: { name: `${T}DupRoom`, kind: 'physical', ownerId: sharedMember.id },
+    });
+    const shelf = await prisma.location.create({
+      data: { name: `${T}DupShelf`, kind: 'physical', parentLocationId: room.id, ownerId: sharedMember.id },
+    });
+    await prisma.copy.create({ data: { albumId: album.id, locationId: shelf.id, condition: 'VG+' } });
+    dupAlbumId = album.id;
+    dupShelfId = shelf.id;
+    dupRoomId = room.id;
+  });
+
+  // supertest hands back an untyped body; each caller says what shape of the
+  // album row it is asserting on.
+  const find = <T>(body: { data: unknown[] }, id: string): T | undefined =>
+    (body.data as ({ id: string } & T)[]).find((a) => a.id === id);
+
+  type CopyRow = {
+    condition: string | null;
+    location: { id: string; parent: { id: string } | null; owner: { id: string } | null };
+  };
+  type AlbumWithCopies = { copies: CopyRow[] };
+
+  it('omits copies entirely by default, so the browse list stays lean (#38)', async () => {
+    const res = await request(app).get(`/api/album?collectionId=${collectionId}`).set(authHeader(owner.email));
+    expect(res.status).toBe(200);
+    const album = find<Record<string, unknown>>(res.body, dupAlbumId);
+    expect(album).toBeDefined();
+    expect(album).not.toHaveProperty('copies');
+  });
+
+  it('returns each matching album with its copy list when asked', async () => {
+    const res = await request(app)
+      .get(`/api/album?collectionId=${collectionId}&includeCopies=true`)
+      .set(authHeader(owner.email));
+    expect(res.status).toBe(200);
+    const album = find<AlbumWithCopies>(res.body, dupAlbumId);
+    expect(album?.copies).toHaveLength(1);
+    expect(album?.copies[0]?.condition).toBe('VG+');
+  });
+
+  it('resolves each copy location to its full path and its owner', async () => {
+    const res = await request(app)
+      .get(`/api/album?collectionId=${collectionId}&includeCopies=true`)
+      .set(authHeader(owner.email));
+    const location = find<AlbumWithCopies>(res.body, dupAlbumId)!.copies[0]!.location;
+    expect(location.id).toBe(dupShelfId);
+    expect(location.parent!.id).toBe(dupRoomId);
+    // "already have 1 copy — Alex's room" needs the owner, not just the name.
+    expect(location.owner!.id).toBe(sharedMember.id);
+  });
+
+  it('never exposes a family member email on a copy owner', async () => {
+    const res = await request(app)
+      .get(`/api/album?collectionId=${collectionId}&includeCopies=true`)
+      .set(authHeader(owner.email));
+    const album = find<AlbumWithCopies>(res.body, dupAlbumId)!;
+    expect(album.copies[0]!.location.owner).not.toHaveProperty('email');
+  });
+
+  it('answers with an empty copy list for a title nobody owns', async () => {
+    const album = await prisma.album.create({ data: { collectionId, title: `${T}NobodyOwnsThis` } });
+    const res = await request(app)
+      .get(`/api/album?collectionId=${collectionId}&includeCopies=true`)
+      .set(authHeader(owner.email));
+    expect(find<AlbumWithCopies>(res.body, album.id)!.copies).toEqual([]);
+  });
+
+  it('combines with the title search, so a want item resolves in one request', async () => {
+    const res = await request(app)
+      .get(`/api/album?q=${encodeURIComponent('dup check')}&includeCopies=true`)
+      .set(authHeader(owner.email));
+    expect(res.status).toBe(200);
+    expect(res.body.data.map((a: { id: string }) => a.id)).toEqual([dupAlbumId]);
+    expect(res.body.data[0].copies).toHaveLength(1);
+  });
+
+  it('surfaces copies owned by another family member, not just the caller (#8)', async () => {
+    // The point of the feature: the copy above belongs to sharedMember, and
+    // the owner of the collection must still see it.
+    const res = await request(app)
+      .get(`/api/album?collectionId=${collectionId}&includeCopies=true`)
+      .set(authHeader(owner.email));
+    const album = find<AlbumWithCopies>(res.body, dupAlbumId)!;
+    expect(album.copies[0]!.location.owner!.id).toBe(sharedMember.id);
+    expect(album.copies[0]!.location.owner!.id).not.toBe(owner.id);
+  });
+
+  it('cannot widen the accessible-collection scope', async () => {
+    const res = await request(app).get('/api/album?includeCopies=true').set(authHeader(outsider.email));
+    expect(res.status).toBe(200);
+    expect(res.body.data.some((a: { id: string }) => a.id === dupAlbumId)).toBe(false);
+  });
+
+  it('treats any value other than true as off', async () => {
+    const res = await request(app)
+      .get(`/api/album?collectionId=${collectionId}&includeCopies=maybe`)
+      .set(authHeader(owner.email));
+    expect(res.status).toBe(200);
+    expect(find<Record<string, unknown>>(res.body, dupAlbumId)).not.toHaveProperty('copies');
+  });
+});
+
+describe('GET /api/album/:id — copy owner (#13)', () => {
+  it('resolves the owner of each copy location', async () => {
+    const album = await prisma.album.create({ data: { collectionId, title: `${T}DetailOwner` } });
+    const room = await prisma.location.create({
+      data: { name: `${T}DetailRoom`, kind: 'physical', ownerId: sharedMember.id },
+    });
+    await prisma.copy.create({ data: { albumId: album.id, locationId: room.id } });
+
+    const res = await request(app).get(`/api/album/${album.id}`).set(authHeader(owner.email));
+    expect(res.status).toBe(200);
+    expect(res.body.data.copies[0].location.owner.id).toBe(sharedMember.id);
+    expect(res.body.data.copies[0].location.owner).not.toHaveProperty('email');
+  });
+
+  it('leaves owner null for an unowned/communal location', async () => {
+    const album = await prisma.album.create({ data: { collectionId, title: `${T}DetailNoOwner` } });
+    const shelf = await prisma.location.create({ data: { name: `${T}DetailCommunal`, kind: 'physical' } });
+    await prisma.copy.create({ data: { albumId: album.id, locationId: shelf.id } });
+
+    const res = await request(app).get(`/api/album/${album.id}`).set(authHeader(owner.email));
+    expect(res.body.data.copies[0].location.owner).toBeNull();
+  });
+});

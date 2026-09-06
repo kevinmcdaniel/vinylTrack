@@ -1,0 +1,31 @@
+meta {
+  name: duplicate check (outsider sees nothing)
+  type: http
+  seq: 19
+}
+
+get {
+  url: {{baseUrl}}/api/album?q=blue&includeCopies=true
+  body: none
+  auth: inherit
+}
+
+params:query {
+  q: blue
+  includeCopies: true
+}
+
+headers {
+  x-user-email: {{outsiderEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("includeCopies adds detail to a result, never a result (#26)", function() {
+    expect(res.body.data).to.eql([]);
+  });
+}
