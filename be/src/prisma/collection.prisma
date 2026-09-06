@@ -1,4 +1,4 @@
-// Collection domain — see issue #2.
+// Every vinylTrack model — see issue #2.
 // user/collection/collection_share carry the auth+sharing model (#11, #14);
 // artist/album/album_artist/location/source/copy/want_item are the catalog.
 

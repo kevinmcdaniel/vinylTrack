@@ -58,9 +58,9 @@ Connection config lives in `.env` at the repo root (copy `.env.example`).
 - `be/src/database.ts` — Prisma client singleton using `@prisma/adapter-pg`
 - `be/src/route/` — Express routers; `index.ts` mounts sub-routers at `/api/*`
 - `be/src/common/` — shared middleware/error handling
-- `be/src/prisma/` — `schema.prisma` (generator/datasource) + `collection.prisma` (domain models), `seed.ts`, `migrations/`
+- `be/src/prisma/` — `schema.prisma` (generator/datasource only) + `collection.prisma` (every model), `seed.ts`, `migrations/`. `prisma.config.ts` points `schema` at this *directory*, so Prisma loads both files — `schema.prisma` having no models does not mean there are none.
 
-The domain schema (`user`, `collection`, `collection_share`, `artist`, `album`, `album_artist`, `location`, `source`, `copy`, `want_item`) landed in issue #2 (`be/src/prisma/collection.prisma`). Auth (#11), multiple-collection UI (#14), album art (#15), and external metadata (#16) add behavior and a few extra fields on top of this schema but haven't changed its shape yet — check the issues before assuming beyond what's in the `.prisma` file.
+The models (`user`, `collection`, `collection_share`, `artist`, `album`, `album_artist`, `location`, `source`, `copy`, `want_item`) landed in issue #2 (`be/src/prisma/collection.prisma`). Auth (#11), multiple-collection UI (#14), album art (#15), and external metadata (#16) add behavior and a few extra fields on top of this schema but haven't changed its shape yet — check the issues before assuming beyond what's in the `.prisma` file.
 
 Response envelope matches squaretrack's convention (list endpoints always `data: []`, never `null`, HTTP 200; single-resource `data: null` + HTTP 404 when missing; `ValidationError`/`ConflictError`/`NotFoundError`/`AuthError` in `be/src/common/errorHandler.ts` map to 406/409/404/401). Follow it for every new endpoint — see the `artist` CRUD vertical (`be/src/{route,controller,service}/artist*.ts`, issue #3) as the reference implementation.
 
