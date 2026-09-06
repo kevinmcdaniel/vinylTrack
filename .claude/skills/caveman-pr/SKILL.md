@@ -4,7 +4,7 @@ description: >
   Create a GitHub pull request in a consistent caveman-style format. Gathers the
   branch diff, commits, and linked issue; writes a terse caveman-voice body with a
   Conventional Commits title; previews it; then opens the PR with `gh`. Same skeleton
-  every time — lead summary, what/how, test/verify, linked issue, Claude Code trailer.
+  every time — lead summary, what/how, test/verify, linked issue. No AI attribution.
   Fires whenever the user wants to open a PR: "create pr", "create a PR",
   "open/raise/make a pull request", "gh pr", "ship this branch", "PR this up",
   "/caveman-pr", or "/pr" — and after finishing a branch of work even if they don't
@@ -36,7 +36,7 @@ Caveman the prose:
 - file paths, directory names, code identifiers (functions, vars, types, routes)
 - shell commands, flags, env vars
 - numbers and counts ("213 green", "14 tests", port `:5101`)
-- issue/PR refs (`#18`), URLs, the Claude Code trailer
+- issue/PR refs (`#18`), URLs
 
 Grunt is for connective tissue, never the load-bearing facts.
 
@@ -50,8 +50,14 @@ Grunt is for connective tissue, never the load-bearing facts.
 ## PR format
 
 Always this skeleton. **Required**: lead, one of What/How, one of Test/Verify, the
-issue line, the trailer. **Optional** (include only when they earn their place): the
-`>` callout, Behavior, Note.
+issue line. **Optional** (include only when they earn their place): the `>` callout,
+Behavior, Note.
+
+**No AI attribution.** No "Generated with Claude Code" line, no session link, no
+`Co-Authored-By`. Same rule as `caveman-commit` — authorship belongs to the person
+opening the PR. Claude Code adds this text on its own by default; it is turned off in
+settings (`attribution.pr: ""`, `attribution.sessionUrl: false`), so don't hand-write
+it back in.
 
 ```
 <lead — 1-3 caveman sentences: what PR do + why it matter. carries the "why">
@@ -74,8 +80,6 @@ issue line, the trailer. **Optional** (include only when they earn their place):
 ## note            (optional — caveats, open items, things to flag in review)
 
 Closes #N          (use "Refs #N" when the PR advances but does not fully close the issue)
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
 Notes:
@@ -84,7 +88,7 @@ Notes:
 - Prefer **`## how`** when the mechanism is the story (algorithms, comparison keys,
   tricky logic); **`## what`** when it's mostly a list of changes.
 - A **table** in Behavior beats paragraphs when enumerating cases.
-- The issue line and trailer are the last two lines, always, in that order.
+- The issue line is the last line, always. Nothing follows it.
 
 ## Commit-and-PR (compound requests)
 
@@ -197,8 +201,6 @@ slow. now fast.
   1 reuse existing. work.
 
 Closes #18
-
-🤖 Generated with [Claude Code](https://claude.com/claude-code)
 ```
 
 Note the split: prose grunts, but `POST /api/sequence/parse`, the file path, the

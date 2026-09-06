@@ -88,6 +88,23 @@ The copied design system in `design/system/` is **not** wired in — it's still 
 ### Prisma setup
 The backend uses `@prisma/adapter-pg` (not the default Prisma driver). After any schema change, run `npm run migrate` in `be/`.
 
+## Repo skills — read these before writing a commit, PR, or review
+
+**`.claude/skills/` holds this repo's own skills. Check it at the start of a session.** They are house conventions, not suggestions: commits, PR bodies, and review comments in this repo are expected to follow them. A remote/web session may not register them as invocable `/slash` commands (skills load at session start, so a branch that *adds* them lands too late) — in that case read the `SKILL.md` directly and follow it by hand. Don't fall back to generic style because the slash command didn't appear.
+
+| skill | use it for |
+| --- | --- |
+| `caveman` | the terse house voice; `full` is the default level. Chat replies only revert with "stop caveman"/"normal mode" |
+| `caveman-commit` | every commit message. Conventional Commits, ≤50-char subject, body only when the *why* isn't obvious |
+| `caveman-pr` | every PR body. Fixed skeleton — lead, what/how, optional behavior table, test/verify, note, `Closes`/`Refs #N`, trailer. `Refs` (not `Closes`) when the PR advances an issue without finishing it |
+| `caveman-review` | PR review comments. One line each: `L42: 🔴 bug: <problem>. <fix>.` |
+| `caveman-help` | the reference card for the above |
+| `prisma-migrate` | schema changes and migrations |
+
+The voice rule that matters most: caveman the *prose*, never the facts. File paths, identifiers, routes, shell commands, counts, and issue refs are copied exactly. Both `caveman` and `caveman-pr` also carry an Auto-Clarity rule — drop the grunts entirely for breaking changes, security fixes, data migrations, and anything where a misread is costly.
+
+**No AI attribution, anywhere.** Commits carry no `Co-Authored-By:`/`Claude-Session:` trailer and PR bodies carry no "Generated with Claude Code" line — `caveman-commit` and `caveman-pr` both say so. Claude Code adds that text by default, so it is turned off in settings (`attribution.commit: ""`, `attribution.pr: ""`, `attribution.sessionUrl: false`) rather than stripped by hand. If a trailer shows up anyway, the session predates the setting — a session reads settings at start, so it won't pick up a mid-session change.
+
 ## Process rules for this repo
 
 - **TDD-first**: lead every feature/bugfix with a failing test, then implement to green. A passing typecheck/build is not a substitute for a test.
