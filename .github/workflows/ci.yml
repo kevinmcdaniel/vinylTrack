@@ -37,9 +37,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: be/package-lock.json
+      # npm 11.6.1 writes lockfiles every other npm rejects (#44), and the npm
+      # bundled with Node drifts across patch releases — so pin it explicitly
+      # rather than inheriting whatever Node 24 happens to ship.
+      - run: npm i -g npm@11.19.0
       - run: npm ci
       - run: npx prisma generate
       - run: npm run typecheck
@@ -80,9 +84,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: be/package-lock.json
+      # npm 11.6.1 writes lockfiles every other npm rejects (#44), and the npm
+      # bundled with Node drifts across patch releases — so pin it explicitly
+      # rather than inheriting whatever Node 24 happens to ship.
+      - run: npm i -g npm@11.19.0
       - run: npm ci
       - run: npx prisma generate
       - run: npx prisma migrate deploy
@@ -139,9 +147,13 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version-file: .nvmrc
           cache: npm
           cache-dependency-path: fe/package-lock.json
+      # npm 11.6.1 writes lockfiles every other npm rejects (#44), and the npm
+      # bundled with Node drifts across patch releases — so pin it explicitly
+      # rather than inheriting whatever Node 24 happens to ship.
+      - run: npm i -g npm@11.19.0
       - run: npm ci
       - run: npm run typecheck
       - run: npm run lint
