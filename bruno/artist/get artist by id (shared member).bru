@@ -25,7 +25,9 @@ tests {
   });
 
   test("each album is labelled with its collection (#7)", function() {
-    const album = res.body.data.albums.find(a => a.title === "Kind of Blue");
+    const album = (res.body.data.albums || []).find(a => a.title === "Kind of Blue");
+    expect(album, "the database is not seeded — run: docker compose run --rm seed").to.not.be.undefined;
+    expect(album.collection, "album detail should carry its collection").to.not.be.undefined;
     expect(album.collection.name).to.equal("Squakville Vinyl");
     expect(album.collection.id).to.be.a("string");
   });

@@ -26,7 +26,9 @@ script:post-response {
 
 tests {
   test("the database is not seeded — run: docker compose run --rm seed", function() {
-    expect(res.body.data.map(l => l.name), "the database is not seeded — run: docker compose run --rm seed").to.include("Basement");
+    const names = (res.body.data || []).map(l => l.name);
+    expect(names, "the database is not seeded — run: docker compose run --rm seed").to.include("Basement");
+    expect(names, "the database is not seeded — run: docker compose run --rm seed").to.include("Shelf 3");
   });
 
   test("list data is an array, never null", function() {
@@ -35,6 +37,8 @@ tests {
 
   test("resolves the parent chain the UI renders as a path", function() {
     const shelf = (res.body.data || []).find(l => l.name === "Shelf 3");
+    expect(shelf, "the database is not seeded — run: docker compose run --rm seed").to.not.be.undefined;
+    expect(shelf.parent, "Shelf 3 should be nested under Basement").to.not.be.null;
     expect(shelf.parent.name).to.equal("Basement");
   });
 }
