@@ -103,9 +103,7 @@ The backend uses `@prisma/adapter-pg` (not the default Prisma driver). After any
 
 The voice rule that matters most: caveman the *prose*, never the facts. File paths, identifiers, routes, shell commands, counts, and issue refs are copied exactly. Both `caveman` and `caveman-pr` also carry an Auto-Clarity rule — drop the grunts entirely for breaking changes, security fixes, data migrations, and anything where a misread is costly.
 
-Two known gaps to be aware of rather than surprised by:
-- `prisma-migrate` is carried over from squaretrack and still names `square.be`/`square.db`. This repo's containers are `vinyl.be`/`vinyl.db` (see `docker-compose.yml`), so translate before running anything from it.
-- `caveman-commit` says never to put AI attribution in a commit message. Claude Code sessions are separately configured to append a `Co-Authored-By:`/`Claude-Session:` trailer, so the two disagree. The trailer currently wins; if you'd rather follow the skill, that's a session-config change, not a code change.
+One known gap to be aware of rather than surprised by: `caveman-commit` says never to put AI attribution in a commit message, while Claude Code appends a `Co-Authored-By:`/`Claude-Session:` trailer by default, so the two disagree. Settle it in settings.json rather than by hand — `attribution.commit` and `attribution.pr` set (or empty out) that text, and `attribution.sessionUrl: false` drops the session link cloud sessions add.
 
 ## Process rules for this repo
 
