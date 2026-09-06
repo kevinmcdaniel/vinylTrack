@@ -1,0 +1,35 @@
+meta {
+  name: search albums by title
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/album?q=blue
+  body: none
+  auth: inherit
+}
+
+params:query {
+  q: blue
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+script:post-response {
+  const kob = (res.body.data || []).find(a => a.title === "Kind of Blue");
+  if (kob) bru.setVar("kindOfBlueId", kob.id);
+}
+
+tests {
+  test("matches a case-insensitive substring of the title (#33)", function() {
+    expect(res.body.data.map(a => a.title), "the database is not seeded — run: docker compose run --rm seed").to.include("Kind of Blue");
+  });
+}

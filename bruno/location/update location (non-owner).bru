@@ -1,0 +1,31 @@
+meta {
+  name: update location (non-owner)
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{baseUrl}}/api/location/{{basementId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{sharedEmail}}
+}
+
+body:json {
+  {
+    "notes": "not mine to edit"
+  }
+}
+
+assert {
+  res.status: eq 403
+  res.body.status: eq 403
+  res.body.data: isNull
+}
+
+docs {
+  Basement is owned by kevin. Locations have no collectionId — write access follows ownerId, so a non-owner gets 403. Unowned locations stay writable by any active user for v1.
+}

@@ -1,0 +1,33 @@
+meta {
+  name: list collections (admin)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/collection
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{adminEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("sees collections it does not own", function() {
+    const names = res.body.data.map(c => c.name);
+    expect(names).to.include("Squakville Vinyl");
+    expect(names).to.include("Square Dance Music");
+  });
+}
+
+docs {
+  admin@example.com owns no collection of its own, so everything listed here is
+  the admin bypass in `policy.ts` doing its job — not ownership.
+}

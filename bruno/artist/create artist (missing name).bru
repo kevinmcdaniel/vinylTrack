@@ -1,0 +1,26 @@
+meta {
+  name: create artist (missing name)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/artist
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "sortName": "no name given"
+  }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}

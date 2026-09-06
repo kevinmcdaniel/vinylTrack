@@ -1,0 +1,40 @@
+meta {
+  name: create copy
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/copy
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "albumId": "{{albumId}}",
+    "locationId": "{{childLocationId}}",
+    "condition": "NM",
+    "price": 12.5
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.status: eq 201
+}
+
+script:post-response {
+  bru.setVar("copyId", res.body.data.id);
+}
+
+tests {
+  test("resolves the location and its parent", function() {
+    expect(res.body.data.location.name).to.equal("_BRUNO_ Crate 1");
+    expect(res.body.data.location.parent.name).to.equal("_BRUNO_ Garage");
+  });
+}

@@ -1,0 +1,30 @@
+meta {
+  name: search albums by title (no match)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/album?q=zzzznomatchzzzz
+  body: none
+  auth: inherit
+}
+
+params:query {
+  q: zzzznomatchzzzz
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("returns an empty array, not null", function() {
+    expect(res.body.data).to.be.an("array").that.is.empty;
+  });
+}

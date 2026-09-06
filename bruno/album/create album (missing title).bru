@@ -1,0 +1,26 @@
+meta {
+  name: create album (missing title)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/album
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "collectionId": "{{vinylCollectionId}}"
+  }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}

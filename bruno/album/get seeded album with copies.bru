@@ -1,0 +1,41 @@
+meta {
+  name: get seeded album with copies
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/api/album/{{kindOfBlueId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("shows every owned copy, not just one (#13)", function() {
+    expect(res.body.data.copies).to.have.lengthOf(2);
+  });
+
+  test("resolves each copy location and its parent, for the \"Basement -> Shelf 3\" path", function() {
+    const shelved = (res.body.data.copies || []).find(c => c.location.name === "Shelf 3");
+    expect(shelved, "the database is not seeded — run: docker compose run --rm seed").to.not.be.undefined;
+    expect(shelved.location.parent, "Shelf 3 should be nested under Basement").to.not.be.null;
+    expect(shelved.location.parent.name).to.equal("Basement");
+  });
+
+  test("carries condition and acquisition on the copy", function() {
+    const shelved = (res.body.data.copies || []).find(c => c.location.name === "Shelf 3");
+    expect(shelved, "the database is not seeded — run: docker compose run --rm seed").to.not.be.undefined;
+    expect(shelved.condition).to.equal("VG+");
+    expect(shelved.source, "the seeded copy should have a source").to.not.be.null;
+    expect(shelved.source.name).to.equal("Vinyl Vault");
+  });
+}

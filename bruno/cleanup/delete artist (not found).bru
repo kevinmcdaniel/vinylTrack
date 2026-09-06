@@ -1,0 +1,25 @@
+meta {
+  name: delete artist (not found)
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/api/artist/{{missingId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{adminEmail}}
+}
+
+assert {
+  res.status: eq 404
+  res.body.status: eq 404
+  res.body.data: isNull
+}
+
+docs {
+  Also confirms the artist above really is gone: re-deleting a missing id is a clean 404, not a 500.
+}

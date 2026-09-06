@@ -1,0 +1,33 @@
+meta {
+  name: update album
+  type: http
+  seq: 18
+}
+
+patch {
+  url: {{baseUrl}}/api/album/{{albumId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "notes": "edited by the bruno run",
+    "genre": "Jazz"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("persists the edit", function() {
+    expect(res.body.data.genre).to.equal("Jazz");
+  });
+}

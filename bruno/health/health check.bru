@@ -1,0 +1,25 @@
+meta {
+  name: health check
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/health
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("reports ok", function() {
+    expect(res.body.data.status).to.equal("ok");
+  });
+}

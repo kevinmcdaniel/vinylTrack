@@ -1,0 +1,29 @@
+meta {
+  name: create want (outsider)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/want
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{outsiderEmail}}
+}
+
+body:json {
+  {
+    "collectionId": "{{vinylCollectionId}}",
+    "artistId": "{{artistId}}",
+    "priority": "must-have"
+  }
+}
+
+assert {
+  res.status: eq 403
+  res.body.status: eq 403
+  res.body.data: isNull
+}

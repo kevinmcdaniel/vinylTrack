@@ -1,0 +1,26 @@
+meta {
+  name: get artist by id
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/artist/{{artistId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("carries an albums array even when empty", function() {
+    expect(res.body.data.albums).to.be.an("array").that.is.empty;
+  });
+}

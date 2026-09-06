@@ -1,0 +1,35 @@
+meta {
+  name: list albums
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/album
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+script:post-response {
+  const plus = (res.body.data || []).find(a => a.title === "Plus Program Calls");
+  if (plus) bru.setVar("plusCallsId", plus.id);
+}
+
+tests {
+  test("the database is not seeded — run: docker compose run --rm seed", function() {
+    expect(res.body.data.map(a => a.title), "the database is not seeded — run: docker compose run --rm seed").to.include("Plus Program Calls");
+  });
+
+  test("list data is an array, never null", function() {
+    expect(res.body.data).to.be.an("array");
+  });
+}

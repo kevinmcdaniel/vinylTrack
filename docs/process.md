@@ -8,6 +8,26 @@ For any non-trivial feature: write up the design/approach first (usually a GitHu
 
 Lead every feature/bugfix with a failing test, then implement to green. A passing typecheck or build is not a substitute for a test.
 
+## Two layers of API testing
+
+They catch different things.
+
+**In-process (`be/ npm run test`)** — vitest + supertest, importing `app.ts` directly against a real Postgres. Fast, runs in CI, and is where TDD happens: this is the layer you add a failing test to before writing code.
+
+**Over the wire (`be/ npm run test:api`)** — the [Bruno](https://www.usebruno.com) collection in `bruno/`, hitting the running container on `:5202` with assertions on every request. It needs a seeded stack:
+
+```bash
+docker compose up -d
+docker compose run --rm seed
+cd be && npm run test:api
+```
+
+The supertest layer never boots a listener, so it structurally cannot see anything that only breaks over HTTP, or anything that only shows up against realistically-linked seed data rather than bare fixtures. Requests chain created ids through runtime vars and a final `cleanup` folder removes everything a run creates, so repeated runs are idempotent.
+
+**Only the in-process layer is enforced today.** CI runs `npm run test` for both packages; it does not run the Bruno collection, and a reviewer has no way to confirm anyone ran it locally — so treat a green Bruno run as something you do before pushing, not as a gate anything checks. Wiring it into CI (which needs a booted, seeded API rather than the in-process server the current job uses) is tracked in issue #41.
+
+Caller identity is the `x-user-email` dev header, driven by an environment variable — switching between owner, admin, shared member, outsider, and an unknown user is a one-field change, which is what makes the access-control behaviour testable from outside. Owner and admin are deliberately separate seeded users: if the owner were also an admin, every "owner" request would silently take the admin bypass in `policy.ts` and the plain non-admin owner — what most family members are — would never be exercised. The collection is also usable interactively: open `bruno/` in the Bruno app and pick the `local` environment.
+
 ## Branch + PR per issue
 
 Every change goes on a feature branch tied to a specific GitHub issue — never committed directly to `main`. Branch naming: `<type>/issue-<N>-<short-slug>` (e.g. `feat/issue-2-core-schema`). Open a PR per issue with a body that references it (`Closes #N`) so it closes automatically on merge.

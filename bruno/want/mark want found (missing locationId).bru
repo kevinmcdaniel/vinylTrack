@@ -1,0 +1,26 @@
+meta {
+  name: mark want found (missing locationId)
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/api/want/{{albumWantId}}/found
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "condition": "VG"
+  }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}

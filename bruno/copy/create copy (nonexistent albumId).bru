@@ -1,0 +1,36 @@
+meta {
+  name: create copy (nonexistent albumId)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/copy
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "albumId": "{{missingId}}",
+    "locationId": "{{childLocationId}}"
+  }
+}
+
+assert {
+  res.status: eq 409
+  res.body.status: eq 409
+}
+
+docs {
+  409 even for a non-admin, unlike the album and want equivalents. A copy has no
+  collectionId of its own, so `requireCollectionAccessForCreate` resolves access
+  *through* the album — and when the album does not exist there is no collection
+  to check, so the guard falls through (`if (!collectionId) return next()`) and
+  the request reaches the database, where the foreign key fails. Verified
+  against a running API as both a non-admin owner and an admin.
+}

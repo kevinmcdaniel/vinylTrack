@@ -1,0 +1,27 @@
+meta {
+  name: create want (neither artist nor album)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/want
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "collectionId": "{{vinylCollectionId}}",
+    "priority": "must-have"
+  }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}

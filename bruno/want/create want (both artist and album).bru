@@ -1,0 +1,33 @@
+meta {
+  name: create want (both artist and album)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/want
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "collectionId": "{{vinylCollectionId}}",
+    "artistId": "{{artistId}}",
+    "albumId": "{{albumId}}",
+    "priority": "must-have"
+  }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}
+
+docs {
+  A want references an artist OR an album, never both — enforced at the app level, not by a DB constraint (#2).
+}

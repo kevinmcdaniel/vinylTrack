@@ -1,0 +1,26 @@
+meta {
+  name: delete want
+  type: http
+  seq: 16
+}
+
+delete {
+  url: {{baseUrl}}/api/want/{{artistWantId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("responds with data null", function() {
+    expect(res.body.data).to.be.null;
+  });
+}

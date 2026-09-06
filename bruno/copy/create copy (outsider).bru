@@ -1,0 +1,32 @@
+meta {
+  name: create copy (outsider)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/copy
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{outsiderEmail}}
+}
+
+body:json {
+  {
+    "albumId": "{{albumId}}",
+    "locationId": "{{childLocationId}}"
+  }
+}
+
+assert {
+  res.status: eq 403
+  res.body.status: eq 403
+  res.body.data: isNull
+}
+
+docs {
+  A copy has no collectionId of its own — access is resolved through its album.
+}

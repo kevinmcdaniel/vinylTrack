@@ -1,0 +1,47 @@
+meta {
+  name: mark want found
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/api/want/{{albumWantId}}/found
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "locationId": "{{childLocationId}}",
+    "condition": "VG+",
+    "price": 18
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.status: eq 201
+}
+
+script:post-response {
+  bru.setVar("foundCopyId", res.body.data.copy.id);
+}
+
+tests {
+  test("converts the want into a real copy", function() {
+    expect(res.body.data.copy.albumId).to.equal(bru.getVar("albumId"));
+    expect(res.body.data.copy.condition).to.equal("VG+");
+  });
+
+  test("returns the album the copy belongs to", function() {
+    expect(res.body.data.album.id).to.equal(bru.getVar("albumId"));
+  });
+}
+
+docs {
+  One atomic flow: create the copy and remove the want together, rather than delete-then-recreate.
+}

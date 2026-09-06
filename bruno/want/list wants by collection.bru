@@ -1,0 +1,36 @@
+meta {
+  name: list wants by collection
+  type: http
+  seq: 9
+}
+
+get {
+  url: {{baseUrl}}/api/want?collectionId={{vinylCollectionId}}
+  body: none
+  auth: inherit
+}
+
+params:query {
+  collectionId: {{vinylCollectionId}}
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("list data is an array, never null", function() {
+    expect(res.body.data).to.be.an("array");
+  });
+
+  test("includes both wants just created", function() {
+    const ids = res.body.data.map(x => x.id);
+    expect(ids).to.include(bru.getVar("artistWantId"));
+    expect(ids).to.include(bru.getVar("albumWantId"));
+  });
+}

@@ -1,0 +1,54 @@
+meta {
+  name: list collections
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/collection
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+script:post-response {
+  // Guarded: against an unseeded database these finds return undefined and
+  // reading .id throws a bare TypeError that explains nothing. The seeded-data
+  // test below names the actual fix instead.
+  const vinyl = (res.body.data || []).find(c => c.name === "Squakville Vinyl");
+  const calls = (res.body.data || []).find(c => c.name === "Square Dance Music");
+  if (vinyl) bru.setVar("vinylCollectionId", vinyl.id);
+  if (calls) bru.setVar("digitalCollectionId", calls.id);
+}
+
+tests {
+  test("list data is an array, never null", function() {
+    expect(res.body.data).to.be.an("array");
+  });
+
+  // Named so the remedy shows up in the failure list itself. This is the first
+  // request that touches an identity, so an unseeded database surfaces here
+  // first — and as a 401 (no seeded users) before it is ever a missing-
+  // collection problem.
+  test("the database is not seeded — run: docker compose run --rm seed", function() {
+    expect(res.status, "401 means the seeded users are missing").to.not.equal(401);
+    expect(res.body.data, "no collections came back").to.be.an("array");
+    const names = res.body.data.map(c => c.name);
+    expect(names).to.include("Squakville Vinyl");
+    expect(names).to.include("Square Dance Music");
+  });
+
+  test("carries an album count for the switcher", function() {
+    const vinyl = (res.body.data || []).find(c => c.name === "Squakville Vinyl");
+    expect(vinyl, "the database is not seeded — run: docker compose run --rm seed").to.not.be.undefined;
+    expect(vinyl.albumCount).to.be.a("number");
+  });
+}

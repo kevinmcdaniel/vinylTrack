@@ -1,0 +1,27 @@
+meta {
+  name: create want (missing priority)
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/want
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "collectionId": "{{vinylCollectionId}}",
+    "artistId": "{{artistId}}"
+  }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}

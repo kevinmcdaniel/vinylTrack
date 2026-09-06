@@ -1,0 +1,21 @@
+meta {
+  name: get copy by id (not found)
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/copy/{{missingId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 404
+  res.body.status: eq 404
+  res.body.data: isNull
+}

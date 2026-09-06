@@ -1,0 +1,34 @@
+meta {
+  name: create want (nonexistent collectionId)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/want
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "collectionId": "{{missingId}}",
+    "artistId": "{{artistId}}",
+    "priority": "must-have"
+  }
+}
+
+assert {
+  res.status: eq 403
+  res.body.status: eq 403
+  res.body.data: isNull
+}
+
+docs {
+  403 rather than 409, same as `album/create album (nonexistent collectionId)`:
+  the access check short-circuits before any write is attempted.
+}

@@ -1,0 +1,45 @@
+meta {
+  name: update artist (outsider)
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{baseUrl}}/api/artist/{{artistId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{outsiderEmail}}
+}
+
+body:json {
+  {
+    "notes": "written by an outsider — artists are global"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("the outsider's write actually landed", function() {
+    expect(res.body.data.notes).to.equal("written by an outsider — artists are global");
+  });
+
+  test("and it targeted this run's own artist, not seeded data", function() {
+    expect(res.body.data.id).to.equal(bru.getVar("artistId"));
+  });
+}
+
+docs {
+  Not a mistake: `artist` is deliberately global and unscoped (see policy.ts) —
+  any active user may write it. Only DELETE is admin-gated.
+
+  Targets this run's own `{{artistId}}` rather than the seeded Miles Davis:
+  nothing in `cleanup/` could restore a seeded row, so writing to one would
+  leave the database permanently dirty after every run.
+}

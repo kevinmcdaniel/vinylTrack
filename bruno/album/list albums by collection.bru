@@ -1,0 +1,30 @@
+meta {
+  name: list albums by collection
+  type: http
+  seq: 8
+}
+
+get {
+  url: {{baseUrl}}/api/album?collectionId={{vinylCollectionId}}
+  body: none
+  auth: inherit
+}
+
+params:query {
+  collectionId: {{vinylCollectionId}}
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("returns only albums in that collection", function() {
+    expect(res.body.data.map(a => a.title)).to.not.include("Plus Program Calls");
+  });
+}

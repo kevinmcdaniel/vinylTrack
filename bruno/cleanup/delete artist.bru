@@ -1,0 +1,24 @@
+meta {
+  name: delete artist
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/api/artist/{{artistId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{adminEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+docs {
+  Runs as the admin — DELETE /api/artist/:id is admin-gated (the 403 case lives in the artist folder).
+}

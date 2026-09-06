@@ -1,0 +1,31 @@
+meta {
+  name: get location by id
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/location/{{basementId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("rolls up copies stored in child locations (#5)", function() {
+    expect(res.body.data.copies).to.be.an("array");
+    expect(res.body.data.copies.length).to.be.at.least(1);
+  });
+}
+
+docs {
+  Nothing is stored directly in Basement — the copy lives on Shelf 3 beneath it. "What is in the basement" means the rollup.
+}

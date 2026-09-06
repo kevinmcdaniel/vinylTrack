@@ -18,8 +18,11 @@ async function main() {
   await prisma.artist.deleteMany();
   await prisma.user.deleteMany();
 
+  // Owner, and deliberately NOT an admin: this is what most family members are,
+  // so it's the identity that actually exercises the access rules in policy.ts
+  // rather than the admin bypass. Also the AUTH_BOOTSTRAP_OWNER_EMAIL fallback.
   const kevin = await prisma.user.create({
-    data: { email: 'kevin@example.com', name: 'Kevin', status: 'active', isAdmin: true },
+    data: { email: 'kevin@example.com', name: 'Kevin', status: 'active' },
   });
   const alex = await prisma.user.create({
     data: { email: 'alex@example.com', name: 'Alex', status: 'active' },
@@ -28,6 +31,11 @@ async function main() {
   // Bruno collection (#34) needs to exercise the 403/404 access paths.
   await prisma.user.create({
     data: { email: 'jamie@example.com', name: 'Jamie', status: 'active' },
+  });
+  // Admin, owning nothing of their own — the bypass path in policy.ts, kept as a
+  // separate identity so "owner" and "admin" can't be silently conflated (#34).
+  await prisma.user.create({
+    data: { email: 'admin@example.com', name: 'Admin', status: 'active', isAdmin: true },
   });
 
   const vinyl = await prisma.collection.create({
@@ -83,7 +91,7 @@ async function main() {
     data: { collectionId: vinyl.id, artistId: milesDavis.id, priority: 'nice-to-have', notes: 'anything else by him' },
   });
 
-  console.log('seed: done — 3 users, 2 collections, 2 artists, 2 albums, 3 copies, 1 want item');
+  console.log('seed: done — 4 users, 2 collections, 2 artists, 2 albums, 3 copies, 1 want item');
 }
 
 main()

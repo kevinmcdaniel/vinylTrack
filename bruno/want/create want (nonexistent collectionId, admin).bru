@@ -1,0 +1,33 @@
+meta {
+  name: create want (nonexistent collectionId, admin)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/want
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{adminEmail}}
+}
+
+body:json {
+  {
+    "collectionId": "{{missingId}}",
+    "artistId": "{{artistId}}",
+    "priority": "must-have"
+  }
+}
+
+assert {
+  res.status: eq 409
+  res.body.status: eq 409
+}
+
+docs {
+  As with the album equivalent, only an admin gets far enough to hit the
+  foreign key — a non-admin is stopped by the access check with a 403.
+}

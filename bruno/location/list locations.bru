@@ -1,0 +1,44 @@
+meta {
+  name: list locations
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/location
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+script:post-response {
+  const basement = (res.body.data || []).find(l => l.name === "Basement");
+  if (basement) bru.setVar("basementId", basement.id);
+}
+
+tests {
+  test("the database is not seeded — run: docker compose run --rm seed", function() {
+    const names = (res.body.data || []).map(l => l.name);
+    expect(names, "the database is not seeded — run: docker compose run --rm seed").to.include("Basement");
+    expect(names, "the database is not seeded — run: docker compose run --rm seed").to.include("Shelf 3");
+  });
+
+  test("list data is an array, never null", function() {
+    expect(res.body.data).to.be.an("array");
+  });
+
+  test("resolves the parent chain the UI renders as a path", function() {
+    const shelf = (res.body.data || []).find(l => l.name === "Shelf 3");
+    expect(shelf, "the database is not seeded — run: docker compose run --rm seed").to.not.be.undefined;
+    expect(shelf.parent, "Shelf 3 should be nested under Basement").to.not.be.null;
+    expect(shelf.parent.name).to.equal("Basement");
+  });
+}

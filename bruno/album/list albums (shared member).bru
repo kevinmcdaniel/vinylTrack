@@ -1,0 +1,28 @@
+meta {
+  name: list albums (shared member)
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/api/album
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{sharedEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("sees the shared collection but not the one they are not on", function() {
+    const titles = res.body.data.map(a => a.title);
+    expect(titles).to.include("Kind of Blue");
+    expect(titles).to.not.include("Plus Program Calls");
+  });
+}
