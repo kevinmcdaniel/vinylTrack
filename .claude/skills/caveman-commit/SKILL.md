@@ -28,8 +28,8 @@ Write commit messages terse and exact. Conventional Commits format. No fluff. Wh
 
 **What NEVER goes in:**
 - "This commit does X", "I", "we", "now", "currently" — the diff says what
-- "As requested by..." — drop it, attribution belongs in PR metadata not commits
-- "Generated with Claude Code", `Co-Authored-By: Claude …`, or any other AI attribution — no exceptions
+- "As requested by..." — drop it; who asked is git metadata, not message text
+- "Generated with Claude Code", `Co-Authored-By: Claude …`, or any other AI attribution — no exceptions. Same rule in `caveman-pr`: PR bodies carry none either. Claude Code adds this text by default; it is turned off in settings (`attribution.commit: ""`, `attribution.pr: ""`, `attribution.sessionUrl: false`), so don't hand-write it back in
 - Emoji (unless project convention requires)
 - Restating the file name when scope already says it
 

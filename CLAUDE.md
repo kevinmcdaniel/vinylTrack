@@ -103,7 +103,7 @@ The backend uses `@prisma/adapter-pg` (not the default Prisma driver). After any
 
 The voice rule that matters most: caveman the *prose*, never the facts. File paths, identifiers, routes, shell commands, counts, and issue refs are copied exactly. Both `caveman` and `caveman-pr` also carry an Auto-Clarity rule — drop the grunts entirely for breaking changes, security fixes, data migrations, and anything where a misread is costly.
 
-One known gap to be aware of rather than surprised by: `caveman-commit` says never to put AI attribution in a commit message, while Claude Code appends a `Co-Authored-By:`/`Claude-Session:` trailer by default, so the two disagree. Settle it in settings.json rather than by hand — `attribution.commit` and `attribution.pr` set (or empty out) that text, and `attribution.sessionUrl: false` drops the session link cloud sessions add.
+**No AI attribution, anywhere.** Commits carry no `Co-Authored-By:`/`Claude-Session:` trailer and PR bodies carry no "Generated with Claude Code" line — `caveman-commit` and `caveman-pr` both say so. Claude Code adds that text by default, so it is turned off in settings (`attribution.commit: ""`, `attribution.pr: ""`, `attribution.sessionUrl: false`) rather than stripped by hand. If a trailer shows up anyway, the session predates the setting — a session reads settings at start, so it won't pick up a mid-session change.
 
 ## Process rules for this repo
 
