@@ -96,7 +96,7 @@ The backend uses `@prisma/adapter-pg` (not the default Prisma driver). After any
 | --- | --- |
 | `caveman` | the terse house voice; `full` is the default level. Chat replies only revert with "stop caveman"/"normal mode" |
 | `caveman-commit` | every commit message. Conventional Commits, ≤50-char subject, body only when the *why* isn't obvious |
-| `caveman-pr` | every PR body. Fixed skeleton — lead, what/how, optional behavior table, test/verify, note, `Closes`/`Refs #N`, trailer. `Refs` (not `Closes`) when the PR advances an issue without finishing it |
+| `caveman-pr` | every PR body. Fixed skeleton — lead, what/how, optional behavior table, test/verify, note, then `Closes`/`Refs #N` as the last line, nothing after it. `Refs` (not `Closes`) when the PR advances an issue without finishing it |
 | `caveman-review` | PR review comments. One line each: `L42: 🔴 bug: <problem>. <fix>.` |
 | `caveman-help` | the reference card for the above |
 | `prisma-migrate` | schema changes and migrations |
