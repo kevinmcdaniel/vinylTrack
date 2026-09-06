@@ -36,7 +36,10 @@ npm run dev        # Start Next.js with Turbopack on $PORT
 npm run build      # Production build
 npm run lint       # ESLint (flat config, max-warnings 0)
 npm run typecheck  # tsc --noEmit
+npm run test       # vitest run (jsdom + Testing Library)
 ```
+
+FE tests live next to what they cover (`src/lib/*.test.ts`, `src/ui/*.test.tsx`). `server-only` is aliased to a stub in `vitest.config.mts` — it throws outside a Server Component build, and there's no RSC boundary under vitest to enforce.
 
 ### API testing (`bruno/`)
 ```bash
@@ -70,8 +73,15 @@ Response envelope matches squaretrack's convention (list endpoints always `data:
 See `be/src/route/*.ts` for how each route wires these in, and the doc comment at the top of `policy.ts` for the resource/action matrix.
 
 ### Frontend structure
-- `fe/src/app/` — Next.js App Router
-- `fe/src/ui/` — shared UI components (not yet created)
+- `fe/src/app/` — Next.js App Router; the browse UI (#7) lives under the `(app)` group
+- `fe/src/lib/` — `api.ts` (server-only API client), `types.ts` (BE response shapes), `filters.ts` (pure helpers)
+- `fe/src/ui/` — shared UI components
+
+**All BE data is fetched server-side.** `be/src/app.ts` mounts no CORS middleware, so a browser-direct call to `:5202` would fail; Server Components fetch `${BE_URL}:${BE_PORT_INT}` over the Docker network instead, which also keeps the `x-user-email` dev header off the client. `apiGet` in `fe/src/lib/api.ts` is the single place #11 swaps the dev identity for a real session.
+
+Browse filters live in `searchParams`, not component state — the list is re-fetched on the server, so filtered views are shareable and the back button works. `CollectionSwitcher`/`FilterBar` are the only client components; everything else is a Server Component.
+
+The copied design system in `design/system/` is **not** wired in — it's still squaretrack's, pending #18. The browse UI is plain Tailwind on the `--background`/`--foreground` tokens, factored into `fe/src/ui/` so #18 restyles components rather than rewriting pages.
 
 ### Prisma setup
 The backend uses `@prisma/adapter-pg` (not the default Prisma driver). After any schema change, run `npm run migrate` in `be/`.

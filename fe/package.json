@@ -5,6 +5,8 @@
   "scripts": {
     "dev": "next dev -p ${PORT}",
     "build": "next build",
+    "test": "vitest run",
+    "test:watch": "vitest",
     "start": "next start -p ${PORT}",
     "lint": "eslint . --max-warnings 0",
     "typecheck": "tsc --noEmit"
@@ -14,18 +16,25 @@
     "react": "19.2.0",
     "react-dom": "19.2.0",
     "react-markdown": "^9.0.3",
-    "remark-gfm": "^4.0.1"
+    "remark-gfm": "^4.0.1",
+    "server-only": "^0.0.1"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.16",
-    "@types/node": "^20",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/node": "^22.10.1",
     "@types/react": "19.2.0",
     "@types/react-dom": "19.2.0",
+    "@vitejs/plugin-react": "^6.1.1",
     "eslint": "^9",
     "eslint-config-next": "^16.3.0",
+    "jsdom": "^28.1.0",
     "postcss": "^8.5.15",
     "tailwindcss": "^3.4.1",
-    "typescript": "^5"
+    "typescript": "^5",
+    "vitest": "^5.0.0"
   },
   "overrides": {
     "@types/react": "19.2.0",
