@@ -1,7 +1,7 @@
 meta {
   name: list albums
   type: http
-  seq: 6
+  seq: 7
 }
 
 get {
@@ -20,10 +20,15 @@ assert {
 }
 
 script:post-response {
-  bru.setVar("plusCallsId", res.body.data.find(a => a.title === "Plus Program Calls").id);
+  const plus = (res.body.data || []).find(a => a.title === "Plus Program Calls");
+  if (plus) bru.setVar("plusCallsId", plus.id);
 }
 
 tests {
+  test("the database is not seeded — run: docker compose run --rm seed", function() {
+    expect(res.body.data.map(a => a.title), "the database is not seeded — run: docker compose run --rm seed").to.include("Plus Program Calls");
+  });
+
   test("list data is an array, never null", function() {
     expect(res.body.data).to.be.an("array");
   });

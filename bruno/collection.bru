@@ -28,15 +28,27 @@ docs {
   Caller identity is the `x-user-email` dev header (#26), defaulted here at
   the collection level and overridden per request. The seeded users are:
 
-  | var             | user                | access                          |
-  |-----------------|---------------------|---------------------------------|
-  | `ownerEmail`    | kevin@example.com   | admin; owns both collections    |
-  | `sharedEmail`   | alex@example.com    | shared on Squakville Vinyl only |
-  | `outsiderEmail` | jamie@example.com   | owns nothing, shared nothing    |
-  | `unknownEmail`  | nobody@example.com  | not a user at all — expects 401 |
+  | var             | user                | access                                  |
+  |-----------------|---------------------|-----------------------------------------|
+  | `ownerEmail`    | kevin@example.com   | **not an admin**; owns both collections |
+  | `adminEmail`    | admin@example.com   | admin; owns nothing of their own        |
+  | `sharedEmail`   | alex@example.com    | shared on Squakville Vinyl only         |
+  | `outsiderEmail` | jamie@example.com   | owns nothing, shared nothing            |
+  | `unknownEmail`  | nobody@example.com  | not a user at all — expects 401         |
 
-  `ownerEmail` is *also* the admin, so admin-gated requests use it too;
-  non-admin negative cases use `sharedEmail`.
+  Owner and admin are deliberately **separate** identities. If they were the
+  same user, every request labelled "owner" would silently be taking the admin
+  bypass in `policy.ts`, and the plain non-admin owner — what most family
+  members actually are — would never be exercised at all. `ownerEmail` is the
+  default; `adminEmail` is used only where admin behaviour is the point.
+
+  ## Failure behaviour
+
+  `npm run test:api` passes `--bail`, so the run stops at the first failure
+  rather than cascading: a missing id in one response otherwise leaves a
+  runtime var unresolved and fails every request after it, burying the real
+  cause. The trade-off is that a bailed run skips `cleanup`, leaving `_BRUNO_`
+  rows behind — re-seed to recover.
 
   ## Ordering
 

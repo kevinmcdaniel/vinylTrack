@@ -20,10 +20,15 @@ assert {
 }
 
 script:post-response {
-  bru.setVar("milesDavisId", res.body.data.find(a => a.name === "Miles Davis").id);
+  const miles = (res.body.data || []).find(a => a.name === "Miles Davis");
+  if (miles) bru.setVar("milesDavisId", miles.id);
 }
 
 tests {
+  test("the database is not seeded — run: docker compose run --rm seed", function() {
+    expect(res.body.data.map(a => a.name), "the database is not seeded — run: docker compose run --rm seed").to.include("Miles Davis");
+  });
+
   test("list data is an array, never null", function() {
     expect(res.body.data).to.be.an("array");
   });

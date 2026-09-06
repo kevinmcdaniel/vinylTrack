@@ -1,7 +1,7 @@
 meta {
   name: search albums by title
   type: http
-  seq: 8
+  seq: 9
 }
 
 get {
@@ -24,11 +24,12 @@ assert {
 }
 
 script:post-response {
-  bru.setVar("kindOfBlueId", res.body.data.find(a => a.title === "Kind of Blue").id);
+  const kob = (res.body.data || []).find(a => a.title === "Kind of Blue");
+  if (kob) bru.setVar("kindOfBlueId", kob.id);
 }
 
 tests {
   test("matches a case-insensitive substring of the title (#33)", function() {
-    expect(res.body.data.map(a => a.title)).to.include("Kind of Blue");
+    expect(res.body.data.map(a => a.title), "the database is not seeded — run: docker compose run --rm seed").to.include("Kind of Blue");
   });
 }

@@ -1,0 +1,33 @@
+meta {
+  name: create album (nonexistent collectionId, admin)
+  type: http
+  seq: 5
+}
+
+post {
+  url: {{baseUrl}}/api/album
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{adminEmail}}
+}
+
+body:json {
+  {
+    "collectionId": "{{missingId}}",
+    "title": "_BRUNO_ Nowhere"
+  }
+}
+
+assert {
+  res.status: eq 409
+  res.body.status: eq 409
+}
+
+docs {
+  The admin bypasses the access check in `policy.ts`, so this is the only way
+  the request actually reaches the database and the foreign-key violation
+  surfaces as a 409. Both paths are real behaviour, so both are covered.
+}

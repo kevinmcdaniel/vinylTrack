@@ -20,16 +20,21 @@ assert {
 }
 
 script:post-response {
-  bru.setVar("basementId", res.body.data.find(l => l.name === "Basement").id);
+  const basement = (res.body.data || []).find(l => l.name === "Basement");
+  if (basement) bru.setVar("basementId", basement.id);
 }
 
 tests {
+  test("the database is not seeded — run: docker compose run --rm seed", function() {
+    expect(res.body.data.map(l => l.name), "the database is not seeded — run: docker compose run --rm seed").to.include("Basement");
+  });
+
   test("list data is an array, never null", function() {
     expect(res.body.data).to.be.an("array");
   });
 
   test("resolves the parent chain the UI renders as a path", function() {
-    const shelf = res.body.data.find(l => l.name === "Shelf 3");
+    const shelf = (res.body.data || []).find(l => l.name === "Shelf 3");
     expect(shelf.parent.name).to.equal("Basement");
   });
 }

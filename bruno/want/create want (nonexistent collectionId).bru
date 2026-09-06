@@ -23,6 +23,12 @@ body:json {
 }
 
 assert {
-  res.status: eq 409
-  res.body.status: eq 409
+  res.status: eq 403
+  res.body.status: eq 403
+  res.body.data: isNull
+}
+
+docs {
+  403 rather than 409, same as `album/create album (nonexistent collectionId)`:
+  the access check short-circuits before any write is attempted.
 }

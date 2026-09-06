@@ -22,6 +22,14 @@ body:json {
 }
 
 assert {
-  res.status: eq 409
-  res.body.status: eq 409
+  res.status: eq 403
+  res.body.status: eq 403
+  res.body.data: isNull
+}
+
+docs {
+  403, not 409: for a non-admin the access check runs first, and a collection
+  that does not exist is simply one you have no access to — so the request never
+  reaches the database and the foreign-key violation never happens. The 409 is
+  only reachable as an admin; see the companion request.
 }
