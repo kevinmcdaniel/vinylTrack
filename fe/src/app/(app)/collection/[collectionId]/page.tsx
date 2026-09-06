@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { apiGet, ApiError } from '@/lib/api';
 import { distinctArtists, distinctValues } from '@/lib/filters';
+import { albumFiltersFrom, filterOptionSource, hasActiveFilters } from '@/lib/searchParams';
 import AlbumCard from '@/ui/AlbumCard';
 import CollectionSwitcher from '@/ui/CollectionSwitcher';
 import EmptyState from '@/ui/EmptyState';
@@ -14,8 +15,6 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-const one = (v: string | string[] | undefined): string | undefined => (Array.isArray(v) ? v[0] : v);
-
 export default async function CollectionPage({ params, searchParams }: Props) {
   const { collectionId } = await params;
   const search = await searchParams;
@@ -24,13 +23,7 @@ export default async function CollectionPage({ params, searchParams }: Props) {
   const current = collections.find((c) => c.id === collectionId);
   if (!current) notFound();
 
-  const filters = {
-    collectionId,
-    q: one(search.q),
-    artistId: one(search.artistId),
-    format: one(search.format),
-    genre: one(search.genre),
-  };
+  const filters = albumFiltersFrom(collectionId, search);
 
   let albums: Album[] = [];
   try {
@@ -40,11 +33,10 @@ export default async function CollectionPage({ params, searchParams }: Props) {
     throw error;
   }
 
-  // Filter options come from the collection as a whole, not the filtered
-  // result — otherwise picking one genre would erase every other choice.
-  const all = filters.q || filters.artistId || filters.format || filters.genre
-    ? await apiGet<Album[]>('/album', { collectionId })
-    : albums;
+  const filtered = hasActiveFilters(filters);
+  const all = await filterOptionSource(filters, albums, () =>
+    apiGet<Album[]>('/album', { collectionId }),
+  );
 
   return (
     <div className="flex flex-col gap-4">
@@ -63,7 +55,11 @@ export default async function CollectionPage({ params, searchParams }: Props) {
       </p>
 
       {albums.length === 0 ? (
-        <EmptyState>Nothing in {current.name} matches those filters.</EmptyState>
+        <EmptyState>
+          {filtered
+            ? `Nothing in ${current.name} matches those filters.`
+            : `Nothing in ${current.name} yet.`}
+        </EmptyState>
       ) : (
         <ul className="flex flex-col gap-2">
           {albums.map((album) => (

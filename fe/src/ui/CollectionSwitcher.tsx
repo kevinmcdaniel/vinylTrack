@@ -17,8 +17,7 @@ export default function CollectionSwitcher({
 }) {
   const router = useRouter();
   return (
-    <label className="flex items-center gap-2">
-      <span className="sr-only">Collection</span>
+    <div className="flex items-center gap-2">
       <select
         aria-label="Collection"
         value={currentId}
@@ -31,6 +30,6 @@ export default function CollectionSwitcher({
           </option>
         ))}
       </select>
-    </label>
+    </div>
   );
 }

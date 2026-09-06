@@ -51,6 +51,24 @@ describe('apiGet', () => {
     await expect(apiGet('/album/x')).rejects.toMatchObject({ status: 404 });
   });
 
+  it('throws an ApiError, not a TypeError, on a 2xx with an unparseable body', async () => {
+    vi.stubGlobal('fetch', vi.fn(() =>
+      Promise.resolve({ ok: true, status: 200, json: () => Promise.reject(new Error('not json')) } as unknown as Response),
+    ));
+    // Pages catch ApiError; a bare TypeError would escape them as a 500.
+    await expect(apiGet('/album')).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it('throws an ApiError on a 2xx whose body has no data envelope', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => json({ unexpected: true })));
+    await expect(apiGet('/album')).rejects.toBeInstanceOf(ApiError);
+  });
+
+  it('still returns a legitimately null data payload', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => json({ message: 'deleted', data: null, status: 200 })));
+    await expect(apiGet('/album/x')).resolves.toBeNull();
+  });
+
   it('exposes notFound on a 404 so pages can call Next notFound()', async () => {
     vi.stubGlobal('fetch', vi.fn(() => json({ data: null, message: 'nope', status: 404 }, 404)));
     const err = await apiGet('/album/x').catch((e) => e as ApiError);

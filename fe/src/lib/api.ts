@@ -47,5 +47,11 @@ export async function apiGet<T>(path: string, params?: Record<string, QueryValue
   if (!res.ok) {
     throw new ApiError(res.status, body?.message ?? `Request to ${path} failed with ${res.status}`);
   }
+  // A 2xx with an unparseable or non-envelope body still has to fail as an
+  // ApiError: pages catch that type, so a bare TypeError from dereferencing
+  // null would escape them and surface as a 500.
+  if (body === null || typeof body !== 'object' || !('data' in body)) {
+    throw new ApiError(res.status, `Request to ${path} returned ${res.status} with no response envelope.`);
+  }
   return body.data as T;
 }
