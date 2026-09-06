@@ -1,6 +1,9 @@
-// vinylTrack — schema intentionally empty for now.
-// Domain models (user, collection, album, copy, location, etc.) land in
-// issue #2: https://github.com/kevinmcdaniel/vinylTrack/issues/2
+// vinylTrack — generator and datasource only. This file has no models on
+// purpose, and that does not mean the app has none.
+//
+// prisma.config.ts points `schema` at the src/prisma *directory*, not at a
+// file, so Prisma loads every .prisma in it. The models live next door in
+// collection.prisma (landed in issue #2, migrated).
 
 generator client {
   provider      = "prisma-client"

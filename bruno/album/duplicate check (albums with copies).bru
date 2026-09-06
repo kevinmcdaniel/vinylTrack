@@ -1,0 +1,55 @@
+meta {
+  name: duplicate check (albums with copies)
+  type: http
+  seq: 18
+}
+
+get {
+  url: {{baseUrl}}/api/album?q=blue&includeCopies=true
+  body: none
+  auth: inherit
+}
+
+params:query {
+  q: blue
+  includeCopies: true
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("answers \"does anyone already own this, and where\" in one request (#13)", function() {
+    const kob = (res.body.data || []).find(a => a.title === "Kind of Blue");
+    expect(kob, "the database is not seeded — run: docker compose run --rm seed").to.not.be.undefined;
+    expect(kob.copies).to.have.lengthOf(2);
+  });
+
+  test("names the family member whose copy it is, via the location owner", function() {
+    const kob = (res.body.data || []).find(a => a.title === "Kind of Blue");
+    const alexCopy = (kob.copies || []).find(c => c.location.name === "Alex's room");
+    expect(alexCopy, "the seeded duplicate copy in Alex's room is missing").to.not.be.undefined;
+    expect(alexCopy.location.owner, "a copy needs an owner to say whose it is").to.not.be.null;
+    expect(alexCopy.location.owner.name).to.equal("Alex");
+  });
+
+  test("never ships a family member's email to the client", function() {
+    const kob = (res.body.data || []).find(a => a.title === "Kind of Blue");
+    for (const copy of kob.copies || []) {
+      if (copy.location.owner) expect(copy.location.owner).to.not.have.property("email");
+    }
+  });
+
+  test("still resolves the location parent, for the \"Basement -> Shelf 3\" path", function() {
+    const kob = (res.body.data || []).find(a => a.title === "Kind of Blue");
+    const shelved = (kob.copies || []).find(c => c.location.name === "Shelf 3");
+    expect(shelved, "the seeded shelved copy is missing").to.not.be.undefined;
+    expect(shelved.location.parent.name).to.equal("Basement");
+  });
+}

@@ -58,9 +58,9 @@ Connection config lives in `.env` at the repo root (copy `.env.example`).
 - `be/src/database.ts` — Prisma client singleton using `@prisma/adapter-pg`
 - `be/src/route/` — Express routers; `index.ts` mounts sub-routers at `/api/*`
 - `be/src/common/` — shared middleware/error handling
-- `be/src/prisma/` — `schema.prisma` (generator/datasource) + `collection.prisma` (domain models), `seed.ts`, `migrations/`
+- `be/src/prisma/` — `schema.prisma` (generator/datasource only) + `collection.prisma` (every model), `seed.ts`, `migrations/`. `prisma.config.ts` points `schema` at this *directory*, so Prisma loads both files — `schema.prisma` having no models does not mean there are none.
 
-The domain schema (`user`, `collection`, `collection_share`, `artist`, `album`, `album_artist`, `location`, `source`, `copy`, `want_item`) landed in issue #2 (`be/src/prisma/collection.prisma`). Auth (#11), multiple-collection UI (#14), album art (#15), and external metadata (#16) add behavior and a few extra fields on top of this schema but haven't changed its shape yet — check the issues before assuming beyond what's in the `.prisma` file.
+The models (`user`, `collection`, `collection_share`, `artist`, `album`, `album_artist`, `location`, `source`, `copy`, `want_item`) landed in issue #2 (`be/src/prisma/collection.prisma`). Auth (#11), multiple-collection UI (#14), album art (#15), and external metadata (#16) add behavior and a few extra fields on top of this schema but haven't changed its shape yet — check the issues before assuming beyond what's in the `.prisma` file.
 
 Response envelope matches squaretrack's convention (list endpoints always `data: []`, never `null`, HTTP 200; single-resource `data: null` + HTTP 404 when missing; `ValidationError`/`ConflictError`/`NotFoundError`/`AuthError` in `be/src/common/errorHandler.ts` map to 406/409/404/401). Follow it for every new endpoint — see the `artist` CRUD vertical (`be/src/{route,controller,service}/artist*.ts`, issue #3) as the reference implementation.
 
@@ -71,6 +71,8 @@ Response envelope matches squaretrack's convention (list endpoints always `data:
 - `collection` is **read-only** (`GET /api/collection`, `GET /api/collection/:id`, #33) — the list is scoped to owned+shared, `:id` 404s when inaccessible. No collection create/update/delete exists, so "admin can delete a collection they don't own" isn't wired up anywhere yet — noted as a gap in issue #26, not built.
 
 See `be/src/route/*.ts` for how each route wires these in, and the doc comment at the top of `policy.ts` for the resource/action matrix.
+
+**Duplicate check (#13).** `GET /api/album?includeCopies=true` returns each matching album with its `copies`, so "does anyone already own this, and where" is one request rather than one `GET /api/album/:id` per row — that's what the want-list/shopping screen (#8) is built on. It is opt-in because the browse list (#7) never renders copies and shouldn't pay for the join, and *only* adds detail to a result, never a result: copies come through the album relation, so the accessible-collection scope still decides what comes back. A copy's owner is `location.owner` (`copy` has no owner of its own), selected down to `{ id, name }` — never the `user` row, which carries an email.
 
 ### Frontend structure
 - `fe/src/app/` — Next.js App Router; the browse UI (#7) lives under the `(app)` group
@@ -85,6 +87,23 @@ The copied design system in `design/system/` is **not** wired in — it's still 
 
 ### Prisma setup
 The backend uses `@prisma/adapter-pg` (not the default Prisma driver). After any schema change, run `npm run migrate` in `be/`.
+
+## Repo skills — read these before writing a commit, PR, or review
+
+**`.claude/skills/` holds this repo's own skills. Check it at the start of a session.** They are house conventions, not suggestions: commits, PR bodies, and review comments in this repo are expected to follow them. A remote/web session may not register them as invocable `/slash` commands (skills load at session start, so a branch that *adds* them lands too late) — in that case read the `SKILL.md` directly and follow it by hand. Don't fall back to generic style because the slash command didn't appear.
+
+| skill | use it for |
+| --- | --- |
+| `caveman` | the terse house voice; `full` is the default level. Chat replies only revert with "stop caveman"/"normal mode" |
+| `caveman-commit` | every commit message. Conventional Commits, ≤50-char subject, body only when the *why* isn't obvious |
+| `caveman-pr` | every PR body. Fixed skeleton — lead, what/how, optional behavior table, test/verify, note, then `Closes`/`Refs #N` as the last line, nothing after it. `Refs` (not `Closes`) when the PR advances an issue without finishing it |
+| `caveman-review` | PR review comments. One line each: `L42: 🔴 bug: <problem>. <fix>.` |
+| `caveman-help` | the reference card for the above |
+| `prisma-migrate` | schema changes and migrations |
+
+The voice rule that matters most: caveman the *prose*, never the facts. File paths, identifiers, routes, shell commands, counts, and issue refs are copied exactly. Both `caveman` and `caveman-pr` also carry an Auto-Clarity rule — drop the grunts entirely for breaking changes, security fixes, data migrations, and anything where a misread is costly.
+
+**No AI attribution, anywhere.** Commits carry no `Co-Authored-By:`/`Claude-Session:` trailer and PR bodies carry no "Generated with Claude Code" line — `caveman-commit` and `caveman-pr` both say so. Claude Code adds that text by default, so it is turned off in settings (`attribution.commit: ""`, `attribution.pr: ""`, `attribution.sessionUrl: false`) rather than stripped by hand. If a trailer shows up anyway, the session predates the setting — a session reads settings at start, so it won't pick up a mid-session change.
 
 ## Process rules for this repo
 

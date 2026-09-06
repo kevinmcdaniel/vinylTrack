@@ -1,6 +1,28 @@
 import { prisma } from '../database.js';
+import type { Prisma } from '../generated/client/client.js';
 
 const withArtists = { artists: { include: { artist: true } } } as const;
+
+// A copy's owner is the owner of the location it sits in — `copy` has no owner
+// of its own (#2) — which is what lets the duplicate check say "Alex's room"
+// rather than just naming a shelf (#13). Selected down to id+name on purpose:
+// `user` carries an email, and a copy row has no business shipping a family
+// member's email to the client.
+const withCopies = {
+  copies: {
+    include: {
+      location: { include: { parent: true, owner: { select: { id: true, name: true } } } },
+      source: true,
+    },
+    // Postgres decides row order otherwise, so the two copies of a duplicate
+    // could swap between identical requests. Location name is the order the
+    // answer is read in ("Alex's room" before "Shelf 3"); id only breaks a tie
+    // between two copies in the same place.
+    orderBy: [{ location: { name: 'asc' } }, { id: 'asc' }],
+  },
+  // `satisfies`, not `as const`: a const-asserted orderBy array is readonly,
+  // which Prisma's mutable orderBy input rejects.
+} satisfies Prisma.albumInclude;
 
 const flattenArtists = <T extends { artists: { artist: unknown }[] }>(album: T) => {
   const { artists, ...rest } = album;
@@ -11,10 +33,20 @@ const flattenArtists = <T extends { artists: { artist: unknown }[] }>(album: T) 
 // otherwise results are always confined to this set, intersected with an
 // explicit collectionId filter if the caller also supplied one.
 export const listAlbumsService = async (
-  filters: { collectionId?: string; artistId?: string; format?: string; genre?: string; q?: string },
+  filters: {
+    collectionId?: string;
+    artistId?: string;
+    format?: string;
+    genre?: string;
+    q?: string;
+    // Opt-in (#13): answers "does anyone already own this, and where" in one
+    // request instead of N+1 calls to /album/:id. Off by default so the browse
+    // list (#38), which never renders copies, doesn't pay for the join.
+    includeCopies?: boolean;
+  },
   accessibleCollectionIds: string[] | undefined,
 ) => {
-  const { collectionId, artistId, format, genre, q } = filters;
+  const { collectionId, artistId, format, genre, q, includeCopies } = filters;
   const scopedCollectionIds = accessibleCollectionIds
     ? collectionId
       ? accessibleCollectionIds.filter((id) => id === collectionId)
@@ -32,7 +64,10 @@ export const listAlbumsService = async (
       // it can never widen the accessible-collection scope.
       ...(q ? { title: { contains: q, mode: 'insensitive' as const } } : {}),
     },
-    include: withArtists,
+    // The copies come from the album relation, so they are confined to the
+    // same accessible-collection scope as the album row itself — this flag
+    // can add detail to a result, never a result.
+    include: { ...withArtists, ...(includeCopies ? withCopies : {}) },
     orderBy: { title: 'asc' },
   });
   return albums.map(flattenArtists);
@@ -45,7 +80,7 @@ export const getAlbumService = async (id: string) => {
       ...withArtists,
       // kind lets the UI de-emphasize condition/source for digital collections (#14).
       collection: { select: { id: true, name: true, kind: true } },
-      copies: { include: { location: { include: { parent: true } }, source: true } },
+      ...withCopies,
     },
   });
   if (!album) return null;

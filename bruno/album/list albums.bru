@@ -32,4 +32,8 @@ tests {
   test("list data is an array, never null", function() {
     expect(res.body.data).to.be.an("array");
   });
+
+  test("carries no copies unless asked, keeping the browse list lean (#13)", function() {
+    for (const album of res.body.data) expect(album).to.not.have.property("copies");
+  });
 }
