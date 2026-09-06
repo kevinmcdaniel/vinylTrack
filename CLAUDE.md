@@ -88,6 +88,25 @@ The copied design system in `design/system/` is **not** wired in — it's still 
 ### Prisma setup
 The backend uses `@prisma/adapter-pg` (not the default Prisma driver). After any schema change, run `npm run migrate` in `be/`.
 
+## Repo skills — read these before writing a commit, PR, or review
+
+**`.claude/skills/` holds this repo's own skills. Check it at the start of a session.** They are house conventions, not suggestions: commits, PR bodies, and review comments in this repo are expected to follow them. A remote/web session may not register them as invocable `/slash` commands (skills load at session start, so a branch that *adds* them lands too late) — in that case read the `SKILL.md` directly and follow it by hand. Don't fall back to generic style because the slash command didn't appear.
+
+| skill | use it for |
+| --- | --- |
+| `caveman` | the terse house voice; `full` is the default level. Chat replies only revert with "stop caveman"/"normal mode" |
+| `caveman-commit` | every commit message. Conventional Commits, ≤50-char subject, body only when the *why* isn't obvious |
+| `caveman-pr` | every PR body. Fixed skeleton — lead, what/how, optional behavior table, test/verify, note, `Closes`/`Refs #N`, trailer. `Refs` (not `Closes`) when the PR advances an issue without finishing it |
+| `caveman-review` | PR review comments. One line each: `L42: 🔴 bug: <problem>. <fix>.` |
+| `caveman-help` | the reference card for the above |
+| `prisma-migrate` | schema changes and migrations |
+
+The voice rule that matters most: caveman the *prose*, never the facts. File paths, identifiers, routes, shell commands, counts, and issue refs are copied exactly. Both `caveman` and `caveman-pr` also carry an Auto-Clarity rule — drop the grunts entirely for breaking changes, security fixes, data migrations, and anything where a misread is costly.
+
+Two known gaps to be aware of rather than surprised by:
+- `prisma-migrate` is carried over from squaretrack and still names `square.be`/`square.db`. This repo's containers are `vinyl.be`/`vinyl.db` (see `docker-compose.yml`), so translate before running anything from it.
+- `caveman-commit` says never to put AI attribution in a commit message. Claude Code sessions are separately configured to append a `Co-Authored-By:`/`Claude-Session:` trailer, so the two disagree. The trailer currently wins; if you'd rather follow the skill, that's a session-config change, not a code change.
+
 ## Process rules for this repo
 
 - **TDD-first**: lead every feature/bugfix with a failing test, then implement to green. A passing typecheck/build is not a substitute for a test.
