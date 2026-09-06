@@ -436,6 +436,21 @@ describe('GET /api/album?includeCopies=', () => {
     expect(res.status).toBe(200);
     expect(find<Record<string, unknown>>(res.body, dupAlbumId)).not.toHaveProperty('copies');
   });
+
+  it('orders copies by location name, so the same request reads the same way twice', async () => {
+    const album = await prisma.album.create({ data: { collectionId, title: `${T}OrderedCopies` } });
+    // Created out of order on purpose: insertion order must not be the answer.
+    const zed = await prisma.location.create({ data: { name: `${T}Zed Shelf`, kind: 'physical' } });
+    const attic = await prisma.location.create({ data: { name: `${T}Attic`, kind: 'physical' } });
+    await prisma.copy.create({ data: { albumId: album.id, locationId: zed.id } });
+    await prisma.copy.create({ data: { albumId: album.id, locationId: attic.id } });
+
+    const res = await request(app)
+      .get(`/api/album?collectionId=${collectionId}&includeCopies=true`)
+      .set(authHeader(owner.email));
+    const copies = find<AlbumWithCopies>(res.body, album.id)!.copies;
+    expect(copies.map((c) => c.location.id)).toEqual([attic.id, zed.id]);
+  });
 });
 
 describe('GET /api/album/:id — copy owner (#13)', () => {

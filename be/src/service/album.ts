@@ -1,4 +1,5 @@
 import { prisma } from '../database.js';
+import type { Prisma } from '../generated/client/client.js';
 
 const withArtists = { artists: { include: { artist: true } } } as const;
 
@@ -13,8 +14,15 @@ const withCopies = {
       location: { include: { parent: true, owner: { select: { id: true, name: true } } } },
       source: true,
     },
+    // Postgres decides row order otherwise, so the two copies of a duplicate
+    // could swap between identical requests. Location name is the order the
+    // answer is read in ("Alex's room" before "Shelf 3"); id only breaks a tie
+    // between two copies in the same place.
+    orderBy: [{ location: { name: 'asc' } }, { id: 'asc' }],
   },
-} as const;
+  // `satisfies`, not `as const`: a const-asserted orderBy array is readonly,
+  // which Prisma's mutable orderBy input rejects.
+} satisfies Prisma.albumInclude;
 
 const flattenArtists = <T extends { artists: { artist: unknown }[] }>(album: T) => {
   const { artists, ...rest } = album;
