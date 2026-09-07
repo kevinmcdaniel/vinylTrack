@@ -10,6 +10,7 @@ let admin: { id: string; email: string };
 let collectionId: string;
 let artistId: string;
 let albumId: string;
+let ownerRowId: string;
 
 beforeAll(async () => {
   await cleanupTestData();
@@ -22,6 +23,8 @@ beforeAll(async () => {
   artistId = artist.id;
   const album = await prisma.album.create({ data: { collectionId, title: `${T}WantAlbum` } });
   albumId = album.id;
+  const ownerRow = await prisma.owner.create({ data: { name: `${T}WantOwner`, userId: owner.id } });
+  ownerRowId = ownerRow.id;
 });
 afterAll(async () => { await cleanupTestData(); });
 
@@ -167,7 +170,7 @@ describe('DELETE /api/want/:id', () => {
 
 describe('POST /api/want/:id/found', () => {
   it('converts an album-level want into a copy, then removes the want', async () => {
-    const location = await prisma.location.create({ data: { name: `${T}FoundLoc1`, kind: 'physical' } });
+    const location = await prisma.location.create({ data: { name: `${T}FoundLoc1`, kind: 'physical', collectionId } });
     const want = await prisma.want_item.create({ data: { collectionId, albumId, priority: 'must-have' } });
 
     const res = await request(app)
@@ -177,13 +180,15 @@ describe('POST /api/want/:id/found', () => {
     expect(res.status).toBe(201);
     expect(res.body.data.copy.albumId).toBe(albumId);
     expect(res.body.data.copy.locationId).toBe(location.id);
+    // Nothing said who — the copy lands with the caller's own owner row (#53).
+    expect(res.body.data.copy.ownerId).toBe(ownerRowId);
 
     const check = await prisma.want_item.findUnique({ where: { id: want.id } });
     expect(check).toBeNull();
   });
 
   it('converts an artist-level want by linking an existing album, then removes the want', async () => {
-    const location = await prisma.location.create({ data: { name: `${T}FoundLoc2`, kind: 'physical' } });
+    const location = await prisma.location.create({ data: { name: `${T}FoundLoc2`, kind: 'physical', collectionId } });
     const existingAlbum = await prisma.album.create({ data: { collectionId, title: `${T}ExistingForFound` } });
     const want = await prisma.want_item.create({ data: { collectionId, artistId, priority: 'nice-to-have' } });
 
@@ -201,7 +206,7 @@ describe('POST /api/want/:id/found', () => {
   });
 
   it('converts an artist-level want by creating a new album inline, then removes the want', async () => {
-    const location = await prisma.location.create({ data: { name: `${T}FoundLoc3`, kind: 'physical' } });
+    const location = await prisma.location.create({ data: { name: `${T}FoundLoc3`, kind: 'physical', collectionId } });
     const want = await prisma.want_item.create({ data: { collectionId, artistId, priority: 'must-have' } });
 
     const res = await request(app)
@@ -218,6 +223,35 @@ describe('POST /api/want/:id/found', () => {
     expect(link).not.toBeNull();
   });
 
+  it('records the buyer when an explicit ownerId is given', async () => {
+    const location = await prisma.location.create({ data: { name: `${T}FoundLoc7`, kind: 'physical', collectionId } });
+    const gift = await prisma.owner.create({ data: { name: `${T}FoundForGrandma` } });
+    const want = await prisma.want_item.create({ data: { collectionId, albumId, priority: 'must-have' } });
+
+    const res = await request(app)
+      .post(`/api/want/${want.id}/found`)
+      .set(authHeader(owner.email))
+      .send({ locationId: location.id, ownerId: gift.id });
+    expect(res.status).toBe(201);
+    expect(res.body.data.copy.ownerId).toBe(gift.id);
+  });
+
+  it('returns 406 when the location belongs to another collection', async () => {
+    const otherCollection = await prisma.collection.create({
+      data: { name: `${T}WantOtherColl`, kind: 'physical', ownerId: owner.id },
+    });
+    const location = await prisma.location.create({
+      data: { name: `${T}FoundLocForeign`, kind: 'physical', collectionId: otherCollection.id },
+    });
+    const want = await prisma.want_item.create({ data: { collectionId, albumId, priority: 'must-have' } });
+
+    const res = await request(app)
+      .post(`/api/want/${want.id}/found`)
+      .set(authHeader(owner.email))
+      .send({ locationId: location.id });
+    expect(res.status).toBe(406);
+  });
+
   it('returns 406 when locationId is missing', async () => {
     const want = await prisma.want_item.create({ data: { collectionId, albumId, priority: 'must-have' } });
     const res = await request(app).post(`/api/want/${want.id}/found`).set(authHeader(owner.email)).send({});
@@ -225,7 +259,7 @@ describe('POST /api/want/:id/found', () => {
   });
 
   it('returns 406 for an artist-level want with no albumId or album payload', async () => {
-    const location = await prisma.location.create({ data: { name: `${T}FoundLoc4`, kind: 'physical' } });
+    const location = await prisma.location.create({ data: { name: `${T}FoundLoc4`, kind: 'physical', collectionId } });
     const want = await prisma.want_item.create({ data: { collectionId, artistId, priority: 'must-have' } });
     const res = await request(app)
       .post(`/api/want/${want.id}/found`)
@@ -235,7 +269,7 @@ describe('POST /api/want/:id/found', () => {
   });
 
   it('returns 404 for an outsider', async () => {
-    const location = await prisma.location.create({ data: { name: `${T}FoundLoc6`, kind: 'physical' } });
+    const location = await prisma.location.create({ data: { name: `${T}FoundLoc6`, kind: 'physical', collectionId } });
     const want = await prisma.want_item.create({ data: { collectionId, albumId, priority: 'must-have' } });
     const res = await request(app)
       .post(`/api/want/${want.id}/found`)
@@ -245,7 +279,7 @@ describe('POST /api/want/:id/found', () => {
   });
 
   it('returns 404 for a nonexistent want id', async () => {
-    const location = await prisma.location.create({ data: { name: `${T}FoundLoc5`, kind: 'physical' } });
+    const location = await prisma.location.create({ data: { name: `${T}FoundLoc5`, kind: 'physical', collectionId } });
     const res = await request(app)
       .post('/api/want/00000000-0000-0000-0000-000000000000/found')
       .set(authHeader(owner.email))

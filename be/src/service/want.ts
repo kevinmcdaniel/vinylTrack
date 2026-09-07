@@ -1,4 +1,7 @@
 import { prisma } from '../database.js';
+import { ValidationError } from '../common/errorHandler.js';
+import { assertLocationInCollection } from './copy.js';
+import { ownerForUserService } from './owner.js';
 
 // accessibleCollectionIds: undefined = no restriction (admin caller);
 // otherwise scoped to this set, intersected with an explicit collectionId
@@ -50,10 +53,16 @@ export const deleteWantItemService = async (id: string) => {
 // Converts a want item into a real copy (and, for an artist-level want, an
 // album + album_artist credit if one wasn't picked/created already), then
 // removes the want item — one atomic flow instead of delete-then-recreate.
+//
+// callerUserId is who is standing in the record store: with no explicit
+// ownerId, the copy is attributed to that person's own owner row (#53), which
+// is the overwhelmingly common case — you buy your own records.
 export const markWantItemFoundService = async (
   id: string,
+  callerUserId: string,
   data: {
     locationId: string;
+    ownerId?: string;
     sourceId?: string;
     dateAcquired?: string;
     price?: number;
@@ -71,7 +80,14 @@ export const markWantItemFoundService = async (
   },
 ) => {
   const want = await prisma.want_item.findUniqueOrThrow({ where: { id } });
-  const { locationId, sourceId, dateAcquired, price, condition, notes, albumId, album } = data;
+  const { locationId, ownerId, sourceId, dateAcquired, price, condition, notes, albumId, album } = data;
+
+  await assertLocationInCollection(locationId, want.collectionId);
+
+  const resolvedOwnerId = ownerId ?? (await ownerForUserService(callerUserId))?.id;
+  if (!resolvedOwnerId) {
+    throw new ValidationError('ownerId is required — the caller has no owner of their own.');
+  }
 
   return prisma.$transaction(async (tx) => {
     let resolvedAlbumId = want.albumId;
@@ -95,8 +111,17 @@ export const markWantItemFoundService = async (
     }
 
     const copy = await tx.copy.create({
-      data: { albumId: resolvedAlbumId as string, locationId, sourceId, dateAcquired, price, condition, notes },
-      include: { location: true, source: true },
+      data: {
+        albumId: resolvedAlbumId as string,
+        locationId,
+        ownerId: resolvedOwnerId,
+        sourceId,
+        dateAcquired,
+        price,
+        condition,
+        notes,
+      },
+      include: { location: true, owner: { select: { id: true, name: true } }, source: true },
     });
     const resultAlbum = await tx.album.findUniqueOrThrow({ where: { id: resolvedAlbumId as string } });
     await tx.want_item.delete({ where: { id } });

@@ -176,9 +176,9 @@ describe('GET /api/album/:id', () => {
 
   it('includes copy rows with resolved location (#5)', async () => {
     const album = await prisma.album.create({ data: { collectionId, title: `${T}WithCopies` } });
-    const room = await prisma.location.create({ data: { name: `${T}CopyRoom`, kind: 'physical' } });
+    const room = await prisma.location.create({ data: { name: `${T}CopyRoom`, kind: 'physical', collectionId } });
     const shelf = await prisma.location.create({
-      data: { name: `${T}CopyShelf`, kind: 'physical', parentLocationId: room.id },
+      data: { name: `${T}CopyShelf`, kind: 'physical', collectionId, parentLocationId: room.id },
     });
     await prisma.copy.create({ data: { albumId: album.id, locationId: shelf.id } });
 
@@ -325,26 +325,29 @@ describe('GET /api/album/:id — collection', () => {
 //
 // The duplicate check: "does this title exist anywhere in the family
 // collection, and where". Matching is already covered by q/artistId/
-// collectionId above; what this adds is the answer — the copies, with enough
-// of the location to say *whose* it is, in one request rather than N+1.
+// collectionId above; what this adds is the answer — the copies, each carrying
+// its own owner and its location path, in one request rather than N+1.
 
 describe('GET /api/album?includeCopies=', () => {
   let dupAlbumId: string;
   let dupShelfId: string;
   let dupRoomId: string;
+  let dupOwnerId: string;
 
   beforeAll(async () => {
     const album = await prisma.album.create({ data: { collectionId, title: `${T}Dup Check Target` } });
-    const room = await prisma.location.create({
-      data: { name: `${T}DupRoom`, kind: 'physical', ownerId: sharedMember.id },
-    });
+    const room = await prisma.location.create({ data: { name: `${T}DupRoom`, kind: 'physical', collectionId } });
     const shelf = await prisma.location.create({
-      data: { name: `${T}DupShelf`, kind: 'physical', parentLocationId: room.id, ownerId: sharedMember.id },
+      data: { name: `${T}DupShelf`, kind: 'physical', collectionId, parentLocationId: room.id },
     });
-    await prisma.copy.create({ data: { albumId: album.id, locationId: shelf.id, condition: 'VG+' } });
+    const dupOwner = await prisma.owner.create({ data: { name: `${T}DupOwner`, userId: sharedMember.id } });
+    await prisma.copy.create({
+      data: { albumId: album.id, locationId: shelf.id, ownerId: dupOwner.id, condition: 'VG+' },
+    });
     dupAlbumId = album.id;
     dupShelfId = shelf.id;
     dupRoomId = room.id;
+    dupOwnerId = dupOwner.id;
   });
 
   // supertest hands back an untyped body; each caller says what shape of the
@@ -354,7 +357,8 @@ describe('GET /api/album?includeCopies=', () => {
 
   type CopyRow = {
     condition: string | null;
-    location: { id: string; parent: { id: string } | null; owner: { id: string } | null };
+    owner: { id: string; name: string } | null;
+    location: { id: string; parent: { id: string } | null };
   };
   type AlbumWithCopies = { copies: CopyRow[] };
 
@@ -376,15 +380,24 @@ describe('GET /api/album?includeCopies=', () => {
     expect(album?.copies[0]?.condition).toBe('VG+');
   });
 
-  it('resolves each copy location to its full path and its owner', async () => {
+  it('resolves each copy location to its full path', async () => {
     const res = await request(app)
       .get(`/api/album?collectionId=${collectionId}&includeCopies=true`)
       .set(authHeader(owner.email));
     const location = find<AlbumWithCopies>(res.body, dupAlbumId)!.copies[0]!.location;
     expect(location.id).toBe(dupShelfId);
     expect(location.parent!.id).toBe(dupRoomId);
-    // "already have 1 copy — Alex's room" needs the owner, not just the name.
-    expect(location.owner!.id).toBe(sharedMember.id);
+  });
+
+  // "already have 1 copy — Alex's" reads the copy's own owner (#53), not the
+  // place it happens to be sitting in.
+  it('names the owner on the copy itself', async () => {
+    const res = await request(app)
+      .get(`/api/album?collectionId=${collectionId}&includeCopies=true`)
+      .set(authHeader(owner.email));
+    const copy = find<AlbumWithCopies>(res.body, dupAlbumId)!.copies[0]!;
+    expect(copy.owner!.id).toBe(dupOwnerId);
+    expect(copy.owner!.name).toBe(`${T}DupOwner`);
   });
 
   it('never exposes a family member email on a copy owner', async () => {
@@ -392,7 +405,8 @@ describe('GET /api/album?includeCopies=', () => {
       .get(`/api/album?collectionId=${collectionId}&includeCopies=true`)
       .set(authHeader(owner.email));
     const album = find<AlbumWithCopies>(res.body, dupAlbumId)!;
-    expect(album.copies[0]!.location.owner).not.toHaveProperty('email');
+    expect(album.copies[0]!.owner).not.toHaveProperty('email');
+    expect(JSON.stringify(album.copies[0])).not.toContain('@example.com');
   });
 
   it('answers with an empty copy list for a title nobody owns', async () => {
@@ -419,8 +433,8 @@ describe('GET /api/album?includeCopies=', () => {
       .get(`/api/album?collectionId=${collectionId}&includeCopies=true`)
       .set(authHeader(owner.email));
     const album = find<AlbumWithCopies>(res.body, dupAlbumId)!;
-    expect(album.copies[0]!.location.owner!.id).toBe(sharedMember.id);
-    expect(album.copies[0]!.location.owner!.id).not.toBe(owner.id);
+    expect(album.copies[0]!.owner!.id).toBe(dupOwnerId);
+    expect(album.copies[0]!.owner!.name).not.toBe(owner.email);
   });
 
   it('cannot widen the accessible-collection scope', async () => {
@@ -440,8 +454,8 @@ describe('GET /api/album?includeCopies=', () => {
   it('orders copies by location name, so the same request reads the same way twice', async () => {
     const album = await prisma.album.create({ data: { collectionId, title: `${T}OrderedCopies` } });
     // Created out of order on purpose: insertion order must not be the answer.
-    const zed = await prisma.location.create({ data: { name: `${T}Zed Shelf`, kind: 'physical' } });
-    const attic = await prisma.location.create({ data: { name: `${T}Attic`, kind: 'physical' } });
+    const zed = await prisma.location.create({ data: { name: `${T}Zed Shelf`, kind: 'physical', collectionId } });
+    const attic = await prisma.location.create({ data: { name: `${T}Attic`, kind: 'physical', collectionId } });
     await prisma.copy.create({ data: { albumId: album.id, locationId: zed.id } });
     await prisma.copy.create({ data: { albumId: album.id, locationId: attic.id } });
 
@@ -453,26 +467,27 @@ describe('GET /api/album?includeCopies=', () => {
   });
 });
 
-describe('GET /api/album/:id — copy owner (#13)', () => {
-  it('resolves the owner of each copy location', async () => {
+describe('GET /api/album/:id — copy owner (#13, #53)', () => {
+  it('resolves the owner of each copy', async () => {
     const album = await prisma.album.create({ data: { collectionId, title: `${T}DetailOwner` } });
-    const room = await prisma.location.create({
-      data: { name: `${T}DetailRoom`, kind: 'physical', ownerId: sharedMember.id },
-    });
-    await prisma.copy.create({ data: { albumId: album.id, locationId: room.id } });
+    const room = await prisma.location.create({ data: { name: `${T}DetailRoom`, kind: 'physical', collectionId } });
+    const detailOwner = await prisma.owner.create({ data: { name: `${T}DetailOwnerRow`, userId: sharedMember.id } });
+    await prisma.copy.create({ data: { albumId: album.id, locationId: room.id, ownerId: detailOwner.id } });
 
     const res = await request(app).get(`/api/album/${album.id}`).set(authHeader(owner.email));
     expect(res.status).toBe(200);
-    expect(res.body.data.copies[0].location.owner.id).toBe(sharedMember.id);
-    expect(res.body.data.copies[0].location.owner).not.toHaveProperty('email');
+    expect(res.body.data.copies[0].owner.id).toBe(detailOwner.id);
+    expect(res.body.data.copies[0].owner).not.toHaveProperty('email');
   });
 
-  it('leaves owner null for an unowned/communal location', async () => {
+  // The column stays nullable until the follow-up migration (#53), so the
+  // payload has to keep answering honestly for a copy nobody has claimed.
+  it('leaves owner null for a copy with no owner recorded', async () => {
     const album = await prisma.album.create({ data: { collectionId, title: `${T}DetailNoOwner` } });
-    const shelf = await prisma.location.create({ data: { name: `${T}DetailCommunal`, kind: 'physical' } });
+    const shelf = await prisma.location.create({ data: { name: `${T}DetailCommunal`, kind: 'physical', collectionId } });
     await prisma.copy.create({ data: { albumId: album.id, locationId: shelf.id } });
 
     const res = await request(app).get(`/api/album/${album.id}`).set(authHeader(owner.email));
-    expect(res.body.data.copies[0].location.owner).toBeNull();
+    expect(res.body.data.copies[0].owner).toBeNull();
   });
 });

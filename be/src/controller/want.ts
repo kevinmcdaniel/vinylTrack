@@ -70,13 +70,14 @@ export const markWantItemFound = async (req: Request, res: Response, next: NextF
     const id = routeParam(req.params.id);
     const existing = await getWantItemService(id);
     if (!existing) throw new NotFoundError(`Want item id:${id} not found.`);
-    const { locationId, sourceId, dateAcquired, price, condition, notes, albumId, album } = req.body;
+    const { locationId, ownerId, sourceId, dateAcquired, price, condition, notes, albumId, album } = req.body;
     if (!locationId) throw new ValidationError('locationId is required.');
     if (!existing.albumId && !albumId && !album) {
       throw new ValidationError('an artist-level want needs albumId or album to mark as found.');
     }
-    const record = await markWantItemFoundService(id, {
+    const record = await markWantItemFoundService(id, req.user!.id, {
       locationId,
+      ownerId,
       sourceId,
       dateAcquired,
       price,
@@ -87,7 +88,9 @@ export const markWantItemFound = async (req: Request, res: Response, next: NextF
     });
     res.status(201).json({ message: 'Want item marked as found', data: record, status: 201 });
   } catch (error) {
-    if (isPrismaError(error, 'P2003')) return next(new ConflictError('locationId, sourceId, or albumId does not exist.'));
+    if (isPrismaError(error, 'P2003')) {
+      return next(new ConflictError('locationId, ownerId, sourceId, or albumId does not exist.'));
+    }
     next(error);
   }
 };

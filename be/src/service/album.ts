@@ -3,15 +3,15 @@ import type { Prisma } from '../generated/client/client.js';
 
 const withArtists = { artists: { include: { artist: true } } } as const;
 
-// A copy's owner is the owner of the location it sits in — `copy` has no owner
-// of its own (#2) — which is what lets the duplicate check say "Alex's room"
-// rather than just naming a shelf (#13). Selected down to id+name on purpose:
-// `user` carries an email, and a copy row has no business shipping a family
-// member's email to the client.
+// A copy carries its own owner (#53), so the duplicate check can say "Alex has
+// one" and still be right after the record moves — the location only says
+// where it is sitting. Owner is selected down to id+name on purpose: an
+// `owner` row has no email, and neither should the payload.
 const withCopies = {
   copies: {
     include: {
-      location: { include: { parent: true, owner: { select: { id: true, name: true } } } },
+      location: { include: { parent: true } },
+      owner: { select: { id: true, name: true } },
       source: true,
     },
     // Postgres decides row order otherwise, so the two copies of a duplicate
