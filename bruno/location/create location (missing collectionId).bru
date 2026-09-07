@@ -1,7 +1,7 @@
 meta {
-  name: create location (missing kind)
+  name: create location (missing collectionId)
   type: http
-  seq: 4
+  seq: 10
 }
 
 post {
@@ -16,12 +16,16 @@ headers {
 
 body:json {
   {
-    "name": "_BRUNO_ No Kind",
-    "collectionId": "{{vinylCollectionId}}"
+    "name": "_BRUNO_ No Collection",
+    "kind": "physical"
   }
 }
 
 assert {
   res.status: eq 406
   res.body.status: eq 406
+}
+
+docs {
+  A location is a child of exactly one collection (#53), so collectionId is required.
 }

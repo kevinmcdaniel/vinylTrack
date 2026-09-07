@@ -1,11 +1,11 @@
 meta {
-  name: create location (missing kind)
+  name: create owner (missing name)
   type: http
-  seq: 4
+  seq: 5
 }
 
 post {
-  url: {{baseUrl}}/api/location
+  url: {{baseUrl}}/api/owner
   body: json
   auth: inherit
 }
@@ -16,8 +16,7 @@ headers {
 
 body:json {
   {
-    "name": "_BRUNO_ No Kind",
-    "collectionId": "{{vinylCollectionId}}"
+    "userId": "{{kevinUserId}}"
   }
 }
 

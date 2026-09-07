@@ -1,0 +1,20 @@
+meta {
+  name: delete owner
+  type: http
+  seq: 10
+}
+
+delete {
+  url: {{baseUrl}}/api/owner/{{brunoOwnerId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{adminEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}

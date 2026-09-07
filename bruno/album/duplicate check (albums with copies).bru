@@ -31,19 +31,24 @@ tests {
     expect(kob.copies).to.have.lengthOf(2);
   });
 
-  test("names the family member whose copy it is, via the location owner", function() {
+  test("names the family member whose copy it is, from the copy itself (#53)", function() {
     const kob = (res.body.data || []).find(a => a.title === "Kind of Blue");
     const alexCopy = (kob.copies || []).find(c => c.location.name === "Alex's room");
     expect(alexCopy, "the seeded duplicate copy in Alex's room is missing").to.not.be.undefined;
-    expect(alexCopy.location.owner, "a copy needs an owner to say whose it is").to.not.be.null;
-    expect(alexCopy.location.owner.name).to.equal("Alex");
+    expect(alexCopy.owner, "a copy needs an owner to say whose it is").to.not.be.null;
+    expect(alexCopy.owner.name).to.equal("Alex");
+  });
+
+  test("owner survives a move — it is not read off the location", function() {
+    const kob = (res.body.data || []).find(a => a.title === "Kind of Blue");
+    for (const copy of kob.copies || []) {
+      expect(copy.location, "the location says where, not whose").to.not.have.property("owner");
+    }
   });
 
   test("never ships a family member's email to the client", function() {
     const kob = (res.body.data || []).find(a => a.title === "Kind of Blue");
-    for (const copy of kob.copies || []) {
-      if (copy.location.owner) expect(copy.location.owner).to.not.have.property("email");
-    }
+    expect(JSON.stringify(kob.copies)).to.not.include("@example.com");
   });
 
   test("still resolves the location parent, for the \"Basement -> Shelf 3\" path", function() {

@@ -18,6 +18,7 @@ body:json {
   {
     "albumId": "{{albumId}}",
     "locationId": "{{childLocationId}}",
+    "ownerId": "{{kevinOwnerId}}",
     "condition": "NM",
     "price": 12.5
   }
@@ -36,5 +37,11 @@ tests {
   test("resolves the location and its parent", function() {
     expect(res.body.data.location.name).to.equal("_BRUNO_ Crate 1");
     expect(res.body.data.location.parent.name).to.equal("_BRUNO_ Garage");
+  });
+
+  test("carries its own owner, not the location's (#53)", function() {
+    expect(res.body.data.owner.id).to.equal(bru.getVar("kevinOwnerId"));
+    expect(res.body.data.owner.name).to.equal("Kevin");
+    expect(res.body.data.owner).to.not.have.property("email");
   });
 }

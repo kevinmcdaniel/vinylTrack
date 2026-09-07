@@ -37,6 +37,10 @@ tests {
     expect(res.body.data.copy.condition).to.equal("VG+");
   });
 
+  test("attributes the copy to the buyer when nothing said whose it is (#53)", function() {
+    expect(res.body.data.copy.ownerId).to.equal(bru.getVar("kevinOwnerId"));
+  });
+
   test("returns the album the copy belongs to", function() {
     expect(res.body.data.album.id).to.equal(bru.getVar("albumId"));
   });

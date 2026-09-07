@@ -1,0 +1,49 @@
+meta {
+  name: list owners
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/owner
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+script:post-response {
+  const kevin = (res.body.data || []).find(o => o.name === "Kevin");
+  const ruth = (res.body.data || []).find(o => o.name === "Grandma Ruth");
+  if (kevin) {
+    bru.setVar("kevinOwnerId", kevin.id);
+    bru.setVar("kevinUserId", kevin.userId);
+  }
+  if (ruth) bru.setVar("ruthOwnerId", ruth.id);
+}
+
+tests {
+  test("the database is not seeded — run: docker compose run --rm seed", function() {
+    const names = (res.body.data || []).map(o => o.name);
+    expect(names).to.include("Kevin");
+    expect(names).to.include("Alex");
+  });
+
+  // The reason owner is a table and not a user FK (#53).
+  test("an owner can exist with no account behind it", function() {
+    const ruth = (res.body.data || []).find(o => o.name === "Grandma Ruth");
+    expect(ruth, "the seeded account-less owner is missing").to.not.be.undefined;
+    expect(ruth.userId).to.equal(null);
+  });
+
+  test("never ships the linked account email", function() {
+    expect(JSON.stringify(res.body.data)).to.not.include("@example.com");
+  });
+}

@@ -1,0 +1,38 @@
+meta {
+  name: duplicate check (owner with no account)
+  type: http
+  seq: 22
+}
+
+get {
+  url: {{baseUrl}}/api/album?q=plus&includeCopies=true
+  body: none
+  auth: inherit
+}
+
+params:query {
+  q: plus
+  includeCopies: true
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("attributes a copy to a family member who has no account at all (#53)", function() {
+    const calls = (res.body.data || []).find(a => a.title === "Plus Program Calls");
+    expect(calls, "the database is not seeded — run: docker compose run --rm seed").to.not.be.undefined;
+    expect(calls.copies).to.have.lengthOf(1);
+    expect(calls.copies[0].owner.name).to.equal("Grandma Ruth");
+  });
+}
+
+docs {
+  The whole reason owner is its own table: the square-dance mp3s belong to a grandparent who will never sign in.
+}

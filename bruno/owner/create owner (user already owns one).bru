@@ -1,0 +1,31 @@
+meta {
+  name: create owner (user already owns one)
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/owner
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "name": "_BRUNO_ Second Kevin",
+    "userId": "{{kevinUserId}}"
+  }
+}
+
+assert {
+  res.status: eq 409
+  res.body.status: eq 409
+}
+
+docs {
+  owner.userId is indexed, not unique (#53) — the one-owner-row-per-account rule lives in create/update, and this is what proves it is actually enforced.
+}

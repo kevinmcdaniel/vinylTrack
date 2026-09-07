@@ -1,0 +1,31 @@
+meta {
+  name: update location (outsider)
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{baseUrl}}/api/location/{{basementId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{outsiderEmail}}
+}
+
+body:json {
+  {
+    "notes": "not mine to edit"
+  }
+}
+
+assert {
+  res.status: eq 404
+  res.body.status: eq 404
+  res.body.data: isNull
+}
+
+docs {
+  Basement belongs to Squakville Vinyl, which jamie has no access to. Since #53 a location is collection-scoped, so this is a 404 (masking existence) rather than the old ownerId-based 403. A shared member like alex, who does have access, can edit it.
+}

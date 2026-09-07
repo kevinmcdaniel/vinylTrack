@@ -1,0 +1,31 @@
+meta {
+  name: list locations (outsider)
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/api/location
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{outsiderEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("a location list is scoped to the caller's collections (#53)", function() {
+    expect(res.body.data).to.be.an("array");
+    expect(res.body.data).to.have.lengthOf(0);
+  });
+}
+
+docs {
+  Before #53 this endpoint handed every location to any active user. Locations are collection-scoped now, and jamie belongs to no collection.
+}
