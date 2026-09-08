@@ -6,13 +6,13 @@ import LocationPath from './LocationPath';
 import type { Album, Copy, Location } from '@/lib/types';
 
 const location = (over: Partial<Location> = {}): Location => ({
-  id: 'l', name: 'Shelf 3', kind: 'physical', parentLocationId: 'p',
-  parent: { id: 'p', name: 'Basement' }, owner: null, ...over,
+  id: 'l', name: 'Shelf 3', kind: 'physical', collectionId: 'c1', parentLocationId: 'p',
+  parent: { id: 'p', name: 'Basement' }, ...over,
 });
 
 const copy = (over: Partial<Copy> = {}): Copy => ({
-  id: 'c', albumId: 'a', locationId: 'l', location: location(), sourceId: null,
-  source: null, dateAcquired: null, price: null, condition: null, notes: null, ...over,
+  id: 'c', albumId: 'a', locationId: 'l', location: location(), ownerId: null, owner: null,
+  sourceId: null, source: null, dateAcquired: null, price: null, condition: null, notes: null, ...over,
 });
 
 const album = (over: Partial<Album> = {}): Album => ({
@@ -91,12 +91,25 @@ describe('CopyRow', () => {
   // "owned: yes" is knowing whose it is before you buy a second one (#13).
   it('names the family member whose copy it is', () => {
     render(
+      <CopyRow collectionKind="physical" copy={copy({ owner: { id: 'o1', name: 'Alex' } })} />,
+    );
+    expect(screen.getByText('Alex')).toBeInTheDocument();
+  });
+
+  // #53: the owner is the copy's, so it does not change when the record does.
+  // "Alex" stays "Alex" while the record sits in someone else's basement.
+  it('keeps naming the owner when the copy sits somewhere else', () => {
+    render(
       <CopyRow
         collectionKind="physical"
-        copy={copy({ location: location({ owner: { id: 'u1', name: 'Alex' } }) })}
+        copy={copy({
+          owner: { id: 'o1', name: 'Alex' },
+          location: location({ name: "Kevin's basement", parent: null }),
+        })}
       />,
     );
     expect(screen.getByText('Alex')).toBeInTheDocument();
+    expect(screen.getByText("Kevin's basement")).toBeInTheDocument();
   });
 
   it('shows the owner for a digital copy too, where condition and source are hidden', () => {
@@ -104,27 +117,20 @@ describe('CopyRow', () => {
       <CopyRow
         collectionKind="digital"
         copy={copy({
-          location: location({ name: 'iCloud Drive/Music', parent: null, owner: { id: 'u1', name: 'Alex' } }),
+          owner: { id: 'o1', name: 'Grandma Ruth' },
+          location: location({ name: 'iCloud Drive/Music', parent: null }),
           condition: 'VG+',
         })}
       />,
     );
-    expect(screen.getByText('Alex')).toBeInTheDocument();
+    expect(screen.getByText('Grandma Ruth')).toBeInTheDocument();
     expect(screen.queryByText('VG+')).not.toBeInTheDocument();
   });
 
-  it('says nothing about ownership for a communal location', () => {
-    render(<CopyRow collectionKind="physical" copy={copy({ location: location({ owner: null }) })} />);
-    expect(screen.queryByText(/·/)).not.toBeInTheDocument();
-  });
-
-  it('falls back to nothing rather than a blank byline when the owner has no name', () => {
-    render(
-      <CopyRow
-        collectionKind="physical"
-        copy={copy({ location: location({ owner: { id: 'u1', name: null } }) })}
-      />,
-    );
+  // Nullable until the follow-up migration (#53) — a copy nobody has claimed
+  // still has to render.
+  it('says nothing about ownership for a copy with no owner recorded', () => {
+    render(<CopyRow collectionKind="physical" copy={copy({ owner: null })} />);
     expect(screen.getByText('Basement → Shelf 3')).toBeInTheDocument();
     expect(screen.queryByText(/·/)).not.toBeInTheDocument();
   });

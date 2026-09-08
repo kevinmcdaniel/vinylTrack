@@ -34,18 +34,25 @@ export type Album = {
 /**
  * A location with its immediate parent resolved — enough for "Basement → Shelf 3".
  *
- * `owner` is how a copy gets attributed to a family member: `copy` has no owner
- * of its own, so "Alex's room" comes from the location (#13). The BE selects it
- * down to id+name, so there is deliberately no email here.
+ * It says *where*, never *whose* (#53): a location belongs to a collection and
+ * carries no owner, so two collections sharing one shelf are two rows that
+ * happen to share a name.
  */
 export type Location = {
   id: string;
   name: string;
   kind: string;
+  collectionId: string;
   parentLocationId: string | null;
   parent: { id: string; name: string } | null;
-  owner: { id: string; name: string | null } | null;
 };
+
+/**
+ * Whoever a copy belongs to. Not a user: a grandparent or a kid too young to
+ * sign in owns records without an account (#53), so there is no email here to
+ * render by accident.
+ */
+export type Owner = { id: string; name: string };
 
 export type Source = { id: string; type: string; name: string };
 
@@ -54,6 +61,13 @@ export type Copy = {
   albumId: string;
   locationId: string;
   location: Location;
+  /**
+   * The copy's own owner, so lending a record does not appear to change hands
+   * (#53). Nullable until the follow-up migration makes the column NOT NULL —
+   * an unclaimed copy still has to render.
+   */
+  ownerId: string | null;
+  owner: Owner | null;
   sourceId: string | null;
   source: Source | null;
   dateAcquired: string | null;
