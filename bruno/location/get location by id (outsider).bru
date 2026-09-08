@@ -1,0 +1,25 @@
+meta {
+  name: get location by id (outsider)
+  type: http
+  seq: 14
+}
+
+get {
+  url: {{baseUrl}}/api/location/{{basementId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{outsiderEmail}}
+}
+
+assert {
+  res.status: eq 404
+  res.body.status: eq 404
+  res.body.data: isNull
+}
+
+docs {
+  404, not 403: an inaccessible location reads exactly like one that does not exist, same masking as album/copy/want.
+}

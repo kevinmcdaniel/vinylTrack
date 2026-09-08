@@ -22,6 +22,9 @@ assert {
 script:post-response {
   const basement = (res.body.data || []).find(l => l.name === "Basement");
   if (basement) bru.setVar("basementId", basement.id);
+  // A location in the *other* collection — what a copy may never be moved into.
+  const icloud = (res.body.data || []).find(l => l.name === "iCloud Drive/Music/SquareDance");
+  if (icloud) bru.setVar("foreignLocationId", icloud.id);
 }
 
 tests {
@@ -33,6 +36,10 @@ tests {
 
   test("list data is an array, never null", function() {
     expect(res.body.data).to.be.an("array");
+  });
+
+  test("every location names the collection it belongs to (#53)", function() {
+    expect((res.body.data || []).every(l => typeof l.collectionId === "string")).to.equal(true);
   });
 
   test("resolves the parent chain the UI renders as a path", function() {

@@ -1,0 +1,32 @@
+meta {
+  name: create copy (location in another collection)
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/api/copy
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "albumId": "{{albumId}}",
+    "locationId": "{{foreignLocationId}}",
+    "ownerId": "{{kevinOwnerId}}"
+  }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}
+
+docs {
+  album + location + collection are one chain (#53): the album is in Squakville Vinyl and the iCloud folder belongs to Square Dance Music, so a copy may not straddle the two.
+}

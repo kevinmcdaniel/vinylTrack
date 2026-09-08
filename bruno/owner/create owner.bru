@@ -1,0 +1,36 @@
+meta {
+  name: create owner
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/owner
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "name": "_BRUNO_ Cousin Pat"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.status: eq 201
+}
+
+script:post-response {
+  bru.setVar("brunoOwnerId", res.body.data.id);
+}
+
+tests {
+  test("an owner needs no account", function() {
+    expect(res.body.data.userId).to.equal(null);
+  });
+}

@@ -20,8 +20,25 @@ const collectDescendantLocationIds = async (rootId: string): Promise<string[]> =
   return ids;
 };
 
-export const listLocationsService = async () => {
+// accessibleCollectionIds: undefined = no restriction (admin caller);
+// otherwise results are confined to this set, intersected with an explicit
+// collectionId filter if the caller also supplied one. A location belongs to
+// exactly one collection (#53), so this is the same scoping album/copy/
+// want_item already use.
+export const listLocationsService = async (
+  filters: { collectionId?: string },
+  accessibleCollectionIds: string[] | undefined,
+) => {
+  const { collectionId } = filters;
+  const scopedCollectionIds = accessibleCollectionIds
+    ? collectionId
+      ? accessibleCollectionIds.filter((id) => id === collectionId)
+      : accessibleCollectionIds
+    : collectionId
+      ? [collectionId]
+      : undefined;
   return prisma.location.findMany({
+    where: { ...(scopedCollectionIds ? { collectionId: { in: scopedCollectionIds } } : {}) },
     include: { parent: true },
     orderBy: { name: 'asc' },
   });
@@ -41,8 +58,8 @@ export const getLocationService = async (id: string) => {
 export const createLocationService = async (data: {
   name: string;
   kind: string;
+  collectionId: string;
   parentLocationId?: string;
-  ownerId?: string;
   notes?: string;
 }) => {
   return prisma.location.create({ data, include: { parent: true } });
@@ -50,7 +67,7 @@ export const createLocationService = async (data: {
 
 export const updateLocationService = async (
   id: string,
-  data: { name?: string; kind?: string; parentLocationId?: string; ownerId?: string; notes?: string },
+  data: { name?: string; kind?: string; parentLocationId?: string; notes?: string },
 ) => {
   return prisma.location.update({ where: { id }, data, include: { parent: true } });
 };

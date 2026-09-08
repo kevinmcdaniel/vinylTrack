@@ -1,0 +1,32 @@
+meta {
+  name: update owner
+  type: http
+  seq: 8
+}
+
+patch {
+  url: {{baseUrl}}/api/owner/{{brunoOwnerId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{sharedEmail}}
+}
+
+body:json {
+  {
+    "name": "_BRUNO_ Cousin Patricia"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("a friendly name is free of anything the user table requires (#53)", function() {
+    expect(res.body.data.name).to.equal("_BRUNO_ Cousin Patricia");
+  });
+}

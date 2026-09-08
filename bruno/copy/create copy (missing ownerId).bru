@@ -1,0 +1,31 @@
+meta {
+  name: create copy (missing ownerId)
+  type: http
+  seq: 12
+}
+
+post {
+  url: {{baseUrl}}/api/copy
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "albumId": "{{albumId}}",
+    "locationId": "{{childLocationId}}"
+  }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}
+
+docs {
+  copy.ownerId is nullable in the column only because it could not be added to a populated table any other way (#53). The API is what makes it required, until the follow-up migration tightens it.
+}

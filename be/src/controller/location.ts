@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ValidationError, ConflictError, NotFoundError } from '../common/errorHandler.js';
 import { routeParam } from '../common/utils.js';
+import { accessibleCollectionIds } from '../common/policy.js';
 import {
   listLocationsService,
   getLocationService,
@@ -12,9 +13,11 @@ import {
 const isPrismaError = (error: unknown, code: string): boolean =>
   typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === code;
 
-export const listLocations = async (_req: Request, res: Response, next: NextFunction) => {
+export const listLocations = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const records = await listLocationsService();
+    const { collectionId } = req.query as Record<string, string>;
+    const scope = req.user!.isAdmin ? undefined : await accessibleCollectionIds(req.user!.id);
+    const records = await listLocationsService({ collectionId }, scope);
     res.json({ message: 'List of locations', data: records, status: 200 });
   } catch (error) {
     next(error);
@@ -34,13 +37,16 @@ export const getLocation = async (req: Request, res: Response, next: NextFunctio
 
 export const createLocation = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { name, kind, parentLocationId, ownerId, notes } = req.body;
+    const { name, kind, collectionId, parentLocationId, notes } = req.body;
     if (!name) throw new ValidationError('name is required.');
     if (!kind) throw new ValidationError('kind is required.');
-    const record = await createLocationService({ name, kind, parentLocationId, ownerId, notes });
+    if (!collectionId) throw new ValidationError('collectionId is required.');
+    const record = await createLocationService({ name, kind, collectionId, parentLocationId, notes });
     res.status(201).json({ message: 'Location created', data: record, status: 201 });
   } catch (error) {
-    if (isPrismaError(error, 'P2003')) return next(new ConflictError('parentLocationId or ownerId does not exist.'));
+    if (isPrismaError(error, 'P2003')) {
+      return next(new ConflictError('collectionId or parentLocationId does not exist.'));
+    }
     next(error);
   }
 };
@@ -50,11 +56,13 @@ export const updateLocation = async (req: Request, res: Response, next: NextFunc
     const id = routeParam(req.params.id);
     const existing = await getLocationService(id);
     if (!existing) throw new NotFoundError(`Location id:${id} not found.`);
-    const { name, kind, parentLocationId, ownerId, notes } = req.body;
-    const record = await updateLocationService(id, { name, kind, parentLocationId, ownerId, notes });
+    // collectionId is deliberately not updatable: moving a location between
+    // collections would drag its copies across the boundary with it (#53).
+    const { name, kind, parentLocationId, notes } = req.body;
+    const record = await updateLocationService(id, { name, kind, parentLocationId, notes });
     res.json({ message: 'Location updated', data: record, status: 200 });
   } catch (error) {
-    if (isPrismaError(error, 'P2003')) return next(new ConflictError('parentLocationId or ownerId does not exist.'));
+    if (isPrismaError(error, 'P2003')) return next(new ConflictError('parentLocationId does not exist.'));
     next(error);
   }
 };

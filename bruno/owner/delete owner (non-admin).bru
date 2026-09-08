@@ -1,0 +1,25 @@
+meta {
+  name: delete owner (non-admin)
+  type: http
+  seq: 9
+}
+
+delete {
+  url: {{baseUrl}}/api/owner/{{brunoOwnerId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 403
+  res.body.status: eq 403
+  res.body.data: isNull
+}
+
+docs {
+  Same rule as artist (#26): deleting an owner strips attribution from copies other family members depend on, so it is admin-only.
+}

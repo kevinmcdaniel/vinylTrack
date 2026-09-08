@@ -1,0 +1,27 @@
+meta {
+  name: create owner (nonexistent userId)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/owner
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "name": "_BRUNO_ Ghost",
+    "userId": "{{missingId}}"
+  }
+}
+
+assert {
+  res.status: eq 409
+  res.body.status: eq 409
+}

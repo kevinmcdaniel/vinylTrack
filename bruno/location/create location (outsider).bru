@@ -1,0 +1,32 @@
+meta {
+  name: create location (outsider)
+  type: http
+  seq: 11
+}
+
+post {
+  url: {{baseUrl}}/api/location
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{outsiderEmail}}
+}
+
+body:json {
+  {
+    "name": "_BRUNO_ Not Mine",
+    "kind": "physical",
+    "collectionId": "{{vinylCollectionId}}"
+  }
+}
+
+assert {
+  res.status: eq 403
+  res.body.status: eq 403
+}
+
+docs {
+  The caller supplied the collectionId themselves, so 403 is the honest answer — same rule as album/copy/want (#26, #53).
+}

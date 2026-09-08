@@ -30,8 +30,12 @@ export async function cleanupTestData() {
   await prisma.album.deleteMany({ where: { title: { startsWith: T } } });
   await prisma.artist.deleteMany({ where: { name: { startsWith: T } } });
   await prisma.collection_share.deleteMany({ where: { collection: { name: { startsWith: T } } } });
-  await prisma.collection.deleteMany({ where: { name: { startsWith: T } } });
+  // Locations point at a collection (#53), so they go before it — and owners
+  // go after the copies that reference them, but before the users they link to.
   await prisma.location.deleteMany({ where: { name: { startsWith: T } } });
+  await prisma.collection.deleteMany({ where: { name: { startsWith: T } } });
+  await prisma.owner.deleteMany({ where: { name: { startsWith: T } } });
+  await prisma.owner.deleteMany({ where: { user: { email: { startsWith: T } } } });
   await prisma.source.deleteMany({ where: { name: { startsWith: T } } });
   await prisma.user.deleteMany({ where: { email: { startsWith: T } } });
 }

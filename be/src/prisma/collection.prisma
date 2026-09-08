@@ -12,6 +12,7 @@ model user {
   ownedCollections collection[]       @relation("collectionOwner")
   sharedCollections collection_share[]
   locations location[]
+  owners    owner[]
   createdAt DateTime @default(now())
 }
 
@@ -23,6 +24,7 @@ model collection {
   owner   user               @relation("collectionOwner", fields: [ownerId], references: [id])
   notes   String?
   albums  album[]
+  locations location[]
   wantItems want_item[]
   shares  collection_share[]
   @@index([ownerId])
@@ -80,19 +82,43 @@ model album_artist {
   @@index([artistId])
 }
 
+// Whoever a copy belongs to (#53). Deliberately not the same thing as `user`:
+// a grandparent, a kid too young to sign in, or a household "family" owner all
+// own records without ever having an account. `userId` links an owner to an
+// account when one exists — indexed, not unique, because `name` is a friendly
+// name that must not have to satisfy anything the `user` table requires; one
+// owner row per user is enforced in create/update instead.
+model owner {
+  id     String  @id @default(uuid())
+  name   String
+  userId String?
+  user   user?   @relation(fields: [userId], references: [id])
+  copies copy[]
+  @@index([userId])
+  @@index([name])
+}
+
 // A place a copy can live, physical or digital. parentLocationId is a simple
 // self-referencing parent/child (e.g. Room -> Shelf), not a deep arbitrary tree.
 model location {
   id                String     @id @default(uuid())
   name              String
   kind              String     // physical | digital
+  // A location is a child of exactly one collection (#53). Two collections
+  // sharing one physical shelf are two rows that happen to share a name.
+  collectionId      String
+  collection        collection @relation(fields: [collectionId], references: [id])
   parentLocationId  String?
   parent            location?  @relation("locationParent", fields: [parentLocationId], references: [id])
   children          location[] @relation("locationParent")
+  // DEPRECATED (#53): ownership lives on `copy.owner` and, above it, on
+  // `collection.owner` — a location needs no owner of its own. Left nullable
+  // and unseeded until the cleanup migration drops it.
   ownerId           String?
   owner             user?      @relation(fields: [ownerId], references: [id])
   notes             String?
   copies            copy[]
+  @@index([collectionId])
   @@index([parentLocationId])
   @@index([ownerId])
 }
@@ -114,6 +140,13 @@ model copy {
   album        album     @relation(fields: [albumId], references: [id])
   locationId   String
   location     location  @relation(fields: [locationId], references: [id])
+  // Required in behaviour, nullable in the column (#53): a non-null column
+  // cannot be added to a populated table in one step, so the create/update
+  // path rejects a missing owner (406) until a follow-up migration tightens
+  // this to NOT NULL. The owner is the copy's, not the location's — that is
+  // what makes a lent-out record keep its attribution when it moves.
+  ownerId      String?
+  owner        owner?    @relation(fields: [ownerId], references: [id])
   sourceId     String?
   source       source?   @relation(fields: [sourceId], references: [id])
   dateAcquired DateTime?
@@ -122,6 +155,7 @@ model copy {
   notes        String?
   @@index([albumId])
   @@index([locationId])
+  @@index([ownerId])
 }
 
 // References either an artist or a specific album (not both — app-level validation,
