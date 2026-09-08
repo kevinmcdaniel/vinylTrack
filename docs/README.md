@@ -1,12 +1,12 @@
 # vinylTrack
 
-A family record/album/MP3 collection tracker. Multiple named collections (Vinyl, Square Dance Calls, General MP3s, …), each with artists, releases, physical or digital copies, where they physically live, and a want list — shared across family members and devices.
+A family record/album/MP3 collection tracker. Multiple named collections (Vinyl, Square Dance Calls, General MP3s, …), each with artists, releases, physical or digital copies, whose they are and where they live, and a want list — shared across family members and devices.
 
 ## Where to go next
 
 - [Architecture](architecture.md) — repo layout, the stack, how the pieces fit together.
 - [Development process](process.md) — how work happens in this repo: TDD, design-first, branches.
-- [Design brief](design-brief.md) — the product vision: why collections/copies/locations are split the way they are, auth & sharing, metadata lookup.
+- [Design brief](design-brief.md) — the product vision: why collections/copies/locations/owners are split the way they are, auth & sharing, metadata lookup.
 - [User stories](user-stories.md) — the framework for UX design: what a person should be able to do, cross-referenced to the issues that back it.
 - [Moving the domain to Cloudflare](hosting-dns.md): the runbook for moving the family domain (DNS, email forwarding, registration) off Squarespace, which the Cloudflare Tunnel needs in order to publish the app (#12, #59).
 - [Remote access to the home server](hosting-remote-access.md): admin SSH and CI deploys through Cloudflare Access, UniFi Teleport as break-glass, `sshd` lockdown, and the family allowlist before #11 (#59, #60).

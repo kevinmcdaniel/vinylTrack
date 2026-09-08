@@ -15,21 +15,25 @@ A framework to design the UX against — not the UX itself. Each story is someth
 - I can switch between collections (Vinyl, Square Dance Calls, …) and browse one at a time. ([#14](https://github.com/kevinmcdaniel/vinylTrack/issues/14))
 - I can filter a collection by artist, format, or genre. ([#4](https://github.com/kevinmcdaniel/vinylTrack/issues/4), [#7](https://github.com/kevinmcdaniel/vinylTrack/issues/7))
 - I can open an artist's page and see everything they've contributed to. ([#3](https://github.com/kevinmcdaniel/vinylTrack/issues/3), [#7](https://github.com/kevinmcdaniel/vinylTrack/issues/7))
-- I can open an album's page and see its details (artists, format, year, genre, cover art, credits) and every copy I own of it — including where each one lives. ([#7](https://github.com/kevinmcdaniel/vinylTrack/issues/7), [#15](https://github.com/kevinmcdaniel/vinylTrack/issues/15), [#16](https://github.com/kevinmcdaniel/vinylTrack/issues/16))
+- I can open an album's page and see its details (artists, format, year, genre, cover art, credits) and every copy in my collections — whose each one is and where it lives. ([#7](https://github.com/kevinmcdaniel/vinylTrack/issues/7), [#15](https://github.com/kevinmcdaniel/vinylTrack/issues/15), [#16](https://github.com/kevinmcdaniel/vinylTrack/issues/16))
 
 ## Adding to a collection
 
 - I can add a new album to a collection by hand. ([#4](https://github.com/kevinmcdaniel/vinylTrack/issues/4))
 - I can scan a barcode or photograph a cover and have the details filled in for me, from a short list of candidate matches I confirm. ([#16](https://github.com/kevinmcdaniel/vinylTrack/issues/16), [#17](https://github.com/kevinmcdaniel/vinylTrack/issues/17))
-- I can add a copy of an album, specifying where it lives (down to a shelf within a room) and where/when/how much I paid for it. ([#5](https://github.com/kevinmcdaniel/vinylTrack/issues/5))
+- I can add a copy of an album, specifying who owns it, where it lives (down to a shelf within a room), and where/when/how much I paid for it. ([#5](https://github.com/kevinmcdaniel/vinylTrack/issues/5), [#53](https://github.com/kevinmcdaniel/vinylTrack/issues/53))
 - I can attach a photo to a copy (condition, wear, whatever's useful). ([#15](https://github.com/kevinmcdaniel/vinylTrack/issues/15))
-- Before I add a copy, I can see whether anyone in the family already has one, and where. ([#13](https://github.com/kevinmcdaniel/vinylTrack/issues/13))
+- Before I add a copy, I can see whether anyone in the family already has one, whose it is, and where. ([#13](https://github.com/kevinmcdaniel/vinylTrack/issues/13))
 
 ## Want list & shopping
 
 - I can add something to my want list — a specific album, or "anything by this artist" — and mark it must-have vs. nice-to-have. ([#6](https://github.com/kevinmcdaniel/vinylTrack/issues/6))
 - While shopping, I can check my want list against the whole family's collection, not just mine. ([#8](https://github.com/kevinmcdaniel/vinylTrack/issues/8), [#13](https://github.com/kevinmcdaniel/vinylTrack/issues/13))
-- When I find something on my list, marking it "found" turns it straight into a real copy — I don't re-enter everything. ([#6](https://github.com/kevinmcdaniel/vinylTrack/issues/6), [#8](https://github.com/kevinmcdaniel/vinylTrack/issues/8))
+- When I find something on my list, marking it "found" turns it straight into a real copy — I pick who it belongs to and where it goes, and don't re-enter everything. ([#6](https://github.com/kevinmcdaniel/vinylTrack/issues/6), [#8](https://github.com/kevinmcdaniel/vinylTrack/issues/8))
+
+## Lending
+
+- I can record that a copy is lent out and to whom, so it still counts as the family's but reads as unavailable rather than as somebody else's. ([#57](https://github.com/kevinmcdaniel/vinylTrack/issues/57))
 
 ## Sharing
 
