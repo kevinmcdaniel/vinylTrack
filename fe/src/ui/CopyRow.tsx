@@ -17,12 +17,13 @@ const formatAcquired = (copy: Copy): string | null => {
  * The owner sits next to the location because that is the question being
  * answered in a record store: not "is this owned" but "whose is it, and do I
  * still want a second one". It shows for digital copies too, where condition
- * and source are hidden.
+ * and source are hidden. Owner comes off the copy, not the location it happens
+ * to be sitting in (#53), so a record lent out still reads as its owner's.
  */
 export default function CopyRow({ copy, collectionKind }: { copy: Copy; collectionKind: string }) {
   const physical = showsPhysicalDetail(collectionKind);
   const acquired = physical ? formatAcquired(copy) : null;
-  const ownerName = copy.location.owner?.name;
+  const ownerName = copy.owner?.name;
   return (
     <li className="rounded-lg border border-black/10 p-3 dark:border-white/15">
       <LocationPath location={copy.location} />
