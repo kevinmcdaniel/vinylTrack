@@ -12,7 +12,7 @@ The most load-bearing modeling decision in the whole app: an **album** (a releas
 
 ## Auth & sharing
 
-Real per-user accounts via plain Google sign-in (any Google account — an earlier plan to restrict by a custom Workspace domain was dropped as too fragile for a 20-year-old legacy domain). New sign-ins land in a pending state; an admin (the account owner) approves or denies. Collections have an owner and can be shared with specific other family members. A lightweight bot check (Cloudflare Turnstile) sits on the sign-in page independent of whatever network setup (Tailscale, etc.) ends up fronting the app, since hosting is expected to change over time. Details: [issue #11](https://github.com/kevinmcdaniel/vinylTrack/issues/11).
+Real per-user accounts via plain Google sign-in (any Google account — an earlier plan to restrict by a custom Workspace domain was dropped as too fragile for a 20-year-old legacy domain). New sign-ins land in a pending state; an admin (the account owner) approves or denies. Collections have an owner and can be shared with specific other family members. A lightweight bot check (Cloudflare Turnstile) sits on the sign-in page independent of whatever network setup (Cloudflare Tunnel today) fronts the app, since hosting is expected to change over time. Details: [issue #11](https://github.com/kevinmcdaniel/vinylTrack/issues/11).
 
 ## Album art & external metadata
 
@@ -20,4 +20,4 @@ Cover art, catalog numbers, producer/writer credits, and pressing details (matri
 
 ## Hosting
 
-Undecided as of this writing — likely a home Raspberry Pi (reachable via Tailscale) or cheap cloud hosting, and expected to possibly change over time. Because auth is real and app-level (not "the network is the auth"), the hosting choice shouldn't require touching the app itself. Details: [issue #12](https://github.com/kevinmcdaniel/vinylTrack/issues/12).
+Decided in [#12](https://github.com/kevinmcdaniel/vinylTrack/issues/12): a dedicated **M1 Pro MacBook** at home, behind double NAT, with no inbound ports. The app is published through a **Cloudflare Tunnel** on the family domain; admin SSH and CI deploys go through **Cloudflare Access** on the same tunnel; **UniFi Teleport** is the independent break-glass path. Because auth is real and app-level (not "the network is the auth"), moving to other hardware or a cloud host later is a deploy-target change, not an app change. Details: [remote access](hosting-remote-access.md), [update schedule](hosting-maintenance.md), [#59](https://github.com/kevinmcdaniel/vinylTrack/issues/59), [#60](https://github.com/kevinmcdaniel/vinylTrack/issues/60).
