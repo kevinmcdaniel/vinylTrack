@@ -54,18 +54,26 @@ Three hidden service accounts, none of which you can log in as:
 
 | account | home | shell | why |
 |---|---|---|---|
-| `_vinyltrack` | `/Users/_vinyltrack` (`750`) | `/usr/bin/false` | owns Colima, Docker, `compose.prod.yml`, and the app's secrets `.env`. Needs a real home because Colima and Docker keep their state in `~/.colima` and `~/.docker` |
+| `_vinyltrack` | `/Users/_vinyltrack` (`750`) | `/usr/bin/false` | owns Colima, Docker, `compose.prod.yml`, the app's secret files in `~/secrets/`, and `~/.env` (host config only, never secrets; #65). Needs a real home because Colima and Docker keep their state in `~/.colima` and `~/.docker`, and Colima only shares the home folder with the VM |
 | `_vinyldeploy` | `/Users/_vinyldeploy` (`755`, `.ssh` `700`, `authorized_keys` `600`) | `/bin/sh` | CI's SSH login. **Needs a real shell:** `sshd` runs `ForceCommand` as `$SHELL -c …`, so `/usr/bin/false` breaks every deploy. `ForceCommand` and `PermitTTY no` are what stop an interactive session |
 | `_cloudflared` | `/var/empty` | `/usr/bin/false` | runs the tunnel daemon. Runs from `--token-file`, so it needs no home ([hosting-maintenance.md](hosting-maintenance.md#cloudflared-daemon)) |
 
 - **They don't show up in System Settings → Users & Groups**, or anywhere else in the GUI. That's macOS hiding `_`-prefixed accounts, not a failed create. List them with `dscl . -list /Users UniqueID | grep '^_'`, and inspect one with `dscl . -read /Users/<name> NFSHomeDirectory UserShell PrimaryGroupID`.
 - Setting a home: `dscl . -create /Users/<name> NFSHomeDirectory …` can hang. `sudo dscl . -change /Users/<name> NFSHomeDirectory <old> <new>` does the same job. `dscl` only records the path; `mkdir` and `chown` the directory yourself.
-- **Edit their files as them, from an admin session**, not by copying files in as yourself. `sudo -u <name> -H` runs one command as the account, whatever its shell:
+- **Edit their files as them, from an admin session**, not by copying files in as yourself. `sudo -u <name> -H` runs one command as the account, whatever its shell.
+- **Secrets are one file each** in `/Users/_vinyltrack/secrets/` (directory `700`, files `600`), named per #65's convention (`db_password`, `turnstile_secret_key`, …). They exist only here: never in the repo, CI, or `.env`.
   ```bash
-  sudo install -m 600 -o _vinyltrack -g $(id -gn _vinyltrack) /dev/null /Users/_vinyltrack/.env   # once
-  sudo -u _vinyltrack -H vi /Users/_vinyltrack/.env                                             # every update
+  sudo -u _vinyltrack -H mkdir -p -m 700 /Users/_vinyltrack/secrets                                          # once
+  sudo -u _vinyltrack -H sh -c 'umask 077; openssl rand -hex 32 > /Users/_vinyltrack/secrets/db_password'   # a random secret
+  sudo -u _vinyltrack -H vi /Users/_vinyltrack/secrets/<name>                                                # one you were given
   ```
-  Typing secrets into `vi` keeps them out of shell history and out of any file you own. The same pattern edits `_vinyldeploy`'s `authorized_keys`.
+  Generating straight into the file, or typing into `vi`, keeps the value off screen, out of shell history, and out of any file you own. The same `sudo -u … vi` pattern edits `_vinyldeploy`'s `authorized_keys`.
+- Inside Colima's VM, file modes don't protect anything: every container user can read a mounted secret (spike in #65). The `600`/`700` modes keep other *macOS* accounts out; per-service `secrets:` lists in compose decide which container sees what. A secret file outside `/Users/_vinyltrack` shows up in the container as an empty directory, not an error.
+- **`docker compose` as `_vinyltrack`** needs Homebrew's plugin directory in its Docker config, or `docker compose -f …` fails with `unknown shorthand flag: 'f'`. Colima creates the file; add the key without clobbering its context:
+  ```bash
+  sudo -u _vinyltrack -H sh -c 'f=$HOME/.docker/config.json; jq ".cliPluginsExtraDirs = [\"/opt/homebrew/lib/docker/cli-plugins\"]" "$f" > "$f.tmp" && mv "$f.tmp" "$f"'
+  sudo -u _vinyltrack -H docker compose version
+  ```
 
 ## `sshd` on the Mac
 

@@ -95,6 +95,25 @@ One LaunchDaemon, running as the `_cloudflared` role account:
 - **Changes to the plist only take effect on `bootout` + `bootstrap`.** `kickstart` restarts the process with the plist launchd already has loaded.
 - **Healthy:** `ps` shows exactly one `cloudflared`, user `_cloudflared`, and the error log shows `Registered tunnel connection` lines.
 
+## Colima daemon
+
+One LaunchDaemon runs vinylTrack's Colima VM as `_vinyltrack`, so it starts at boot with nobody logged in:
+
+| what | where |
+|---|---|
+| plist | `/Library/LaunchDaemons/com.vinyltrack.colima.plist`, `root:wheel` `644` |
+| label | `com.vinyltrack.colima` |
+| runs | `/opt/homebrew/bin/colima start --foreground`, `UserName` `_vinyltrack`, `GroupName` its own group |
+| environment | `HOME=/Users/_vinyltrack`, `PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin` (launchd gives a daemon neither; Colima needs `limactl` and `docker`) |
+| launchd keys | `RunAtLoad`, `KeepAlive`, `ThrottleInterval` 30, `ExitTimeOut` 120 (time for the VM, and Postgres in it, to shut down cleanly at reboot) |
+| VM settings | `~/.colima/default/colima.yaml`, created by the first manual start: `colima start --vm-type vz --cpu 2 --memory 4 --disk 40`. The disk can grow later but never shrink |
+| logs | `/Library/Logs/com.vinyltrack.colima.{out,err}.log`, owned by `_vinyltrack` |
+
+- **`--foreground` is required.** Without it `colima start` exits once the VM is up, and `KeepAlive` restarts it in a loop.
+- **Never `brew services start colima`.** It starts a second VM as the admin.
+- **Stop it with `sudo launchctl bootout system/com.vinyltrack.colima`**, not `colima stop`: `KeepAlive` brings it straight back.
+- **Healthy:** `ps -axo user,pid,command | grep -E '[c]olima|[l]imactl'` shows only `_vinyltrack`, `sudo -u _vinyltrack -H docker info` answers, and the Docker socket under `/Users/_vinyltrack/.colima` isn't reachable from the admin account without `sudo`.
+
 ## macOS versions
 
 - **Security responses** (Apple's out-of-band security fixes): System Settings → General → Software Update → Automatic Updates → *Install Security Responses and system files* **on**. They install without a full update, and occasionally reboot. The Mac comes back by itself.
@@ -149,8 +168,8 @@ Same steps as the monthly window, for just the affected piece.
 | CI deploy SSH key (`DEPLOY_SSH_KEY`) | yearly, alongside the service token | new ed25519 key → public half into `_vinyldeploy`'s `authorized_keys` (with `restrict`) → GitHub secret → test → remove the old public key |
 | Admin SSH key (`id_ed25519_vinyl_admin`) | on a new laptop, or on suspected leak | new key → add the public half on the Mac → test `ssh vinyl-admin` → remove the old one |
 | Cloudflare Tunnel token | on suspected leak | rotate the tunnel's token in the Cloudflare Zero Trust dashboard → write it to the token file (owner `_cloudflared`, mode `600`; see [`cloudflared` daemon](#cloudflared-daemon)) → `kickstart -k` the daemon |
-| Turnstile secret | on suspected leak | rotate in the Cloudflare dashboard → host `.env` → restart `be` |
-| Production DB password | on suspected leak | change it in Postgres and the host `.env` together, then restart `be` |
+| Turnstile secret | on suspected leak | rotate in the Cloudflare dashboard → `secrets/turnstile_secret_key` → restart `be` |
+| Production DB password | on suspected leak | `ALTER USER` in Postgres and `secrets/db_password` together, then restart `be`. Postgres reads the file only when it first creates the database, so changing the file alone does nothing |
 
 **Emergency revoke:** deleting the `vinyltrack-ci` service token in Zero Trust cuts CI off at the edge immediately. Removing a key from `authorized_keys` cuts that key off at the Mac. Either alone is enough.
 
