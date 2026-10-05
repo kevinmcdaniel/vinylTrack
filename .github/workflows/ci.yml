@@ -172,3 +172,11 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test
+
+  host:
+    name: Host scripts (bats)
+    # macOS, because the home server runs these under macOS's /bin/bash 3.2.
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: npx --yes bats@1.11.1 host/tests

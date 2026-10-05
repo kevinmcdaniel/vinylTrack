@@ -1,0 +1,58 @@
+#!/bin/bash
+# deploy-shell: the sshd ForceCommand for _vinyldeploy (#60).
+#
+# CI can ask for exactly three things, read from $SSH_ORIGINAL_COMMAND:
+#   deploy <tag>     rollback <tag>     status
+# <tag> must look like v1.2.3 or v1.2.3-rc.4. Anything else — including an
+# interactive session, scp, or an extra argument — is refused with exit 2.
+# Accepted requests run deploy.sh as _vinyltrack through one sudoers rule.
+#
+# Written for macOS's /bin/bash 3.2. The command is split with `read -a`
+# and never eval'd, so shell metacharacters in it are inert.
+
+DEPLOY_SH=/usr/local/libexec/vinyltrack/deploy.sh
+APP_USER=_vinyltrack
+TAG_RE='^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'
+
+refuse() {
+  logger -t vinyltrack-deploy "rejected: '${SSH_ORIGINAL_COMMAND:-}' ($1)"
+  echo "deploy-shell: $1" >&2
+  echo "usage: deploy <tag> | rollback <tag> | status" >&2
+  return 2
+}
+
+main() {
+  PATH=/usr/bin:/bin:/usr/sbin:/sbin
+  set -f  # no globbing, ever
+
+  local cmd="${SSH_ORIGINAL_COMMAND:-}"
+  [ -n "$cmd" ] || { refuse "interactive sessions are not allowed"; return; }
+  # Only printable ASCII and single spaces between words: `read` stops at a
+  # newline, so "status\n<anything>" would otherwise pass as plain "status".
+  case "$cmd" in
+    *[!a-z0-9.\ -]*) refuse "unexpected characters"; return ;;
+  esac
+
+  local parts
+  read -r -a parts <<< "$cmd"
+
+  case "${#parts[@]}:${parts[0]}" in
+    1:status)
+      ;;
+    2:deploy|2:rollback)
+      [[ "${parts[1]}" =~ $TAG_RE ]] || { refuse "invalid tag '${parts[1]}'"; return; }
+      ;;
+    *)
+      refuse "command not allowed"; return
+      ;;
+  esac
+
+  logger -t vinyltrack-deploy "accepted: ${parts[*]}"
+  sudo -n -u "$APP_USER" "$DEPLOY_SH" "${parts[@]}"
+}
+
+# Run only when executed; when sourced (tests), just define the functions.
+if [ "${BASH_SOURCE[0]}" = "$0" ]; then
+  main
+  exit $?
+fi
