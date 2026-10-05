@@ -10,7 +10,7 @@ ssh vinyl-admin          # Cloudflare Access SSH; setup in hosting-remote-access
 
 If the Cloudflare path is down, use the break-glass path: UniFi Teleport, then `ssh vinyl-lan`. See [hosting-remote-access.md](hosting-remote-access.md).
 
-Paths below (`/Users/_vinyltrack/…`, `/usr/local/libexec/vinyltrack/…`, daemon labels) follow the #59 plan. Correct them here once the host is actually built.
+Paths below (`/Users/_vinyltrack/…`, `/usr/local/libexec/vinyltrack/…`, daemon labels) follow the #59 plan. Correct them here once the host is actually built. The `cloudflared` daemon is built and its paths are real; see [`cloudflared` daemon](#cloudflared-daemon).
 
 ## Schedule at a glance
 
@@ -58,9 +58,10 @@ Order matters: back up first, reboot last.
    - Inside the VM, the Docker engine is updated with `colima update` if the installed Colima has it (`colima --help`). **Never `colima delete`.** The Postgres volume lives inside the VM's disk, and deleting the VM deletes the database.
    - **`cloudflared`: last, and not over the tunnel.** Restarting `cloudflared` cuts the `ssh vinyl-admin` session you'd be using, and briefly takes the app offline. Do this step over **Teleport** (`ssh vinyl-lan`), so a `cloudflared` that fails to come back is still fixable:
      ```bash
-     sudo launchctl kickstart -k system/<cloudflared daemon label>
+     sudo launchctl kickstart -k system/com.cloudflare.cloudflared
+     ps -axo user,pid,command | grep '[c]loudflared'   # one line, user _cloudflared
      ```
-     Then confirm the tunnel is **Healthy** in the dashboard, and that `ssh vinyl-admin` works again from a second terminal *before* you close the LAN session.
+     Then confirm the tunnel is **Healthy** in the dashboard, and that `ssh vinyl-admin` works again from a second terminal *before* you close the LAN session. If `ps` shows `root`, or two lines, an upgrade has rewritten the plist or `brew services` started a second copy. Fix it as described in [`cloudflared` daemon](#cloudflared-daemon).
 5. **macOS:**
    ```bash
    softwareupdate -l
@@ -76,6 +77,42 @@ Order matters: back up first, reboot last.
 **If something breaks:**
 - **Homebrew package:** `brew` keeps no old versions after `cleanup`. Skip `cleanup` until verification passes if a rollback might be needed, or reinstall a specific version from its bottle.
 - **macOS:** point releases can't be rolled back. That's why majors wait for `.1` or `.2`, and why the backup comes first.
+
+## `cloudflared` daemon
+
+One LaunchDaemon, running as the `_cloudflared` role account:
+
+| what | where |
+|---|---|
+| plist | `/Library/LaunchDaemons/com.cloudflare.cloudflared.plist`, `root:wheel` `644` |
+| label | `com.cloudflare.cloudflared` |
+| user / group | `UserName` `_cloudflared`, and `GroupName` set to that account's own group, **not** `staff` |
+| tunnel token | `/Library/Application Support/com.cloudflare.cloudflared/token` (`--token-file`). Directory `700` and file `600`, both owned by `_cloudflared`. There's no `/etc/cloudflared` or config file |
+| logs | `/Library/Logs/com.cloudflare.cloudflared.{out,err}.log`, owned by `_cloudflared` |
+
+- **Never `brew services start cloudflared`.** It installs its own job (`sh.brew.cloudflared`) running as **root**, next to this one. If one appears, stop it with `brew services stop cloudflared` (as the admin, not with `sudo`).
+- **Killing the process doesn't stop it.** `KeepAlive` restarts it on any unsuccessful exit. Stop it with `sudo launchctl bootout system/com.cloudflare.cloudflared`, and start it with `sudo launchctl bootstrap system /Library/LaunchDaemons/com.cloudflare.cloudflared.plist`.
+- **Changes to the plist only take effect on `bootout` + `bootstrap`.** `kickstart` restarts the process with the plist launchd already has loaded.
+- **Healthy:** `ps` shows exactly one `cloudflared`, user `_cloudflared`, and the error log shows `Registered tunnel connection` lines.
+
+## Colima daemon
+
+One LaunchDaemon runs vinylTrack's Colima VM as `_vinyltrack`, so it starts at boot with nobody logged in:
+
+| what | where |
+|---|---|
+| plist | `/Library/LaunchDaemons/com.vinyltrack.colima.plist`, `root:wheel` `644` |
+| label | `com.vinyltrack.colima` |
+| runs | `/opt/homebrew/bin/colima start --foreground`, `UserName` `_vinyltrack`, `GroupName` its own group |
+| environment | `HOME=/Users/_vinyltrack`, `PATH=/opt/homebrew/bin:/usr/bin:/bin:/usr/sbin:/sbin` (launchd gives a daemon neither; Colima needs `limactl` and `docker`) |
+| launchd keys | `RunAtLoad`, `KeepAlive`, `ThrottleInterval` 30, `ExitTimeOut` 120 (time for the VM, and Postgres in it, to shut down cleanly at reboot) |
+| VM settings | `~/.colima/default/colima.yaml`, created by the first manual start: `colima start --vm-type vz --cpu 2 --memory 4 --disk 40`. The disk can grow later but never shrink |
+| logs | `/Library/Logs/com.vinyltrack.colima.{out,err}.log`, owned by `_vinyltrack` |
+
+- **`--foreground` is required.** Without it `colima start` exits once the VM is up, and `KeepAlive` restarts it in a loop.
+- **Never `brew services start colima`.** It starts a second VM as the admin.
+- **Stop it with `sudo launchctl bootout system/com.vinyltrack.colima`**, not `colima stop`: `KeepAlive` brings it straight back.
+- **Healthy:** `ps -axo user,pid,command | grep -E '[c]olima|[l]imactl'` shows only `_vinyltrack`, `sudo -u _vinyltrack -H docker info` answers, and the Docker socket under `/Users/_vinyltrack/.colima` isn't reachable from the admin account without `sudo`.
 
 ## macOS versions
 
@@ -130,9 +167,9 @@ Same steps as the monthly window, for just the affected piece.
 | Cloudflare Access service token `vinyltrack-ci` (`CF_ACCESS_CLIENT_*`) | yearly, **before its 1-year expiry** | create a new token → add it to the `ssh.<family-domain>` CI policy → update the GitHub `production` secrets → test a `status` deploy → delete the old token |
 | CI deploy SSH key (`DEPLOY_SSH_KEY`) | yearly, alongside the service token | new ed25519 key → public half into `_vinyldeploy`'s `authorized_keys` (with `restrict`) → GitHub secret → test → remove the old public key |
 | Admin SSH key (`id_ed25519_vinyl_admin`) | on a new laptop, or on suspected leak | new key → add the public half on the Mac → test `ssh vinyl-admin` → remove the old one |
-| Cloudflare Tunnel token | on suspected leak | rotate the tunnel's token in the Cloudflare Zero Trust dashboard, update the `cloudflared` config, then restart the daemon |
-| Turnstile secret | on suspected leak | rotate in the Cloudflare dashboard → host `.env` → restart `be` |
-| Production DB password | on suspected leak | change it in Postgres and the host `.env` together, then restart `be` |
+| Cloudflare Tunnel token | on suspected leak | rotate the tunnel's token in the Cloudflare Zero Trust dashboard → write it to the token file (owner `_cloudflared`, mode `600`; see [`cloudflared` daemon](#cloudflared-daemon)) → `kickstart -k` the daemon |
+| Turnstile secret | on suspected leak | rotate in the Cloudflare dashboard → `secrets/turnstile_secret_key` → restart `be` |
+| Production DB password | on suspected leak | `ALTER USER` in Postgres and `secrets/db_password` together, then restart `be`. Postgres reads the file only when it first creates the database, so changing the file alone does nothing |
 
 **Emergency revoke:** deleting the `vinyltrack-ci` service token in Zero Trust cuts CI off at the edge immediately. Removing a key from `authorized_keys` cuts that key off at the Mac. Either alone is enough.
 
