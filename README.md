@@ -7,8 +7,7 @@ See [CLAUDE.md](./CLAUDE.md) for Claude Code operating instructions, [docs/](./d
 ## Quick start
 
 ```bash
-cp .env.example .env   # fill in secrets
-docker compose up
+docker compose up      # no setup: dev secrets are committed fakes in dev-secrets/
 ```
 
 - FE: http://localhost:5201 (docs viewer at `/docs`)
