@@ -1,4 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
+import { getConfig } from '../config.js';
 import { prisma } from '../database.js';
 import { AuthError, ForbiddenError } from './errorHandler.js';
 
@@ -28,7 +29,7 @@ declare global {
 export const identifyUser = async (req: Request, _res: Response, next: NextFunction) => {
   try {
     const header = req.headers['x-user-email'];
-    const email = typeof header === 'string' && header.length > 0 ? header : process.env.AUTH_BOOTSTRAP_OWNER_EMAIL;
+    const email = typeof header === 'string' && header.length > 0 ? header : getConfig().authBootstrapOwnerEmail;
     if (email) {
       const user = await prisma.user.findUnique({ where: { email } });
       if (user) req.user = user;

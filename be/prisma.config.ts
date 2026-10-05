@@ -1,5 +1,6 @@
 import 'dotenv/config'
-import { defineConfig, env } from 'prisma/config'
+import { defineConfig } from 'prisma/config'
+import { getConfig } from './src/config.js'
 
 export default defineConfig({
   schema: 'src/prisma',
@@ -8,6 +9,7 @@ export default defineConfig({
     seed: 'tsx src/prisma/seed.ts',
   },
   datasource: {
-    url: env('DB_VINYLTRACK_URL'),
+    // Built from config parts + the db_password secret (#65), same as the app.
+    url: getConfig().databaseUrl,
   },
 })

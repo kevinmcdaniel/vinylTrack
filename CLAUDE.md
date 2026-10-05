@@ -48,7 +48,7 @@ cd be && npm run test:api   # bru run --env local -r, against a running+seeded s
 Bruno collection covering every resource over HTTP, with assertions on status and response envelope. One folder per resource, ordered by dependency (collection → artist → owner → location → album → copy → want → cleanup); ids chain through runtime vars and the `cleanup` folder removes everything a run creates, so runs are idempotent. Identity is the `x-user-email` dev header driven by an env var (`ownerEmail`/`adminEmail`/`sharedEmail`/`outsiderEmail`/`unknownEmail` mapping to the seeded users), which is what makes the #26 access rules testable from outside the process. **The seeded owner (`kevin`) is deliberately not an admin** — admin is a separate seeded user owning nothing — so "owner" requests exercise the real access rules rather than the admin bypass. This is a *complement* to `npm run test`, not a replacement — supertest never boots a listener, so it can't catch what only breaks over the wire or against realistically-linked seed data.
 
 ### Database
-Connection config lives in `.env` at the repo root (copy `.env.example`).
+No setup needed for dev: DB config is literal in `docker-compose.yml`, and the password is the committed fake `dev-secrets/db_password`. `.env` is optional (host port overrides only) and never holds secrets. See **Config and secrets** below.
 
 ## Architecture
 
@@ -89,6 +89,14 @@ See `be/src/route/*.ts` for how each route wires these in, and the doc comment a
 Browse filters live in `searchParams`, not component state — the list is re-fetched on the server, so filtered views are shareable and the back button works. `CollectionSwitcher`/`FilterBar` are the only client components; everything else is a Server Component.
 
 The copied design system in `design/system/` is **not** wired in — it's still squaretrack's, pending #18. The browse UI is plain Tailwind on the `--background`/`--foreground` tokens, factored into `fe/src/ui/` so #18 restyles components rather than rewriting pages.
+
+### Config and secrets (#65)
+- **Only `be/src/config.ts` and `fe/src/lib/config.ts` read `process.env`.** Everything else calls `getConfig()`. Add new settings there, with a test.
+- Config (ports, hosts, `APP_ENV`) is literal in the compose files. Every **secret is a Docker secret file**: secret `<name>` is read from the path in `<NAME>_FILE`, mounted at `/run/secrets/<name>` only into services that list it in `secrets:`. No service uses `env_file`. Dev secrets are committed fakes in `dev-secrets/`; prod secrets live only on the host in `/Users/_vinyltrack/secrets/`.
+- Secret names: lowercase `snake_case`, owner first (`db_password`, `google_oauth_client_secret`), no extension, one value per file.
+- `APP_ENV` is required (`development`/`test`/`production`). Production — and any unknown value — refuses plain-variable secrets and `AUTH_BOOTSTRAP_OWNER_EMAIL`. Any new dev-only or automation bypass (#11's `AUTOMATION_KEY`, `TURNSTILE_TEST_*`) must be added to that refusal list.
+- `prisma.config.ts` builds its URL through the same `getConfig()`, so `migrate`/`seed`/`studio` need the same env as `be`.
+- BE tests in `src/tests/` all run `src/tests/setup.ts`, whose `afterAll` needs a live DB — even pure unit tests like `config.test.ts`. Run the suite inside `vinyl.be`.
 
 ### Prisma setup
 The backend uses `@prisma/adapter-pg` (not the default Prisma driver). After any schema change, run `npm run migrate` in `be/`.

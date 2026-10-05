@@ -1,3 +1,22 @@
+# Local dev stack. Config is literal here; secrets are Docker secret files (#65).
+# Nothing reads .env through env_file any more: each service gets exactly the
+# environment and secrets it needs. Ports can be overridden from an optional
+# .env (see .env.example), which compose reads for ${...} interpolation only.
+
+x-db-config: &db-config
+  DB_HOST: vinyl.db
+  DB_PORT_INT: "5432"
+  DB_VINYLTRACK_NAME: vinyltrack
+  DB_VINYLTRACK_USER: vinyltrack
+  DB_PASSWORD_FILE: /run/secrets/db_password
+
+x-be-env: &be-env
+  <<: *db-config
+  APP_ENV: development
+  NODE_ENV: development
+  # Dev-only identity fallback (#26); config.ts refuses it in production.
+  AUTH_BOOTSTRAP_OWNER_EMAIL: kevin@example.com
+
 services:
 
   be:
@@ -5,12 +24,9 @@ services:
     build:
       dockerfile: Dockerfile.be
     environment:
-      NODE_ENV: development
-      DATABASE_URL: ${DB_VINYLTRACK_URL}
-      PORT: ${BE_PORT_INT}
-    env_file:
-      - path: .env
-        required: true
+      <<: *be-env
+      PORT: "3000"
+    secrets: [db_password]
     volumes:
       - ./be:/app/
       - /app/node_modules
@@ -18,7 +34,7 @@ services:
       - default
       - vinylnet
     ports:
-      - ${BE_PORT_EXT}:${BE_PORT_INT}
+      - ${BE_PORT_EXT:-5202}:3000
     container_name: vinyl.be
     command: npm run dev
     depends_on:
@@ -29,11 +45,8 @@ services:
     image: vinylbe
     build:
       dockerfile: Dockerfile.be
-    environment:
-      DATABASE_URL: ${DB_VINYLTRACK_URL}
-    env_file:
-      - path: .env
-        required: true
+    environment: *be-env
+    secrets: [db_password]
     volumes:
       - ./be:/app/
       - /app/node_modules
@@ -51,11 +64,8 @@ services:
     image: vinylbe
     build:
       dockerfile: Dockerfile.be
-    environment:
-      DATABASE_URL: ${DB_VINYLTRACK_URL}
-    env_file:
-      - path: .env
-        required: true
+    environment: *be-env
+    secrets: [db_password]
     volumes:
       - ./be:/app/
       - /app/node_modules
@@ -72,17 +82,15 @@ services:
   db:
     image: postgres:17-alpine
     restart: always
-    env_file:
-      - path: .env
-        required: true
     environment:
-      POSTGRES_DB: ${DB_VINYLTRACK_NAME}
-      POSTGRES_USER: ${DB_VINYLTRACK_USER}
-      POSTGRES_PASSWORD: ${DB_VINYLTRACK_PW}
-      PGPORT: ${DB_PORT_INT}
-    command: -p ${DB_PORT_INT}
+      POSTGRES_DB: vinyltrack
+      POSTGRES_USER: vinyltrack
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+      PGPORT: "5432"
+    secrets: [db_password]
+    command: -p 5432
     ports:
-      - "${DB_PORT_EXT}:${DB_PORT_INT}"
+      - "${DB_PORT_EXT:-5204}:5432"
     container_name: vinyl.db
     volumes:
       - vinyldb_vol:/var/lib/postgresql/data
@@ -90,7 +98,7 @@ services:
       - default
       - vinylnet
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_VINYLTRACK_USER} -d ${DB_VINYLTRACK_NAME} -p ${DB_PORT_INT}"]
+      test: ["CMD-SHELL", "pg_isready -U vinyltrack -d vinyltrack -p 5432"]
       interval: 5s
       timeout: 3s
       retries: 10
@@ -101,11 +109,13 @@ services:
     build:
       dockerfile: Dockerfile.fe
     environment:
+      APP_ENV: development
       NODE_ENV: development
-      PORT: ${FE_PORT_INT}
-    env_file:
-      - path: .env
-        required: true
+      PORT: "4000"
+      BE_URL: http://vinyl.be
+      BE_PORT_INT: "3000"
+      AUTH_BOOTSTRAP_OWNER_EMAIL: kevin@example.com
+    # No secrets: the FE never sees the DB password.
     volumes:
       - ./fe/public:/app/public
       - ./fe/src:/app/src
@@ -118,7 +128,7 @@ services:
       - default
       - vinylnet
     ports:
-      - ${FE_PORT_EXT}:${FE_PORT_INT}
+      - ${FE_PORT_EXT:-5201}:4000
     container_name: vinyl.fe
     command: npm run dev
     depends_on:
@@ -129,12 +139,8 @@ services:
     image: vinylstudio
     build:
       dockerfile: Dockerfile.be
-    environment:
-      NODE_ENV: development
-      DATABASE_URL: ${DB_VINYLTRACK_URL}
-    env_file:
-      - path: .env
-        required: true
+    environment: *be-env
+    secrets: [db_password]
     volumes:
       - ./be:/app/
       - /app/node_modules
@@ -142,9 +148,9 @@ services:
       - default
       - vinylnet
     ports:
-      - ${STUDIO_PORT_EXT}:${STUDIO_PORT_INT}
+      - ${STUDIO_PORT_EXT:-5203}:5555
     container_name: vinyl.studio
-    command: npx prisma studio -p ${STUDIO_PORT_INT} -b none
+    command: npx prisma studio -p 5555 -b none
     depends_on:
       seed:
         condition: service_completed_successfully
@@ -161,3 +167,7 @@ networks:
 
 volumes:
   vinyldb_vol:
+
+secrets:
+  db_password:
+    file: ./dev-secrets/db_password

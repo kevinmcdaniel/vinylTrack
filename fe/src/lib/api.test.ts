@@ -6,6 +6,7 @@ const json = (body: unknown, status = 200) =>
 
 describe('apiGet', () => {
   beforeEach(() => {
+    vi.stubEnv('APP_ENV', 'development');
     vi.stubEnv('BE_URL', 'http://vinyl.be');
     vi.stubEnv('BE_PORT_INT', '3000');
     vi.stubEnv('AUTH_BOOTSTRAP_OWNER_EMAIL', 'kevin@example.com');
