@@ -63,7 +63,10 @@ services:
       - default
       - vinylnet
     container_name: vinyl.seed
-    command: npx prisma db seed
+    # seed.ts imports src/generated/client, which is gitignored and otherwise
+    # only made by `be`'s `npm run dev` — and `be` starts after seed. Generate
+    # here so a fresh clone comes up without a manual step.
+    command: sh -c "npx prisma generate && npx prisma db seed"
     restart: "no"
     depends_on:
       migrate:
