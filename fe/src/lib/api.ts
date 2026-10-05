@@ -1,4 +1,5 @@
 import 'server-only';
+import { getConfig } from './config';
 
 /**
  * Server-side API client.
@@ -20,12 +21,12 @@ export class ApiError extends Error {
   }
 }
 
-const baseUrl = () => `${process.env.BE_URL}:${process.env.BE_PORT_INT}/api`;
+const baseUrl = () => getConfig().apiBaseUrl;
 
 // The single place real auth (#11) swaps in: today the caller is resolved from
 // this dev header (#26), later from the session.
 const identityHeaders = (): Record<string, string> => {
-  const email = process.env.AUTH_BOOTSTRAP_OWNER_EMAIL;
+  const email = getConfig().authBootstrapOwnerEmail;
   return email ? { 'x-user-email': email } : {};
 };
 
