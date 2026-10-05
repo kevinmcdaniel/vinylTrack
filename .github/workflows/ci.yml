@@ -31,7 +31,14 @@ jobs:
           --health-timeout 3s
           --health-retries 10
     env:
-      DB_VINYLTRACK_URL: postgresql://vinyltrack:citestpw@localhost:5432/vinyltrack
+      # Config parts + the plain DB_PASSWORD form, which be/src/config.ts allows
+      # outside production (#65). CI has no secret files to mount.
+      APP_ENV: test
+      DB_HOST: localhost
+      DB_PORT_INT: "5432"
+      DB_VINYLTRACK_NAME: vinyltrack
+      DB_VINYLTRACK_USER: vinyltrack
+      DB_PASSWORD: citestpw
       AUTH_BOOTSTRAP_OWNER_EMAIL: kevin@example.com
     steps:
       - uses: actions/checkout@v4
@@ -72,7 +79,14 @@ jobs:
           --health-timeout 3s
           --health-retries 10
     env:
-      DB_VINYLTRACK_URL: postgresql://vinyltrack:citestpw@localhost:5432/vinyltrack
+      # Config parts + the plain DB_PASSWORD form, which be/src/config.ts allows
+      # outside production (#65). CI has no secret files to mount.
+      APP_ENV: test
+      DB_HOST: localhost
+      DB_PORT_INT: "5432"
+      DB_VINYLTRACK_NAME: vinyltrack
+      DB_VINYLTRACK_USER: vinyltrack
+      DB_PASSWORD: citestpw
       AUTH_BOOTSTRAP_OWNER_EMAIL: kevin@example.com
       # bruno/environments/local.bru points baseUrl at localhost:5202 and
       # src/server.ts reads PORT, so binding here lets CI run the collection
