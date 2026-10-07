@@ -14,6 +14,8 @@ export type Config = {
   appEnv: AppEnv;
   port: number;
   databaseUrl: string;
+  // Release tag baked into the image at build time (#60); "dev" outside production.
+  version: string;
   authBootstrapOwnerEmail: string | undefined;
 };
 
@@ -88,6 +90,12 @@ export function loadConfig(env: Env, readFile: ReadFile): Config {
     if (!Number.isInteger(port) || port <= 0) problems.push(`PORT must be a positive integer (got '${env.PORT}')`);
   }
 
+  let version = env.VINYLTRACK_VERSION || 'dev';
+  if (effectiveEnv === 'production' && !env.VINYLTRACK_VERSION) {
+    problems.push('VINYLTRACK_VERSION is not set (production images get it at build time)');
+    version = '';
+  }
+
   const authBootstrapOwnerEmail = env.AUTH_BOOTSTRAP_OWNER_EMAIL || undefined;
   if (effectiveEnv === 'production' && authBootstrapOwnerEmail !== undefined) {
     problems.push('AUTH_BOOTSTRAP_OWNER_EMAIL is dev-only and must not be set in production');
@@ -99,7 +107,7 @@ export function loadConfig(env: Env, readFile: ReadFile): Config {
     `postgresql://${encodeURIComponent(dbUser)}:${encodeURIComponent(password.value)}` +
     `@${host}:${dbPort}/${encodeURIComponent(dbName)}?schema=public`;
 
-  return { appEnv, port, databaseUrl, authBootstrapOwnerEmail };
+  return { appEnv, port, databaseUrl, version, authBootstrapOwnerEmail };
 }
 
 let cached: Config | undefined;
