@@ -60,7 +60,7 @@ Three hidden service accounts, none of which you can log in as:
 
 | account | home | shell | why |
 |---|---|---|---|
-| `_vinyltrack` | `/Users/_vinyltrack` (`750`) | `/usr/bin/false` | owns Colima, Docker, `compose.prod.yml`, the app's secret files in `~/secrets/`, and `~/.env` (host config only, never secrets; #65). Needs a real home because Colima and Docker keep their state in `~/.colima` and `~/.docker`, and Colima only shares the home folder with the VM |
+| `_vinyltrack` | `/Users/_vinyltrack` (`750`) | `/usr/bin/false` | owns Colima, Docker, each release's `releases/<tag>/compose.prod.yml`, `backups/`, the app's secret files in `~/secrets/`, and `~/.env` (host config only, never secrets; #65). Needs a real home because Colima and Docker keep their state in `~/.colima` and `~/.docker`, and Colima only shares the home folder with the VM |
 | `_vinyldeploy` | `/Users/_vinyldeploy` (`755`, `.ssh` `700`, `authorized_keys` `600`) | `/bin/sh` | CI's SSH login. **Needs a real shell:** `sshd` runs `ForceCommand` as `$SHELL -c …`, so `/usr/bin/false` breaks every deploy. `ForceCommand` and `PermitTTY no` are what stop an interactive session |
 | `_cloudflared` | `/var/empty` | `/usr/bin/false` | runs the tunnel daemon. Runs from `--token-file`, so it needs no home ([hosting-maintenance.md](hosting-maintenance.md#cloudflared-daemon)) |
 

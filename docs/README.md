@@ -10,5 +10,6 @@ A family record/album/MP3 collection tracker. Multiple named collections (Vinyl,
 - [User stories](user-stories.md) — the framework for UX design: what a person should be able to do, cross-referenced to the issues that back it.
 - [Moving the domain to Cloudflare](hosting-dns.md): the runbook for moving the family domain (DNS, email forwarding, registration) off Squarespace, which the Cloudflare Tunnel needs in order to publish the app (#12, #59).
 - [Remote access to the home server](hosting-remote-access.md): admin SSH and CI deploys through Cloudflare Access, UniFi Teleport as break-glass, `sshd` lockdown, and the family allowlist before #11 (#59, #60).
+- [Releasing and deploying](hosting-deploy.md): tag → CI → GHCR images → GitHub Release → approved deploy; redeploy, rollback, the host scripts, one-time setup (#60).
 - [Home server update schedule](hosting-maintenance.md): what gets updated on the M1 Pro, how often, and in what order; security advisories, restore tests, credential rotation (#59).
 - [GitHub issues](https://github.com/kevinmcdaniel/vinylTrack/issues) — the living, up-to-date plan. These docs summarize decisions; the issues are the detailed source of truth and change more often.
