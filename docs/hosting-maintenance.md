@@ -87,13 +87,17 @@ One LaunchDaemon, running as the `_cloudflared` role account:
 | plist | `/Library/LaunchDaemons/com.cloudflare.cloudflared.plist`, `root:wheel` `644` |
 | label | `com.cloudflare.cloudflared` |
 | user / group | `UserName` `_cloudflared`, and `GroupName` set to that account's own group, **not** `staff` |
+| restart | `KeepAlive` **`true`** (the installer writes `SuccessfulExit` `false`, which leaves it down if it ever exits cleanly), `ThrottleInterval` 5 |
 | tunnel token | `/Library/Application Support/com.cloudflare.cloudflared/token` (`--token-file`). Directory `700` and file `600`, both owned by `_cloudflared`. There's no `/etc/cloudflared` or config file |
 | logs | `/Library/Logs/com.cloudflare.cloudflared.{out,err}.log`, owned by `_cloudflared` |
 
 - **Never `brew services start cloudflared`.** It installs its own job (`sh.brew.cloudflared`) running as **root**, next to this one. If one appears, stop it with `brew services stop cloudflared` (as the admin, not with `sudo`).
-- **Killing the process doesn't stop it.** `KeepAlive` restarts it on any unsuccessful exit. Stop it with `sudo launchctl bootout system/com.cloudflare.cloudflared`, and start it with `sudo launchctl bootstrap system /Library/LaunchDaemons/com.cloudflare.cloudflared.plist`.
+- **Killing the process doesn't stop it.** `KeepAlive` restarts it whenever it exits. Stop it with `sudo launchctl bootout system/com.cloudflare.cloudflared`, and start it with `sudo launchctl bootstrap system /Library/LaunchDaemons/com.cloudflare.cloudflared.plist`.
 - **Changes to the plist only take effect on `bootout` + `bootstrap`.** `kickstart` restarts the process with the plist launchd already has loaded.
 - **Healthy:** `ps` shows exactly one `cloudflared`, user `_cloudflared`, and the error log shows `Registered tunnel connection` lines.
+- **`network is unreachable` in the log** means the Mac itself is offline (usually Wi-Fi not rejoining after a sleep or blip), not a Cloudflare problem. `cloudflared` reconnects on its own once the network is back. Ethernet avoids it.
+- **Cloudflare error 1033 / HTTP 530** for a hostname means no tunnel connection is live: check the tunnel's status in Zero Trust, then the log above.
+- **Get told when it drops:** Zero Trust → Notifications → Add → *Tunnel Health Alert* emails you when the tunnel goes unhealthy, so an outage doesn't first show up as a failed deploy.
 
 ## Power and sleep
 
