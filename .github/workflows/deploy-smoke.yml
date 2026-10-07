@@ -54,6 +54,14 @@ jobs:
           else
             echo "::notice::Access accepted the service token at the HTTP level."
           fi
+          # cloudflared tunnels SSH over a websocket; show what an upgrade
+          # request with the token actually gets back (101 = good).
+          echo "--- websocket upgrade with token:"
+          curl -s -i --max-time 10 -o - \
+            -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET" \
+            -H "Connection: Upgrade" -H "Upgrade: websocket" -H "Sec-WebSocket-Version: 13" \
+            -H "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==" \
+            "https://$DEPLOY_HOST/" | head -20 | grep -viE '^(set-cookie|cf-ray|report-to|nel):' || true
 
       - name: ssh _vinyldeploy status
         env:
@@ -65,7 +73,7 @@ jobs:
           # Flags below, plus the env-var form, in case this cloudflared ignores one of them.
           export TUNNEL_SERVICE_TOKEN_ID="$CF_ACCESS_CLIENT_ID" TUNNEL_SERVICE_TOKEN_SECRET="$CF_ACCESS_CLIENT_SECRET"
           out=$(timeout 60 ssh \
-            -o ProxyCommand="cloudflared access ssh --hostname %h --service-token-id $CF_ACCESS_CLIENT_ID --service-token-secret $CF_ACCESS_CLIENT_SECRET" \
+            -o ProxyCommand="cloudflared access ssh --loglevel debug --hostname %h --service-token-id $CF_ACCESS_CLIENT_ID --service-token-secret $CF_ACCESS_CLIENT_SECRET" \
             -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes \
             -o IdentitiesOnly=yes -o BatchMode=yes -i ~/.ssh/deploy_key \
             "_vinyldeploy@$DEPLOY_HOST" status 2>&1)
