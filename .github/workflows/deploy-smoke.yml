@@ -31,6 +31,30 @@ jobs:
           printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
           printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts && chmod 644 ~/.ssh/known_hosts
 
+      - name: Check the service token against Access directly
+        # Separates "Access rejects the token" (policy problem) from
+        # "cloudflared ignores the token" (cloudflared#1673). Access answers a
+        # rejected or missing token with a redirect to the login page.
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          echo "DEPLOY_HOST set: $([ -n "$DEPLOY_HOST" ] && echo yes || echo NO)"
+          echo "client id: ${#CF_ACCESS_CLIENT_ID} chars, ends in .access: $([[ "$CF_ACCESS_CLIENT_ID" == *.access ]] && echo yes || echo NO)"
+          echo "client secret: ${#CF_ACCESS_CLIENT_SECRET} chars"
+          probe() {
+            curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' "$@" "https://$DEPLOY_HOST/"
+          }
+          echo "without token: $(probe)"
+          with=$(probe -H "CF-Access-Client-Id: $CF_ACCESS_CLIENT_ID" -H "CF-Access-Client-Secret: $CF_ACCESS_CLIENT_SECRET")
+          echo "with token:    $with"
+          if [[ "$with" == *cloudflareaccess.com* || "$with" == *"/cdn-cgi/access/login"* ]]; then
+            echo "::error::Access rejected the service token. Check the ssh app has a policy with action 'Service Auth' that includes this token, and that the GitHub secrets hold the current ID/secret."
+          else
+            echo "::notice::Access accepted the service token at the HTTP level."
+          fi
+
       - name: ssh _vinyldeploy status
         env:
           DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
@@ -38,6 +62,8 @@ jobs:
           CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
         run: |
           set +e
+          # Flags below, plus the env-var form, in case this cloudflared ignores one of them.
+          export TUNNEL_SERVICE_TOKEN_ID="$CF_ACCESS_CLIENT_ID" TUNNEL_SERVICE_TOKEN_SECRET="$CF_ACCESS_CLIENT_SECRET"
           out=$(timeout 60 ssh \
             -o ProxyCommand="cloudflared access ssh --hostname %h --service-token-id $CF_ACCESS_CLIENT_ID --service-token-secret $CF_ACCESS_CLIENT_SECRET" \
             -o UserKnownHostsFile=$HOME/.ssh/known_hosts -o StrictHostKeyChecking=yes \
