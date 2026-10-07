@@ -1,0 +1,105 @@
+# Production stack on the home server (#60). Run by host/libexec/deploy.sh as
+# _vinyltrack, with project name `vinyltrack` and VINYLTRACK_VERSION set to the
+# release tag; this file is attached to that tag's GitHub Release.
+#
+# - Config is literal here. Secrets are Docker secret files from the host
+#   (#65), mounted only into the services that list them.
+# - Host config (not secret, kept out of the repo) comes from
+#   /Users/_vinyltrack/.env via --env-file: FE_PORT_EXT, and optionally
+#   VINYLTRACK_SECRETS_DIR for a local test run.
+# - Nothing publishes a port except the FE, on 127.0.0.1 only: the Cloudflare
+#   Tunnel is the only way in. No seed, no Studio.
+# - `migrate` sits in a profile, so `up -d` never re-runs it; deploy.sh runs it
+#   explicitly with `run --rm migrate` before starting the new images.
+
+x-db-config: &db-config
+  DB_HOST: db
+  DB_PORT_INT: "5432"
+  DB_VINYLTRACK_NAME: vinyltrack
+  DB_VINYLTRACK_USER: vinyltrack
+  DB_PASSWORD_FILE: /run/secrets/db_password
+
+x-app-env: &app-env
+  <<: *db-config
+  APP_ENV: production
+
+# Distroless images have no shell, curl or wget, and node isn't on PATH:
+# /nodejs/bin/node's fetch does the probing.
+x-node-health: &node-health
+  interval: 10s
+  timeout: 5s
+  retries: 5
+  start_period: 20s
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: vinyltrack
+      POSTGRES_USER: vinyltrack
+      POSTGRES_PASSWORD_FILE: /run/secrets/db_password
+    secrets: [db_password]
+    volumes:
+      - vinyldb:/var/lib/postgresql/data
+    networks: [backend]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vinyltrack -d vinyltrack"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+
+  migrate:
+    image: ghcr.io/kevinmcdaniel/vinyltrack-migrate:${VINYLTRACK_VERSION:?set VINYLTRACK_VERSION to the release tag}
+    profiles: [migrate]
+    restart: "no"
+    environment: *app-env
+    secrets: [db_password]
+    networks: [backend]
+    depends_on:
+      db:
+        condition: service_healthy
+
+  be:
+    image: ghcr.io/kevinmcdaniel/vinyltrack-be:${VINYLTRACK_VERSION:?set VINYLTRACK_VERSION to the release tag}
+    restart: unless-stopped
+    environment:
+      <<: *app-env
+      PORT: "3000"
+    secrets: [db_password]
+    networks: [backend]
+    depends_on:
+      db:
+        condition: service_healthy
+    healthcheck:
+      <<: *node-health
+      test: ["CMD", "/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:3000/api/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+
+  fe:
+    image: ghcr.io/kevinmcdaniel/vinyltrack-fe:${VINYLTRACK_VERSION:?set VINYLTRACK_VERSION to the release tag}
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      BE_URL: http://be
+      BE_PORT_INT: "3000"
+    # No secrets: the FE never sees the DB password.
+    networks: [backend]
+    ports:
+      - "127.0.0.1:${FE_PORT_EXT:-5201}:4000"
+    depends_on:
+      be:
+        condition: service_healthy
+    healthcheck:
+      <<: *node-health
+      test: ["CMD", "/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:4000/api/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+
+networks:
+  backend: {}
+
+volumes:
+  vinyldb: {}
+
+secrets:
+  db_password:
+    file: ${VINYLTRACK_SECRETS_DIR:-/Users/_vinyltrack/secrets}/db_password
