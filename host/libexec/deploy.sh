@@ -88,7 +88,8 @@ do_deploy() {
   log "$action $tag (currently ${previous:-nothing})"
   fetch_release "$tag"                       || { fail "could not fetch compose.prod.yml for $tag"; return; }
   backup "$tag"                              || { fail "database backup failed"; return; }
-  compose "$file" pull                       || { fail "image pull failed"; return; }
+  # --profile migrate: the migrate service sits in a profile, so a plain pull skips it.
+  compose "$file" --profile migrate pull     || { fail "image pull failed"; return; }
   if [ "$action" = deploy ]; then
     compose "$file" run --rm migrate         || { fail "migration failed; nothing restarted"; return; }
   else
