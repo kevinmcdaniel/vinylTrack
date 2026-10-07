@@ -139,10 +139,10 @@ main() {
     return
   fi
 
-  mkdir -p "$ROOT" && mkdir "$ROOT/.deploy.lock" 2>/dev/null || {
+  if ! mkdir -p "$ROOT" || ! mkdir "$ROOT/.deploy.lock" 2>/dev/null; then
     echo "deploy: another deploy is running (remove $ROOT/.deploy.lock if it isn't)" >&2
     return 1
-  }
+  fi
   trap 'rmdir "$ROOT/.deploy.lock" 2>/dev/null' EXIT
   do_deploy "$action" "$tag"
 }
