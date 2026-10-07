@@ -1,0 +1,93 @@
+name: Deploy
+
+# Deploys a release tag to the home server (#60): runner → Cloudflare Access
+# (service token) → sshd → deploy-shell → deploy.sh, as _vinyldeploy only.
+#
+# - Called by release.yml after a tag's images and GitHub Release exist.
+# - Or run by hand to redeploy or roll back, *from the tag itself*:
+#     gh workflow run deploy.yml --ref v0.1.0 -f action=rollback
+#   The tag is taken from the ref, so the `production` environment's
+#   tags-only deployment rule applies to manual runs too.
+#
+# The `production` environment holds the secrets and the required reviewer:
+# nothing reaches the server until a deploy is approved.
+
+on:
+  workflow_call:
+    inputs:
+      action:
+        type: string
+        default: deploy
+  workflow_dispatch:
+    inputs:
+      action:
+        description: deploy, or rollback (skips migrations)
+        type: choice
+        options: [deploy, rollback]
+        default: deploy
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: ${{ inputs.action }} ${{ github.ref_name }}
+    runs-on: ubuntu-latest
+    environment: production
+    env:
+      TAG: ${{ github.ref_name }}
+      ACTION: ${{ inputs.action }}
+    steps:
+      - name: Check this is a release tag
+        run: |
+          if [[ "$GITHUB_REF_TYPE" != tag || ! "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$ ]]; then
+            echo "::error::Run this from a release tag (gh workflow run deploy.yml --ref vX.Y.Z), not '$GITHUB_REF'."
+            exit 1
+          fi
+          [[ "$ACTION" == deploy || "$ACTION" == rollback ]] || { echo "::error::unknown action '$ACTION'"; exit 1; }
+
+      - name: Install cloudflared
+        run: |
+          curl -fsSL -o cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
+          sudo dpkg -i cloudflared.deb
+          cloudflared --version
+
+      - name: Write deploy key and pinned host key
+        env:
+          DEPLOY_SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          DEPLOY_KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$DEPLOY_SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > ~/.ssh/known_hosts && chmod 644 ~/.ssh/known_hosts
+
+      - name: ${{ inputs.action }} on the server
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        # deploy.sh polls health for up to 2 minutes after pulling and migrating.
+        timeout-minutes: 20
+        run: |
+          ssh \
+            -o ProxyCommand="cloudflared access ssh --hostname %h --service-token-id $CF_ACCESS_CLIENT_ID --service-token-secret $CF_ACCESS_CLIENT_SECRET" \
+            -o "UserKnownHostsFile=$HOME/.ssh/known_hosts" -o StrictHostKeyChecking=yes \
+            -o IdentitiesOnly=yes -o BatchMode=yes -o ServerAliveInterval=30 -i ~/.ssh/deploy_key \
+            "_vinyldeploy@$DEPLOY_HOST" "$ACTION $TAG"
+
+      - name: Status after ${{ inputs.action }}
+        if: always()
+        env:
+          DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+          CF_ACCESS_CLIENT_ID: ${{ secrets.CF_ACCESS_CLIENT_ID }}
+          CF_ACCESS_CLIENT_SECRET: ${{ secrets.CF_ACCESS_CLIENT_SECRET }}
+        run: |
+          ssh \
+            -o ProxyCommand="cloudflared access ssh --hostname %h --service-token-id $CF_ACCESS_CLIENT_ID --service-token-secret $CF_ACCESS_CLIENT_SECRET" \
+            -o "UserKnownHostsFile=$HOME/.ssh/known_hosts" -o StrictHostKeyChecking=yes \
+            -o IdentitiesOnly=yes -o BatchMode=yes -i ~/.ssh/deploy_key \
+            "_vinyldeploy@$DEPLOY_HOST" status | tee -a "$GITHUB_STEP_SUMMARY"
