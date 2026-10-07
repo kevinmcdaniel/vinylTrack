@@ -11,6 +11,8 @@ export type AppEnv = 'development' | 'test' | 'production';
 export type Config = {
   appEnv: AppEnv;
   apiBaseUrl: string;
+  // Release tag baked into the image at build time (#60); "dev" outside production.
+  version: string;
   authBootstrapOwnerEmail: string | undefined;
 };
 
@@ -51,6 +53,9 @@ export function loadConfig(env: Env): Config {
     problems.push(`BE_PORT_INT must be a port number (got '${bePort}')`);
   }
 
+  const version = env.VINYLTRACK_VERSION || (effectiveEnv === 'production' ? '' : 'dev');
+  if (!version) problems.push('VINYLTRACK_VERSION is not set (production images get it at build time)');
+
   const authBootstrapOwnerEmail = env.AUTH_BOOTSTRAP_OWNER_EMAIL || undefined;
   if (effectiveEnv === 'production' && authBootstrapOwnerEmail !== undefined) {
     problems.push('AUTH_BOOTSTRAP_OWNER_EMAIL is dev-only and must not be set in production');
@@ -58,7 +63,7 @@ export function loadConfig(env: Env): Config {
 
   if (problems.length > 0 || !appEnv) throw new ConfigError(problems);
 
-  return { appEnv, apiBaseUrl: `${beUrl}:${bePort}/api`, authBootstrapOwnerEmail };
+  return { appEnv, apiBaseUrl: `${beUrl}:${bePort}/api`, version, authBootstrapOwnerEmail };
 }
 
 // Read on every call rather than cached: it's a handful of lookups, and it

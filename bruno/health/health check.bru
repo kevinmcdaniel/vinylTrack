@@ -22,4 +22,7 @@ tests {
   test("reports ok", function() {
     expect(res.body.data.status).to.equal("ok");
   });
+  test("reports the running version", function() {
+    expect(res.body.data.version).to.be.a("string").and.not.empty;
+  });
 }

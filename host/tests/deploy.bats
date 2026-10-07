@@ -61,6 +61,12 @@ line_of() { grep -n -- "$1" "$CALLS" | head -1 | cut -d: -f1; }
   ! grep "docker compose" "$CALLS" | grep -v "^VERSION=v1.2.3 " | grep -q .
 }
 
+@test "deploy pulls the migrate image up front too (it sits in a compose profile)" {
+  run main deploy v1.2.3
+  [ "$status" -eq 0 ]
+  grep -q -- "--profile migrate pull" "$CALLS"
+}
+
 @test "deploy reads host config from ROOT/.env when it exists" {
   touch "$ROOT/.env"
   run main deploy v1.2.3

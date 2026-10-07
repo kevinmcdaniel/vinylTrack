@@ -23,6 +23,7 @@ services:
     image: vinylbe
     build:
       dockerfile: Dockerfile.be
+      target: dev
     environment:
       <<: *be-env
       PORT: "3000"
@@ -45,6 +46,7 @@ services:
     image: vinylbe
     build:
       dockerfile: Dockerfile.be
+      target: dev
     environment: *be-env
     secrets: [db_password]
     volumes:
@@ -64,6 +66,7 @@ services:
     image: vinylbe
     build:
       dockerfile: Dockerfile.be
+      target: dev
     environment: *be-env
     secrets: [db_password]
     volumes:
@@ -111,6 +114,7 @@ services:
     image: vinylfe
     build:
       dockerfile: Dockerfile.fe
+      target: dev
     environment:
       APP_ENV: development
       NODE_ENV: development
@@ -142,6 +146,7 @@ services:
     image: vinylstudio
     build:
       dockerfile: Dockerfile.be
+      target: dev
     environment: *be-env
     secrets: [db_password]
     volumes:

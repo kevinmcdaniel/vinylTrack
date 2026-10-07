@@ -91,6 +91,11 @@ describe('loadConfig', () => {
     expect(loadConfig({ ...base, DB_PASSWORD: 'pw', PORT: '4100' }, noFiles).port).toBe(4100);
   });
 
+  it('reports VINYLTRACK_VERSION, and "dev" when it is unset outside production', () => {
+    expect(loadConfig({ ...base, DB_PASSWORD: 'pw', VINYLTRACK_VERSION: 'v1.2.3' }, noFiles).version).toBe('v1.2.3');
+    expect(loadConfig({ ...base, DB_PASSWORD: 'pw' }, noFiles).version).toBe('dev');
+  });
+
   it('passes the dev bootstrap identity through outside production', () => {
     const config = loadConfig({ ...base, DB_PASSWORD: 'pw', AUTH_BOOTSTRAP_OWNER_EMAIL: 'kevin@example.com' }, noFiles);
     expect(config.authBootstrapOwnerEmail).toBe('kevin@example.com');
@@ -117,8 +122,13 @@ describe('loadConfig', () => {
   });
 
   describe('APP_ENV=production', () => {
-    const prod: Env = { ...base, APP_ENV: 'production', DB_PASSWORD_FILE: '/run/secrets/db_password' };
+    const prod: Env = { ...base, APP_ENV: 'production', DB_PASSWORD_FILE: '/run/secrets/db_password', VINYLTRACK_VERSION: 'v1.2.3' };
     const prodFiles = files({ '/run/secrets/db_password': 'pw\n' });
+
+    it('requires VINYLTRACK_VERSION, so a deployed build always says what it is', () => {
+      const { VINYLTRACK_VERSION: _omit, ...noVersion } = prod;
+      expect(problemsOf(() => loadConfig(noVersion, prodFiles))).toEqual([expect.stringContaining('VINYLTRACK_VERSION')]);
+    });
 
     it('starts from secret files', () => {
       expect(loadConfig(prod, prodFiles).appEnv).toBe('production');

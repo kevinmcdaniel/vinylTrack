@@ -1,16 +1,39 @@
+# syntax=docker/dockerfile:1
 
-FROM node:24-alpine
-
+# ── dev: what docker-compose.yml runs (source bind-mounted, next dev) ─────────
+FROM node:24-alpine AS dev
 RUN mkdir /app
-
 WORKDIR /app
-
 COPY fe/package.json fe/eslint.config.mjs fe/next.config.ts fe/postcss.config.mjs fe/tailwind.config.ts fe/tsconfig.json ./
-
 RUN chown -R node:node /app
-
 USER node
-
 RUN npm install
-
 CMD ["npm", "run", "dev"]
+
+# ── production (#60) ─────────────────────────────────────────────────────────
+
+FROM node:24-trixie-slim AS build
+WORKDIR /app
+COPY fe/package.json fe/package-lock.json ./
+RUN npm ci
+COPY fe/ ./
+# /docs pages are pre-rendered from <cwd>/docs via generateStaticParams, so the
+# markdown has to be here at build time as well as in the runtime image.
+COPY docs ./docs
+ENV NEXT_TELEMETRY_DISABLED=1
+RUN npm run build
+
+# Next's standalone output: server.js + only the node_modules it traces, on
+# distroless Node (no shell, no package manager, non-root).
+FROM gcr.io/distroless/nodejs24-debian13:nonroot AS prod
+WORKDIR /app
+COPY --from=build /app/.next/standalone ./
+COPY --from=build /app/.next/static ./.next/static
+COPY --from=build /app/public ./public
+# The in-app docs viewer reads markdown from <cwd>/docs.
+COPY docs ./docs
+ARG VINYLTRACK_VERSION
+ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 HOSTNAME=0.0.0.0 PORT=4000 \
+    VINYLTRACK_VERSION=${VINYLTRACK_VERSION}
+EXPOSE 4000
+CMD ["server.js"]

@@ -180,3 +180,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: npx --yes bats@1.11.1 host/tests
+
+  images:
+    name: Production images build
+    # Native arm64, like the home server and the release build (#60). Build
+    # only: nothing is pushed from CI.
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f Dockerfile.be --target prod --build-arg VINYLTRACK_VERSION=ci -t vinyltrack-be:ci .
+      - run: docker build -f Dockerfile.be --target migrate --build-arg VINYLTRACK_VERSION=ci -t vinyltrack-migrate:ci .
+      - run: docker build -f Dockerfile.fe --target prod --build-arg VINYLTRACK_VERSION=ci -t vinyltrack-fe:ci .
