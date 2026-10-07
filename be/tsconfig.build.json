@@ -1,0 +1,12 @@
+{
+  // Production compile (#60): emits src/ to dist/, without tests.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "rootDir": "src",
+    "outDir": "dist",
+    "types": ["node"],
+    "noEmit": false
+  },
+  "include": ["src"],
+  "exclude": ["src/tests", "src/**/*.test.ts"]
+}

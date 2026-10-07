@@ -1,0 +1,15 @@
+# Build context is the repo root (#60). Keep local state and secrets out of it.
+.git
+**/node_modules
+**/.next
+**/dist
+**/coverage
+**/*.tsbuildinfo
+be/src/generated
+.env
+.env.*
+!.env.example
+dev-secrets
+.claude
+design
+bruno
