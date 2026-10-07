@@ -20,6 +20,15 @@ describe('loadConfig', () => {
     expect(loadConfig(base).apiBaseUrl).toBe('http://vinyl.be:3000/api');
   });
 
+  it('reports VINYLTRACK_VERSION, and "dev" when it is unset outside production', () => {
+    expect(loadConfig({ ...base, VINYLTRACK_VERSION: 'v1.2.3' }).version).toBe('v1.2.3');
+    expect(loadConfig(base).version).toBe('dev');
+  });
+
+  it('requires VINYLTRACK_VERSION in production', () => {
+    expect(problemsOf(() => loadConfig({ ...base, APP_ENV: 'production' }))).toEqual([expect.stringContaining('VINYLTRACK_VERSION')]);
+  });
+
   it('passes the dev bootstrap identity through outside production', () => {
     expect(loadConfig({ ...base, AUTH_BOOTSTRAP_OWNER_EMAIL: 'kevin@example.com' }).authBootstrapOwnerEmail).toBe('kevin@example.com');
     expect(loadConfig(base).authBootstrapOwnerEmail).toBeUndefined();
@@ -41,7 +50,7 @@ describe('loadConfig', () => {
   });
 
   it('refuses AUTH_BOOTSTRAP_OWNER_EMAIL in production', () => {
-    const problems = problemsOf(() => loadConfig({ ...base, APP_ENV: 'production', AUTH_BOOTSTRAP_OWNER_EMAIL: 'kevin@example.com' }));
+    const problems = problemsOf(() => loadConfig({ ...base, APP_ENV: 'production', VINYLTRACK_VERSION: 'v1.2.3', AUTH_BOOTSTRAP_OWNER_EMAIL: 'kevin@example.com' }));
     expect(problems).toEqual([expect.stringContaining('AUTH_BOOTSTRAP_OWNER_EMAIL')]);
   });
 
@@ -51,6 +60,6 @@ describe('loadConfig', () => {
   });
 
   it('starts in production without the dev identity', () => {
-    expect(loadConfig({ ...base, APP_ENV: 'production' }).appEnv).toBe('production');
+    expect(loadConfig({ ...base, APP_ENV: 'production', VINYLTRACK_VERSION: 'v1.2.3' }).appEnv).toBe('production');
   });
 });
