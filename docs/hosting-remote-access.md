@@ -42,6 +42,12 @@ Zero Trust → Access → Applications → **Add → Self-hosted**, domain `ssh.
 | Admin | Allow | Emails: your address | Login method: Google (MFA comes from your Google account) |
 | CI deploy | **Service Auth** | Service Token: `vinyltrack-ci` | none |
 
+**The CI policy must have action *Service Auth*, and be attached to this application.** A service token listed under an *Allow* policy, or in a policy that exists only in the reusable policy list, is ignored: Access falls back to a browser login, which a CI runner can't complete, and the failure looks exactly like cloudflared#1673. To test the token with nothing else involved, send it straight to Access. A redirect to a `cloudflareaccess.com` login URL means it was rejected; anything else (even a 502) means it got through:
+
+```bash
+ curl -s -o /dev/null -w '%{http_code} %{redirect_url}\n' -H "CF-Access-Client-Id: <id>" -H "CF-Access-Client-Secret: <secret>" https://ssh.<family-domain>/
+```
+
 - Set the session duration to 24 hours, so you sign in through the browser at most once a day.
 - Create the service token under Zero Trust → Access → Service Auth → **Create service token**, name `vinyltrack-ci`, duration **1 year** (a reminder is in [hosting-maintenance.md](hosting-maintenance.md#rotation)). The client ID and secret are shown **once**: put them straight into the GitHub `production` environment as `CF_ACCESS_CLIENT_ID` / `CF_ACCESS_CLIENT_SECRET`.
 - The Zero Trust free plan covers up to 50 users, which is plenty.
@@ -204,7 +210,7 @@ ssh -o ProxyCommand="cloudflared access ssh --hostname %h \
     _vinyldeploy@ssh.<family-domain> "deploy $GITHUB_REF_NAME"
 ```
 
-Before writing the workflow, check the service-token path from your laptop. It should connect without opening a browser. The token secret is on the command line, so keep it out of shell history: in zsh, `setopt HIST_IGNORE_SPACE` and start the command with a space, or `history -d` it afterwards.
+Before writing the workflow, check the service-token path from your laptop. It should connect without opening a browser. **Run it with no cached login**, or it proves nothing: after your own browser sign-in, `cloudflared` caches an Access token under `~/.cloudflared/` and will happily use that instead of the service token. Move the cache aside for the test (`mv ~/.cloudflared ~/.cloudflared.bak`, then move it back), or use the `curl` check above. The token secret is on the command line, so keep it out of shell history: in zsh, `setopt HIST_IGNORE_SPACE` and start the command with a space, or `history -d` it afterwards.
 
 ```bash
  ssh -o ProxyCommand="cloudflared access ssh --hostname %h --service-token-id <id> --service-token-secret <secret>" \
