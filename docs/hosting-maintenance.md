@@ -95,6 +95,21 @@ One LaunchDaemon, running as the `_cloudflared` role account:
 - **Changes to the plist only take effect on `bootout` + `bootstrap`.** `kickstart` restarts the process with the plist launchd already has loaded.
 - **Healthy:** `ps` shows exactly one `cloudflared`, user `_cloudflared`, and the error log shows `Registered tunnel connection` lines.
 
+## Power and sleep
+
+The server is a closed-lid MacBook with no external display, so it would normally sleep when the lid shuts. `pmset sleep 0` doesn't prevent that; `disablesleep` does:
+
+```bash
+sudo pmset -a disablesleep 1
+sudo pmset -c sleep 0 disksleep 0 displaysleep 5 womp 1 autorestart 1 tcpkeepalive 1 powernap 0
+pmset -g | grep -iE 'SleepDisabled|^ sleep|autorestart|womp'   # SleepDisabled 1, sleep 0
+```
+
+- `autorestart 1` brings the Mac back after a power cut, which everything above relies on.
+- If it still sleeps, `pmset -g log | grep -iE 'Sleep|Wake' | tail -10` names the cause.
+- Re-check `pmset -g` after macOS updates; a major version can reset power settings.
+- Keep it on a hard surface (it vents through the base), and set a charge limit if System Settings → Battery offers one (see the battery check under [Quarterly](#quarterly)).
+
 ## Colima daemon
 
 One LaunchDaemon runs vinylTrack's Colima VM as `_vinyltrack`, so it starts at boot with nobody logged in:
