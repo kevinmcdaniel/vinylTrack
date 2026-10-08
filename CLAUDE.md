@@ -98,6 +98,12 @@ The copied design system in `design/system/` is **not** wired in — it's still 
 - `prisma.config.ts` builds its URL through the same `getConfig()`, so `migrate`/`seed`/`studio` need the same env as `be`.
 - BE tests in `src/tests/` all run `src/tests/setup.ts`, whose `afterAll` needs a live DB — even pure unit tests like `config.test.ts`. Run the suite inside `vinyl.be`.
 
+### Release and deploy (#60)
+- **A `v*` tag is a release**; nothing deploys from `main`. `release.yml` re-runs `ci.yml` (`workflow_call`) on the tagged commit, builds arm64 images to GHCR, creates the GitHub Release with `compose.prod.yml` attached, then calls `deploy.yml`, which waits for approval on the `production` environment. Redeploy/rollback: `gh workflow run deploy.yml --ref <tag> [-f action=rollback]`. Runbook: `docs/hosting-deploy.md`.
+- The git tag is the only version (`VINYLTRACK_VERSION`, baked in at build, reported by `/api/health`). Don't bump `package.json` versions.
+- `Dockerfile.be`/`Dockerfile.fe`: `dev` must stay the first stage (`docker-compose.yml` pins `target: dev`); `prod`/`migrate` run on distroless (no shell, `node` at `/nodejs/bin/node`). CI's `images` job builds them on every PR.
+- `host/libexec/deploy-shell` (sshd `ForceCommand` for `_vinyldeploy`) and `deploy.sh` run on the server under macOS `/bin/bash` 3.2 — no bash 4 features. Tests: `npx bats@1.11.1 host/tests` (sourced, with `docker`/`sudo`/`curl` stubbed as functions); CI also runs shellcheck. Changing them means reinstalling on the server.
+
 ### Prisma setup
 The backend uses `@prisma/adapter-pg` (not the default Prisma driver). After any schema change, run `npm run migrate` in `be/`.
 

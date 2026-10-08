@@ -39,13 +39,16 @@ Order matters: back up first, reboot last.
 
 1. **Check the starting state.** Everything should be healthy *before* anything changes, so a problem afterwards is clearly caused by the update:
    ```bash
-   sudo -u _vinyltrack -H docker compose -f /Users/_vinyltrack/compose.prod.yml ps
+   sudo -u _vinyltrack -H /usr/local/libexec/vinyltrack/deploy.sh status
    ```
+   It prints the running release and `ps`, and exits non-zero unless `db`, `be` and `fe` are all healthy.
    Also check that the tunnel shows **Healthy** in Zero Trust → Networks → Tunnels.
 2. **Take a backup now,** not last night's:
    ```bash
-   sudo -u _vinyltrack -H /usr/local/libexec/vinyltrack/backup.sh
+   v=$(cat /Users/_vinyltrack/current-version)
+   sudo -u _vinyltrack -H sh -c "cd && VINYLTRACK_VERSION=$v docker compose -p vinyltrack -f releases/$v/compose.prod.yml exec -T db pg_dump -U vinyltrack -d vinyltrack | gzip > backups/manual-\$(date -u +%Y%m%dT%H%M%SZ).sql.gz"
    ```
+   Every deploy also takes one automatically (`backups/pre-<tag>-*.sql.gz`, [hosting-deploy.md](hosting-deploy.md)). A scheduled nightly backup isn't built yet.
 3. **Homebrew:**
    ```bash
    brew update
