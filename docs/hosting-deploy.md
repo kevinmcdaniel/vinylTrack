@@ -93,12 +93,13 @@ Done once per server; redo the install step whenever `host/libexec/` changes.
    sudo chmod 440 /etc/sudoers.d/vinyltrack-deploy && sudo visudo -cf /etc/sudoers.d/vinyltrack-deploy
    sudo -l -U _vinyldeploy        # shows only that rule
    ```
-3. **Secrets and host config** on the server, per [hosting-remote-access.md](hosting-remote-access.md#role-accounts): `/Users/_vinyltrack/secrets/db_password`, and `/Users/_vinyltrack/.env` with `FE_PORT_EXT` if the default `5201` doesn't suit.
-4. **GitHub `production` environment** (Settings → Environments):
+3. **`_vinyltrack`'s Docker config** must have no `credsStore` (pulls fail looking for a keychain helper), per [hosting-remote-access.md](hosting-remote-access.md#role-accounts).
+4. **Secrets and host config** on the server, per [hosting-remote-access.md](hosting-remote-access.md#role-accounts): `/Users/_vinyltrack/secrets/db_password`, and `/Users/_vinyltrack/.env` with `FE_PORT_EXT` if the default `5201` doesn't suit.
+5. **GitHub `production` environment** (Settings → Environments):
    - Secrets `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`; variable `DEPLOY_HOST` ([hosting-remote-access.md](hosting-remote-access.md#ci-github-actions--deploy)).
    - *Required reviewers*: you.
-   - *Deployment branches and tags* → *Selected branches and tags* → add tag rule `v*`.
-5. **GHCR packages public.** The first release creates `vinyltrack-be`, `vinyltrack-fe` and `vinyltrack-migrate` as *private* packages, and the server pulls without logging in. For each: github.com/kevinmcdaniel?tab=packages → the package → *Package settings* → *Change visibility* → Public. The repo is public anyway; this needs doing once, after the first release's image job and before its deploy is approved.
+   - *Deployment branches and tags* → *Selected branches and tags* → tag rule `v*`, and **nothing else**. No branch rules, `main` included: only a release tag may deploy.
+6. **GHCR packages public.** The first release creates `vinyltrack-be`, `vinyltrack-fe` and `vinyltrack-migrate` as *private* packages, and the server pulls without logging in. For each: github.com/kevinmcdaniel?tab=packages → the package → *Package settings* → *Change visibility* → Public. The repo is public anyway; this needs doing once, after the first release's image job and before its deploy is approved.
 
 ## The images
 
