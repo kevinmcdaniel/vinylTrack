@@ -75,11 +75,18 @@ Three hidden service accounts, none of which you can log in as:
   ```
   Generating straight into the file, or typing into `vi`, keeps the value off screen, out of shell history, and out of any file you own. The same `sudo -u … vi` pattern edits `_vinyldeploy`'s `authorized_keys`.
 - Inside Colima's VM, file modes don't protect anything: every container user can read a mounted secret (spike in #65). The `600`/`700` modes keep other *macOS* accounts out; per-service `secrets:` lists in compose decide which container sees what. A secret file outside `/Users/_vinyltrack` shows up in the container as an empty directory, not an error.
-- **`docker compose` as `_vinyltrack`** needs Homebrew's plugin directory in its Docker config, or `docker compose -f …` fails with `unknown shorthand flag: 'f'`. Colima creates the file; add the key without clobbering its context:
-  ```bash
-  sudo -u _vinyltrack -H sh -c 'f=$HOME/.docker/config.json; jq ".cliPluginsExtraDirs = [\"/opt/homebrew/lib/docker/cli-plugins\"]" "$f" > "$f.tmp" && mv "$f.tmp" "$f"'
-  sudo -u _vinyltrack -H docker compose version
+- **`_vinyltrack`'s Docker config**, `/Users/_vinyltrack/.docker/config.json`, edited as `_vinyltrack` (`sudo -u _vinyltrack -H vi …`). Colima creates it. It should end up as:
+  ```json
+  {
+    "auths": {},
+    "currentContext": "colima",
+    "cliPluginsExtraDirs": ["/opt/homebrew/lib/docker/cli-plugins"]
+  }
   ```
+  - `currentContext: colima` points `docker` at this account's own VM.
+  - `cliPluginsExtraDirs` is where Homebrew puts the compose plugin. Without it, `docker compose -f …` fails with `unknown shorthand flag: 'f'`.
+  - **No `credsStore` or `credHelpers`.** With `"credsStore": "osxkeychain"`, every pull first asks the keychain for credentials and fails with `docker-credential-osxkeychain: executable file not found` (and a role account with no login session has no keychain anyway). The images are public, so nothing needs logging in.
+  - Check: `sudo -u _vinyltrack -H docker compose version` and `sudo -u _vinyltrack -H docker pull ghcr.io/kevinmcdaniel/vinyltrack-be:<tag>`.
 
 ## `sshd` on the Mac
 
@@ -217,7 +224,7 @@ Before writing the workflow, check the service-token path from your laptop. It s
     -i ~/.ssh/vinyltrack_deploy -o IdentitiesOnly=yes _vinyldeploy@ssh.<family-domain> status
 ```
 
-**Then test it with a throwaway workflow before relying on it.** It should SSH in and run `status`. `cloudflared` has open bug reports where the service token is ignored and a browser login is tried instead ([cloudflared#1673](https://github.com/cloudflare/cloudflared/issues/1673)), and a CI runner can't complete a browser login. If the test can't be made to work, the fallback is a pull-based deploy (#60, alternatives), not reopening an inbound path.
+This path was proven from a GitHub runner before the release workflow was built (#60, with a throwaway smoke workflow since removed). If a deploy job ever stalls on a browser-login URL, `cloudflared` has open reports of ignoring the service token ([cloudflared#1673](https://github.com/cloudflare/cloudflared/issues/1673)), but check the *Service Auth* policy first: that's what it was last time. The fallback is a pull-based deploy (#60, alternatives), never reopening an inbound path.
 
 ## Break-glass: UniFi Teleport
 
