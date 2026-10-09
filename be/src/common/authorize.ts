@@ -29,7 +29,7 @@ declare global {
 export const identifyUser = async (req: Request, _res: Response, next: NextFunction) => {
   try {
     const header = req.headers['x-user-email'];
-    const email = typeof header === 'string' && header.length > 0 ? header : getConfig().authBootstrapOwnerEmail;
+    const email = getConfig().devIdentityHeader && typeof header === 'string' && header.length > 0 ? header : undefined;
     if (email) {
       const user = await prisma.user.findUnique({ where: { email } });
       if (user) req.user = user;
