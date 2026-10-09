@@ -77,6 +77,12 @@ export const requireActiveUser = (req: Request, _res: Response, next: NextFuncti
   next();
 };
 
+// Routes only the FE itself may call (a service token), e.g. sign-in.
+export const requireService = (req: Request, _res: Response, next: NextFunction) => {
+  if (req.service !== 'fe') return next(new AuthError('Service token required.'));
+  next();
+};
+
 export const requireAdmin = (req: Request, _res: Response, next: NextFunction) => {
   if (!req.user?.isAdmin) return next(new ForbiddenError('Admin access required.'));
   next();

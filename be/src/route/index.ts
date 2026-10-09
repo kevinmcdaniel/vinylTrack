@@ -7,6 +7,7 @@ import { locationRoute } from './locations.js';
 import { ownerRoute } from './owners.js';
 import { copyRoute } from './copies.js';
 import { wantRoute } from './wants.js';
+import { authRoute } from './auth.js';
 
 export const indexRoute = Router();
 
@@ -18,3 +19,4 @@ indexRoute.use('/location', locationRoute);
 indexRoute.use('/owner', ownerRoute);
 indexRoute.use('/copy', copyRoute);
 indexRoute.use('/want', wantRoute);
+indexRoute.use('/auth', authRoute);
