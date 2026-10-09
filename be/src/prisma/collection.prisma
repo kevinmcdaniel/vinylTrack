@@ -9,6 +9,9 @@ model user {
   avatar    String?
   status    String   @default("pending") // pending | active | denied
   isAdmin   Boolean  @default(false)
+  // Turnstile automation mode (#11, #73) applies only to users with this set.
+  // Seed-only: never writable or readable through the API.
+  allowAutomation Boolean @default(false)
   ownedCollections collection[]       @relation("collectionOwner")
   sharedCollections collection_share[]
   locations location[]

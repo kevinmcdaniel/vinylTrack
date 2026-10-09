@@ -28,7 +28,8 @@ async function main() {
   // so it's the identity that actually exercises the access rules in policy.ts
   // rather than the admin bypass. Also the AUTH_BOOTSTRAP_OWNER_EMAIL fallback.
   const kevin = await prisma.user.create({
-    data: { email: 'kevin@example.com', name: 'Kevin', status: 'active' },
+    // The CI e2e user: the only seeded user automation mode may act for (#73).
+    data: { email: 'kevin@example.com', name: 'Kevin', status: 'active', allowAutomation: true },
   });
   const alex = await prisma.user.create({
     data: { email: 'alex@example.com', name: 'Alex', status: 'active' },
