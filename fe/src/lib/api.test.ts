@@ -1,15 +1,19 @@
+// @vitest-environment node
+// Server-only code: run in Node, not jsdom (jose rejects jsdom's cross-realm Uint8Array).
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { decodeJwt, jwtVerify } from 'jose';
 import { apiGet, ApiError } from './api';
+import { stubAppEnv, TEST_INTERNAL_SECRET } from '@/tests/env';
+
+// The session DAL (#73): apiGet only ever runs for an active, signed-in user.
+vi.mock('./session', () => ({ requireActiveUser: vi.fn(async () => ({ id: 'user-1', status: 'active', isAdmin: false })) }));
 
 const json = (body: unknown, status = 200) =>
   Promise.resolve({ ok: status < 400, status, json: () => Promise.resolve(body) } as Response);
 
 describe('apiGet', () => {
   beforeEach(() => {
-    vi.stubEnv('APP_ENV', 'development');
-    vi.stubEnv('BE_URL', 'http://vinyl.be');
-    vi.stubEnv('BE_PORT_INT', '3000');
-    vi.stubEnv('AUTH_BOOTSTRAP_OWNER_EMAIL', 'kevin@example.com');
+    stubAppEnv();
   });
   afterEach(() => {
     vi.unstubAllEnvs();
@@ -39,12 +43,15 @@ describe('apiGet', () => {
     expect(url.searchParams.has('format')).toBe(false);
   });
 
-  it('forwards the dev identity header', async () => {
+  it('sends a signed bearer token for the signed-in user, and no dev header', async () => {
     const fetchMock = vi.fn((_url: string | URL | Request, _init?: RequestInit) => json({ data: [], status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
     await apiGet('/album');
-    const init = fetchMock.mock.calls[0]![1] as RequestInit;
-    expect((init.headers as Record<string, string>)['x-user-email']).toBe('kevin@example.com');
+    const headers = fetchMock.mock.calls[0]![1]!.headers as Record<string, string>;
+    expect(headers).not.toHaveProperty('x-user-email');
+    const token = headers.Authorization!.replace(/^Bearer /, '');
+    await jwtVerify(token, new TextEncoder().encode(TEST_INTERNAL_SECRET), { audience: 'vinyltrack-be', issuer: 'vinyltrack-fe' });
+    expect(decodeJwt(token).sub).toBe('user-1');
   });
 
   it('throws an ApiError carrying the status on a failed response', async () => {

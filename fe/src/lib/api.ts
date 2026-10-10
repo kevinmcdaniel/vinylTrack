@@ -1,5 +1,7 @@
 import 'server-only';
 import { getConfig } from './config';
+import { signInternalToken } from './internalToken';
+import { requireActiveUser } from './session';
 
 /**
  * Server-side API client.
@@ -23,11 +25,12 @@ export class ApiError extends Error {
 
 const baseUrl = () => getConfig().apiBaseUrl;
 
-// The single place real auth (#11) swaps in: today the caller is resolved from
-// this dev header (#26), later from the session.
-const identityHeaders = (): Record<string, string> => {
-  const email = getConfig().authBootstrapOwnerEmail;
-  return email ? { 'x-user-email': email } : {};
+// Every call carries a short-lived token for the signed-in, active user (#73);
+// requireActiveUser redirects to sign-in or the waiting screen otherwise.
+const authHeaders = async (): Promise<Record<string, string>> => {
+  const user = await requireActiveUser();
+  const token = await signInternalToken({ kind: 'user', userId: user.id }, getConfig().internalApiSecret);
+  return { Authorization: `Bearer ${token}` };
 };
 
 export type QueryValue = string | undefined | null;
@@ -39,7 +42,7 @@ export async function apiGet<T>(path: string, params?: Record<string, QueryValue
   }
 
   const res = await fetch(url.toString(), {
-    headers: { ...identityHeaders() },
+    headers: await authHeaders(),
     // Browse data changes as the family adds records; never serve a stale list.
     cache: 'no-store',
   });
