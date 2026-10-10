@@ -16,7 +16,14 @@ export type Config = {
   databaseUrl: string;
   // Release tag baked into the image at build time (#60); "dev" outside production.
   version: string;
-  authBootstrapOwnerEmail: string | undefined;
+  // Signs/verifies the FE→BE bearer token; only fe and be mount it (#73).
+  internalApiSecret: string;
+  turnstile: { secretKey: string; expectedHostname: string };
+  // Turnstile automation mode for e2e (#11): development/test only, and only
+  // when both secrets are set. Never present in production.
+  automation?: { key: string; testSecretKey: string };
+  // x-user-email identity for the BE suite and Bruno: development/test only.
+  devIdentityHeader: boolean;
 };
 
 export class ConfigError extends Error {
@@ -96,18 +103,103 @@ export function loadConfig(env: Env, readFile: ReadFile): Config {
     version = '';
   }
 
-  const authBootstrapOwnerEmail = env.AUTH_BOOTSTRAP_OWNER_EMAIL || undefined;
-  if (effectiveEnv === 'production' && authBootstrapOwnerEmail !== undefined) {
-    problems.push('AUTH_BOOTSTRAP_OWNER_EMAIL is dev-only and must not be set in production');
+  // The always-on fallback identity is gone (#73): a stale setting is an error
+  // everywhere, so nobody keeps relying on it by accident.
+  if (env.AUTH_BOOTSTRAP_OWNER_EMAIL !== undefined) {
+    problems.push('AUTH_BOOTSTRAP_OWNER_EMAIL is no longer used (#73); remove it');
   }
 
+  const publicHostname = required('PUBLIC_HOSTNAME');
+
+  const internalApiSecret = readSecret('internal_api_secret', env, readFile, effectiveEnv);
+  if ('problem' in internalApiSecret) problems.push(internalApiSecret.problem);
+  else if (internalApiSecret.value.length < 32) problems.push("secret 'internal_api_secret' must be at least 32 characters");
+
+  const turnstileSecret = readSecret('turnstile_secret_key', env, readFile, effectiveEnv);
+  if ('problem' in turnstileSecret) problems.push(turnstileSecret.problem);
+  else if (effectiveEnv === 'production' && TURNSTILE_TEST_SECRET.test(turnstileSecret.value)) {
+    problems.push("secret 'turnstile_secret_key' is one of Cloudflare's test secrets; production needs the real one");
+  }
+
+  let automation: Config['automation'];
+  if (effectiveEnv === 'production') {
+    for (const v of ['AUTOMATION_KEY', 'TURNSTILE_TEST_SECRET_KEY']) {
+      if (env[v] !== undefined || env[`${v}_FILE`] !== undefined) problems.push(`${v} is not allowed in production (automation mode is dev/test only)`);
+    }
+  } else {
+    const key = readOptionalSecret('automation_key', env, readFile, effectiveEnv);
+    const testSecret = readOptionalSecret('turnstile_test_secret_key', env, readFile, effectiveEnv);
+    if (key && 'problem' in key) problems.push(key.problem);
+    if (testSecret && 'problem' in testSecret) problems.push(testSecret.problem);
+    if (!key !== !testSecret) {
+      problems.push('AUTOMATION_KEY and TURNSTILE_TEST_SECRET_KEY must be set together (automation mode needs both)');
+    } else if (key && testSecret && 'value' in key && 'value' in testSecret) {
+      automation = { key: key.value, testSecretKey: testSecret.value };
+    }
+  }
+
+  if (problems.length > 0 || !appEnv || 'problem' in password || 'problem' in internalApiSecret || 'problem' in turnstileSecret) {
+    throw new ConfigError(problems);
+  }
+
+  const databaseUrl = buildDatabaseUrl(dbUser, password.value, host, dbPort, dbName);
+
+  return {
+    appEnv,
+    port,
+    databaseUrl,
+    version,
+    internalApiSecret: internalApiSecret.value,
+    turnstile: { secretKey: turnstileSecret.value, expectedHostname: publicHostname },
+    ...(automation ? { automation } : {}),
+    devIdentityHeader: appEnv !== 'production',
+  };
+}
+
+// Like readSecret, but "neither form set" is not a problem: the secret is optional.
+function readOptionalSecret(name: string, env: Env, readFile: ReadFile, appEnv: AppEnv): SecretResult | undefined {
+  const plainVar = name.toUpperCase();
+  if (env[plainVar] === undefined && env[`${plainVar}_FILE`] === undefined) return undefined;
+  return readSecret(name, env, readFile, appEnv);
+}
+
+// Cloudflare's published test secrets: always pass / always fail / token spent.
+const TURNSTILE_TEST_SECRET = /^[123]x0+AA$/;
+
+// Just what talking to the database needs (#73): APP_ENV plus the DB settings
+// and db_password. The Prisma CLI (migrate, seed, studio) and database.ts use
+// this, so they never need the auth secrets mounted.
+export function loadDatabaseConfig(env: Env, readFile: ReadFile): { appEnv: AppEnv; databaseUrl: string } {
+  const problems: string[] = [];
+  const required = (key: string): string => {
+    const value = env[key];
+    if (value === undefined || value === '') {
+      problems.push(`${key} is not set`);
+      return '';
+    }
+    return value;
+  };
+  const appEnv = APP_ENVS.find((e) => e === env.APP_ENV);
+  if (!appEnv) problems.push(`APP_ENV must be one of ${APP_ENVS.join(', ')} (got ${env.APP_ENV === undefined ? 'nothing' : `'${env.APP_ENV}'`})`);
+  const host = required('DB_HOST');
+  const dbPort = required('DB_PORT_INT');
+  const dbName = required('DB_VINYLTRACK_NAME');
+  const dbUser = required('DB_VINYLTRACK_USER');
+  const password = readSecret('db_password', env, readFile, appEnv ?? 'production');
+  if ('problem' in password) problems.push(password.problem);
   if (problems.length > 0 || !appEnv || 'problem' in password) throw new ConfigError(problems);
+  return { appEnv, databaseUrl: buildDatabaseUrl(dbUser, password.value, host, dbPort, dbName) };
+}
 
-  const databaseUrl =
-    `postgresql://${encodeURIComponent(dbUser)}:${encodeURIComponent(password.value)}` +
-    `@${host}:${dbPort}/${encodeURIComponent(dbName)}?schema=public`;
+function buildDatabaseUrl(user: string, password: string, host: string, port: string, name: string): string {
+  return `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${encodeURIComponent(name)}?schema=public`;
+}
 
-  return { appEnv, port, databaseUrl, version, authBootstrapOwnerEmail };
+let cachedDatabase: { appEnv: AppEnv; databaseUrl: string } | undefined;
+
+export function getDatabaseConfig(): { appEnv: AppEnv; databaseUrl: string } {
+  cachedDatabase ??= loadDatabaseConfig(process.env, (path) => readFileSync(path, 'utf8'));
+  return cachedDatabase;
 }
 
 let cached: Config | undefined;

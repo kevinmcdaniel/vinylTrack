@@ -10,6 +10,7 @@
 // Wipe-and-replace: safe to re-run against a populated dev DB.
 
 import { prisma } from '../database.js';
+import { seedUsers } from './seedData.js';
 
 async function main() {
   await prisma.want_item.deleteMany();
@@ -24,25 +25,10 @@ async function main() {
   await prisma.artist.deleteMany();
   await prisma.user.deleteMany();
 
-  // Owner, and deliberately NOT an admin: this is what most family members are,
-  // so it's the identity that actually exercises the access rules in policy.ts
-  // rather than the admin bypass. Also the AUTH_BOOTSTRAP_OWNER_EMAIL fallback.
-  const kevin = await prisma.user.create({
-    data: { email: 'kevin@example.com', name: 'Kevin', status: 'active' },
-  });
-  const alex = await prisma.user.create({
-    data: { email: 'alex@example.com', name: 'Alex', status: 'active' },
-  });
-  // Active, but owns nothing and is shared nothing — the "outsider" identity the
-  // Bruno collection (#34) needs to exercise the 403/404 access paths.
-  await prisma.user.create({
-    data: { email: 'jamie@example.com', name: 'Jamie', status: 'active' },
-  });
-  // Admin, owning nothing of their own — the bypass path in policy.ts, kept as a
-  // separate identity so "owner" and "admin" can't be silently conflated (#34).
-  await prisma.user.create({
-    data: { email: 'admin@example.com', name: 'Admin', status: 'active', isAdmin: true },
-  });
+  const kevin = await prisma.user.create({ data: seedUsers.kevin });
+  const alex = await prisma.user.create({ data: seedUsers.alex });
+  await prisma.user.create({ data: seedUsers.jamie });
+  await prisma.user.create({ data: seedUsers.admin });
 
   // Whose records these are. Kevin and Alex have accounts; Ruth does not and
   // never will — she is why ownership is not a foreign key to `user` (#53).

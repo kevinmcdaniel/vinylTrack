@@ -1,6 +1,6 @@
 import 'dotenv/config'
 import { defineConfig } from 'prisma/config'
-import { getConfig } from './src/config.js'
+import { getDatabaseConfig } from './src/config.js'
 
 export default defineConfig({
   schema: 'src/prisma',
@@ -10,6 +10,6 @@ export default defineConfig({
   },
   datasource: {
     // Built from config parts + the db_password secret (#65), same as the app.
-    url: getConfig().databaseUrl,
+    url: getDatabaseConfig().databaseUrl,
   },
 })

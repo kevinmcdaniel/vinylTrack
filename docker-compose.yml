@@ -14,8 +14,6 @@ x-be-env: &be-env
   <<: *db-config
   APP_ENV: development
   NODE_ENV: development
-  # Dev-only identity fallback (#26); config.ts refuses it in production.
-  AUTH_BOOTSTRAP_OWNER_EMAIL: kevin@example.com
 
 services:
 
@@ -27,7 +25,11 @@ services:
     environment:
       <<: *be-env
       PORT: "3000"
-    secrets: [db_password]
+      PUBLIC_HOSTNAME: localhost
+      INTERNAL_API_SECRET_FILE: /run/secrets/internal_api_secret
+      TURNSTILE_SECRET_KEY_FILE: /run/secrets/turnstile_secret_key
+    # The auth secrets go to be only; migrate/seed/studio need just the DB (#73).
+    secrets: [db_password, internal_api_secret, turnstile_secret_key]
     volumes:
       - ./be:/app/
       - /app/node_modules
@@ -179,3 +181,7 @@ volumes:
 secrets:
   db_password:
     file: ./dev-secrets/db_password
+  internal_api_secret:
+    file: ./dev-secrets/internal_api_secret
+  turnstile_secret_key:
+    file: ./dev-secrets/turnstile_secret_key

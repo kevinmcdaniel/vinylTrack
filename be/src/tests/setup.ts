@@ -37,7 +37,8 @@ export async function cleanupTestData() {
   await prisma.owner.deleteMany({ where: { name: { startsWith: T } } });
   await prisma.owner.deleteMany({ where: { user: { email: { startsWith: T } } } });
   await prisma.source.deleteMany({ where: { name: { startsWith: T } } });
-  await prisma.user.deleteMany({ where: { email: { startsWith: T } } });
+  // Insensitive: sign-in lowercases emails (#73), so _TEST_ becomes _test_.
+  await prisma.user.deleteMany({ where: { email: { startsWith: T, mode: 'insensitive' } } });
 }
 
 afterAll(async () => {

@@ -41,7 +41,11 @@ jobs:
       DB_VINYLTRACK_NAME: vinyltrack
       DB_VINYLTRACK_USER: vinyltrack
       DB_PASSWORD: citestpw
-      AUTH_BOOTSTRAP_OWNER_EMAIL: kevin@example.com
+      # Auth settings (#73). Plain-variable secrets are allowed outside
+      # production; the Turnstile one is Cloudflare's always-fail test secret.
+      PUBLIC_HOSTNAME: localhost
+      INTERNAL_API_SECRET: ci-internal-api-secret-not-a-secret-0123456789
+      TURNSTILE_SECRET_KEY: 2x0000000000000000000000000000000AA
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -89,7 +93,11 @@ jobs:
       DB_VINYLTRACK_NAME: vinyltrack
       DB_VINYLTRACK_USER: vinyltrack
       DB_PASSWORD: citestpw
-      AUTH_BOOTSTRAP_OWNER_EMAIL: kevin@example.com
+      # Auth settings (#73). Plain-variable secrets are allowed outside
+      # production; the Turnstile one is Cloudflare's always-fail test secret.
+      PUBLIC_HOSTNAME: localhost
+      INTERNAL_API_SECRET: ci-internal-api-secret-not-a-secret-0123456789
+      TURNSTILE_SECRET_KEY: 2x0000000000000000000000000000000AA
       # bruno/environments/local.bru points baseUrl at localhost:5202 and
       # src/server.ts reads PORT, so binding here lets CI run the collection
       # through the same `npm run test:api` and the same environment file a
