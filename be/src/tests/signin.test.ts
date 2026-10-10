@@ -61,8 +61,12 @@ describe('signInUser bootstrap (empty schema)', () => {
 
 // ── the shared database ──────────────────────────────────────────────────
 
+// The shared DB isn't seeded in CI's BE job, so make sure the user table is
+// never empty here: otherwise the first sign-in (correctly) becomes admin.
+const ensureNotFirstUser = () => prisma.user.create({ data: { email: `${T}already-here@example.com`, status: 'active' } });
+
 describe('signInUser (existing users)', () => {
-  beforeAll(async () => { await cleanupTestData(); });
+  beforeAll(async () => { await cleanupTestData(); await ensureNotFirstUser(); });
   afterAll(async () => { await cleanupTestData(); });
 
   it('creates a new Google user as pending, with allowAutomation off, and lowercases the email', async () => {
@@ -104,7 +108,7 @@ describe('POST /api/auth/sign-in', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } }));
   const testKeyOk = { success: true, hostname: 'example.com', 'error-codes': [], metadata: { result_with_testing_key: true } };
 
-  beforeAll(async () => { await cleanupTestData(); });
+  beforeAll(async () => { await cleanupTestData(); await ensureNotFirstUser(); });
   afterAll(async () => { await cleanupTestData(); vi.restoreAllMocks(); });
 
   it('creates a pending user for the FE service with a good Turnstile token', async () => {
