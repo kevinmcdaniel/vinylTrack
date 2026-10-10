@@ -1,0 +1,24 @@
+meta {
+  name: approve user (allowAutomation in body)
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/user/{{missingId}}/approve
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{adminEmail}}
+}
+
+body:json {
+  { "allowAutomation": true }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}

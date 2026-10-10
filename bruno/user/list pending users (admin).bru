@@ -1,0 +1,26 @@
+meta {
+  name: list pending users (admin)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/user?status=pending
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{adminEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.data: isArray
+}
+
+tests {
+  test("never exposes allowAutomation", function() {
+    for (const u of res.body.data) expect(u).to.not.have.property("allowAutomation");
+  });
+}
