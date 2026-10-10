@@ -1,0 +1,31 @@
+meta {
+  name: sign-in (automation, flagged user)
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/auth/sign-in
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{serviceToken}}
+  x-automation-key: {{automationKey}}
+}
+
+body:json {
+  { "provider": "dev", "email": "{{ownerEmail}}", "turnstileToken": "XXXX.DUMMY.TOKEN.XXXX" }
+}
+
+assert {
+  res.status: eq 200
+  res.body.data.status: eq active
+}
+
+tests {
+  test("never exposes allowAutomation", function() {
+    expect(res.body.data).to.not.have.property("allowAutomation");
+  });
+}

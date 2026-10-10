@@ -28,8 +28,11 @@ services:
       PUBLIC_HOSTNAME: localhost
       INTERNAL_API_SECRET_FILE: /run/secrets/internal_api_secret
       TURNSTILE_SECRET_KEY_FILE: /run/secrets/turnstile_secret_key
+      # Turnstile automation mode (#11), so the Bruno auth checks run locally too.
+      AUTOMATION_KEY_FILE: /run/secrets/automation_key
+      TURNSTILE_TEST_SECRET_KEY: 1x0000000000000000000000000000000AA
     # The auth secrets go to be only; migrate/seed/studio need just the DB (#73).
-    secrets: [db_password, internal_api_secret, turnstile_secret_key]
+    secrets: [db_password, internal_api_secret, turnstile_secret_key, automation_key]
     volumes:
       - ./be:/app/
       - /app/node_modules
@@ -190,5 +193,7 @@ secrets:
     file: ./dev-secrets/internal_api_secret
   auth_secret:
     file: ./dev-secrets/auth_secret
+  automation_key:
+    file: ./dev-secrets/automation_key
   turnstile_secret_key:
     file: ./dev-secrets/turnstile_secret_key

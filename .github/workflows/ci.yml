@@ -104,6 +104,11 @@ jobs:
       # developer uses locally — no --env-var baseUrl override to drift.
       PORT: "5202"
       BRUNO_JUNIT: ${{ github.workspace }}/bruno-junit.xml
+      # Turnstile automation mode (#11). The regular secret above is Cloudflare's
+      # always-fail one, so the Bruno auth checks prove the bypass is the only way
+      # through. AUTOMATION_KEY itself is generated per run, below.
+      TURNSTILE_TEST_SECRET_KEY: 1x0000000000000000000000000000000AA
+      TURNSTILE_ALWAYS_FAILS: "true"
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -121,6 +126,9 @@ jobs:
       # The collection drives the x-user-email dev identities (#26) and asserts
       # on seeded rows, so it needs the seed, not just the schema.
       - run: npx prisma db seed
+
+      - name: Generate a per-run automation key
+        run: echo "AUTOMATION_KEY=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
 
       - name: Start API and wait for /api/health
         run: |
