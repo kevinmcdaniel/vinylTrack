@@ -6,6 +6,10 @@ obviously fake values, so `docker compose up` works straight after a clone.
 | file | mounted at | read via |
 |---|---|---|
 | `db_password` | `/run/secrets/db_password` | `POSTGRES_PASSWORD_FILE` (db), `DB_PASSWORD_FILE` (be, migrate, seed, studio) |
+| `internal_api_secret` | `/run/secrets/internal_api_secret` | `INTERNAL_API_SECRET_FILE` (be, fe): signs/verifies FE→BE tokens |
+| `auth_secret` | `/run/secrets/auth_secret` | `AUTH_SECRET_FILE` (fe): encrypts the Auth.js session cookie |
+| `turnstile_secret_key` | `/run/secrets/turnstile_secret_key` | `TURNSTILE_SECRET_KEY_FILE` (be): Cloudflare's always-pass **test** secret |
+| `automation_key` | `/run/secrets/automation_key` | `AUTOMATION_KEY_FILE` (be): Turnstile automation mode, so the Bruno `auth` checks run locally |
 
 Rules (naming convention in #65):
 

@@ -11,7 +11,7 @@
     "dev": "npx prisma generate && npx nodemon --exec tsx src/server.ts",
     "migrate": "npx prisma migrate dev",
     "test": "vitest run",
-    "test:api": "cd ../bruno && bru run --env local -r --bail",
+    "test:api": "cd ../bruno && INTERNAL_API_SECRET=${INTERNAL_API_SECRET:-$(cat ../dev-secrets/internal_api_secret)} AUTOMATION_KEY=${AUTOMATION_KEY:-$(cat ../dev-secrets/automation_key)} bru run --env local -r --bail",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --max-warnings 0"

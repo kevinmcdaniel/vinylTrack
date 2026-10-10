@@ -5,7 +5,8 @@
 # - Config is literal here. Secrets are Docker secret files from the host
 #   (#65), mounted only into the services that list them.
 # - Host config (not secret, kept out of the repo) comes from
-#   /Users/_vinyltrack/.env via --env-file: PUBLIC_HOSTNAME (required), FE_PORT_EXT,
+#   /Users/_vinyltrack/.env via --env-file: PUBLIC_HOSTNAME, GOOGLE_OAUTH_CLIENT_ID,
+#   TURNSTILE_SITE_KEY (all required; none secret), FE_PORT_EXT,
 #   and optionally VINYLTRACK_SECRETS_DIR for a local test run.
 # - Nothing publishes a port except the FE, on 127.0.0.1 only: the Cloudflare
 #   Tunnel is the only way in. No seed, no Studio.
@@ -87,7 +88,14 @@ services:
       APP_ENV: production
       BE_URL: http://be
       BE_PORT_INT: "3000"
-    # No secrets: the FE never sees the DB password.
+      PUBLIC_HOSTNAME: ${PUBLIC_HOSTNAME:?set PUBLIC_HOSTNAME in /Users/_vinyltrack/.env}
+      GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:?set GOOGLE_OAUTH_CLIENT_ID in /Users/_vinyltrack/.env}
+      TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:?set TURNSTILE_SITE_KEY in /Users/_vinyltrack/.env}
+      AUTH_SECRET_FILE: /run/secrets/auth_secret
+      INTERNAL_API_SECRET_FILE: /run/secrets/internal_api_secret
+      GOOGLE_OAUTH_CLIENT_SECRET_FILE: /run/secrets/google_oauth_client_secret
+    # Never db_password (#65, #73).
+    secrets: [auth_secret, internal_api_secret, google_oauth_client_secret]
     networks: [backend]
     ports:
       - "127.0.0.1:${FE_PORT_EXT:-5201}:4000"
@@ -111,3 +119,7 @@ secrets:
     file: ${VINYLTRACK_SECRETS_DIR:-/Users/_vinyltrack/secrets}/internal_api_secret
   turnstile_secret_key:
     file: ${VINYLTRACK_SECRETS_DIR:-/Users/_vinyltrack/secrets}/turnstile_secret_key
+  auth_secret:
+    file: ${VINYLTRACK_SECRETS_DIR:-/Users/_vinyltrack/secrets}/auth_secret
+  google_oauth_client_secret:
+    file: ${VINYLTRACK_SECRETS_DIR:-/Users/_vinyltrack/secrets}/google_oauth_client_secret

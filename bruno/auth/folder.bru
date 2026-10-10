@@ -1,0 +1,20 @@
+meta {
+  name: auth
+  seq: 10
+}
+
+script:pre-request {
+  // A fresh service token (sub service:fe) for every request: HS256 over
+  // INTERNAL_API_SECRET, 60 s, the claims be/src/common/internalToken.ts
+  // checks. crypto-js because the CLI's safe sandbox has no node crypto.
+  const CryptoJS = require('crypto-js');
+  const b64url = (wordArray) => CryptoJS.enc.Base64.stringify(wordArray).replace(/=+$/, '').replace(/\+/g, '-').replace(/\//g, '_');
+  const part = (obj) => b64url(CryptoJS.enc.Utf8.parse(JSON.stringify(obj)));
+  const now = Math.floor(Date.now() / 1000);
+  const unsigned = part({ alg: 'HS256', typ: 'JWT' }) + '.' + part({ sub: 'service:fe', aud: 'vinyltrack-be', iss: 'vinyltrack-fe', iat: now, exp: now + 60 });
+  const signature = b64url(CryptoJS.HmacSHA256(unsigned, bru.getProcessEnv('INTERNAL_API_SECRET')));
+  bru.setVar('serviceToken', unsigned + '.' + signature);
+  bru.setVar('automationKey', bru.getProcessEnv('AUTOMATION_KEY'));
+  // CI's regular Turnstile secret always fails; dev's always passes.
+  bru.setVar('turnstileAlwaysFails', bru.getProcessEnv('TURNSTILE_ALWAYS_FAILS') === 'true');
+}

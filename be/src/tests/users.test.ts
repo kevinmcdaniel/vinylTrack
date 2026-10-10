@@ -122,3 +122,19 @@ describe('POST /api/auth/request-access', () => {
     expect((await prisma.user.findUnique({ where: { id: denied.id } }))!.status).toBe('denied');
   });
 });
+
+describe('GET /api/auth/me', () => {
+  it('returns the caller for any status, without allowAutomation', async () => {
+    for (const status of ['pending', 'denied', 'active']) {
+      const u = await newUser(`me-${status}`, status, { allowAutomation: true });
+      const res = await request(app).get('/api/auth/me').set(await bearer(u.id));
+      expect(res.status, status).toBe(200);
+      expect(res.body.data).toMatchObject({ id: u.id, email: u.email, status, isAdmin: false });
+      expect(res.body.data).not.toHaveProperty('allowAutomation');
+    }
+  });
+
+  it('401s with no signed-in user', async () => {
+    expect((await request(app).get('/api/auth/me')).status).toBe(401);
+  });
+});
