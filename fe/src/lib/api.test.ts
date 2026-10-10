@@ -2,7 +2,7 @@
 // Server-only code: run in Node, not jsdom (jose rejects jsdom's cross-realm Uint8Array).
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { decodeJwt, jwtVerify } from 'jose';
-import { apiGet, ApiError } from './api';
+import { apiGet, apiPost, ApiError } from './api';
 import { stubAppEnv, TEST_INTERNAL_SECRET } from '@/tests/env';
 
 // The session DAL (#73): apiGet only ever runs for an active, signed-in user.
@@ -82,5 +82,28 @@ describe('apiGet', () => {
     const err = await apiGet('/album/x').catch((e) => e as ApiError);
     expect(err).toBeInstanceOf(ApiError);
     expect((err as ApiError).notFound).toBe(true);
+  });
+});
+
+describe('apiPost', () => {
+  beforeEach(() => stubAppEnv());
+  afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+
+  it('posts JSON with the signed token and returns data', async () => {
+    const fetchMock = vi.fn((_url: string | URL | Request, _init?: RequestInit) => json({ data: { id: 'c-1' }, status: 201 }, 201));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(apiPost('/collection', { name: 'Vinyl', kind: 'physical' })).resolves.toEqual({ id: 'c-1' });
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('http://vinyl.be:3000/api/collection');
+    expect(init!.method).toBe('POST');
+    expect(JSON.parse(init!.body as string)).toEqual({ name: 'Vinyl', kind: 'physical' });
+    const headers = init!.headers as Record<string, string>;
+    expect(headers['content-type']).toBe('application/json');
+    expect(decodeJwt(headers.Authorization!.replace(/^Bearer /, '')).sub).toBe('user-1');
+  });
+
+  it('throws an ApiError carrying the status and the BE message', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => json({ data: {}, message: 'name is required.', status: 406 }, 406)));
+    await expect(apiPost('/collection', {})).rejects.toMatchObject({ status: 406, message: 'name is required.' });
   });
 });

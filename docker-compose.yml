@@ -123,8 +123,13 @@ services:
       PORT: "4000"
       BE_URL: http://vinyl.be
       BE_PORT_INT: "3000"
-      AUTH_BOOTSTRAP_OWNER_EMAIL: kevin@example.com
-    # No secrets: the FE never sees the DB password.
+      PUBLIC_HOSTNAME: localhost
+      # Cloudflare's always-pass test site key: dev holds no real credentials (#73).
+      TURNSTILE_SITE_KEY: 1x00000000000000000000AA
+      AUTH_SECRET_FILE: /run/secrets/auth_secret
+      INTERNAL_API_SECRET_FILE: /run/secrets/internal_api_secret
+    # Never db_password. No Google in dev: the dev sign-in covers it.
+    secrets: [auth_secret, internal_api_secret]
     volumes:
       - ./fe/public:/app/public
       - ./fe/src:/app/src
@@ -183,5 +188,7 @@ secrets:
     file: ./dev-secrets/db_password
   internal_api_secret:
     file: ./dev-secrets/internal_api_secret
+  auth_secret:
+    file: ./dev-secrets/auth_secret
   turnstile_secret_key:
     file: ./dev-secrets/turnstile_secret_key

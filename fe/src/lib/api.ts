@@ -47,6 +47,21 @@ export async function apiGet<T>(path: string, params?: Record<string, QueryValue
     cache: 'no-store',
   });
 
+  return unwrap<T>(res, path);
+}
+
+/** POST a JSON body as the signed-in, active user (#73): writes go through here. */
+export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+  const res = await fetch(`${baseUrl()}${path}`, {
+    method: 'POST',
+    headers: { ...(await authHeaders()), 'content-type': 'application/json' },
+    body: JSON.stringify(body),
+    cache: 'no-store',
+  });
+  return unwrap<T>(res, path);
+}
+
+async function unwrap<T>(res: Response, path: string): Promise<T> {
   const body = await res.json().catch(() => null);
   if (!res.ok) {
     throw new ApiError(res.status, body?.message ?? `Request to ${path} failed with ${res.status}`);
