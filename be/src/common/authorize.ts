@@ -77,6 +77,13 @@ export const requireActiveUser = (req: Request, _res: Response, next: NextFuncti
   next();
 };
 
+// Signed in, whatever the status: for the few routes a pending or denied user
+// may call, e.g. asking for access again.
+export const requireSignedInUser = (req: Request, _res: Response, next: NextFunction) => {
+  if (!req.user) return next(new AuthError('No authenticated user.'));
+  next();
+};
+
 // Routes only the FE itself may call (a service token), e.g. sign-in.
 export const requireService = (req: Request, _res: Response, next: NextFunction) => {
   if (req.service !== 'fe') return next(new AuthError('Service token required.'));

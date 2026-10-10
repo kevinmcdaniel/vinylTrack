@@ -1,8 +1,9 @@
 import express from 'express';
-import { requireService } from '../common/authorize.js';
+import { requireService, requireSignedInUser } from '../common/authorize.js';
 import { verifyTurnstile } from '../common/turnstile.js';
 import { prisma } from '../database.js';
 import { signIn } from '../controller/auth.js';
+import { requestAccess } from '../controller/user.js';
 
 export const authRoute = express.Router();
 
@@ -13,3 +14,8 @@ const signingInUser = async (req: express.Request) => {
 };
 
 authRoute.post('/sign-in', requireService, verifyTurnstile('sign-in', signingInUser), signIn);
+
+// A denied user asks again (#11). For automation mode, the user acted for is the caller.
+const caller = async (req: express.Request) =>
+  req.user ? ((await prisma.user.findUnique({ where: { id: req.user.id }, select: { allowAutomation: true } })) ?? undefined) : undefined;
+authRoute.post('/request-access', requireSignedInUser, verifyTurnstile('request-access', caller), requestAccess);
