@@ -1,0 +1,20 @@
+meta {
+  name: list users (non-admin)
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/user
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 403
+  res.body.data: isNull
+}

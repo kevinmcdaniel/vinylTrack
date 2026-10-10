@@ -1,5 +1,5 @@
 import express, { type Request } from 'express';
-import { listCollections, getCollection } from '../controller/collection.js';
+import { listCollections, getCollection, createCollection } from '../controller/collection.js';
 import { requireActiveUser } from '../common/authorize.js';
 import { requireCollectionAccess } from '../common/policy.js';
 import { routeParam } from '../common/utils.js';
@@ -12,7 +12,8 @@ export const collectionRoute = express.Router();
 
 collectionRoute.use(requireActiveUser);
 
-// Read-only for now: #7 only needs to browse, and admin-delete semantics for
-// a collection you don't own are still an open question in #26.
+// Create (#73) so an empty production can start; rename/delete/share are #14,
+// and admin-delete semantics for a collection you don't own are open in #26.
 collectionRoute.get('/', listCollections);
+collectionRoute.post('/', createCollection);
 collectionRoute.get('/:id', requireCollectionAccess(resolveSelf), getCollection);

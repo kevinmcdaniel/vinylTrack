@@ -105,7 +105,8 @@ describe('signInUser (existing users)', () => {
 describe('POST /api/auth/sign-in', () => {
   const service = async () => ({ Authorization: `Bearer ${await signInternalToken({ kind: 'service' }, getConfig().internalApiSecret)}` });
   const siteverify = (body: object) =>
-    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } }));
+    // A fresh Response per call: a body can only be read once.
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => new Response(JSON.stringify(body), { headers: { 'content-type': 'application/json' } }));
   const testKeyOk = { success: true, hostname: 'example.com', 'error-codes': [], metadata: { result_with_testing_key: true } };
 
   beforeAll(async () => { await cleanupTestData(); await ensureNotFirstUser(); });

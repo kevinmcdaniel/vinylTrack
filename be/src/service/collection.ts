@@ -20,6 +20,11 @@ export const listCollectionsService = async (accessibleCollectionIds: string[] |
   return collections.map(flattenCount);
 };
 
+export const createCollectionService = async (data: { name: string; kind: string; notes?: string | null }, ownerId: string) => {
+  const collection = await prisma.collection.create({ data: { ...data, ownerId }, include: withAlbumCount });
+  return flattenCount(collection);
+};
+
 export const getCollectionService = async (id: string) => {
   const collection = await prisma.collection.findUnique({ where: { id }, include: withAlbumCount });
   if (!collection) return null;
