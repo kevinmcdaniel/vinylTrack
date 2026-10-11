@@ -1,7 +1,7 @@
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
-import { auth } from '@/auth';
 import { getConfig } from '@/lib/config';
+import { findCurrentUser } from '@/lib/session';
 import { turnstileSiteKey } from '@/lib/turnstileKey';
 import SignInForms from '@/ui/SignInForms';
 import { signInWithDev, signInWithGoogle } from './actions';
@@ -9,8 +9,8 @@ import { signInWithDev, signInWithGoogle } from './actions';
 export const dynamic = 'force-dynamic';
 
 export default async function SignInPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  const session = await auth();
-  if (session?.user?.id) redirect('/');
+  // Asks the BE, not just the cookie: a session it no longer knows stays here.
+  if (await findCurrentUser()) redirect('/');
   const { error } = await searchParams;
   const config = getConfig();
   return (

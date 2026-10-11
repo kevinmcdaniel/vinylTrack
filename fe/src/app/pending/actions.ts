@@ -18,7 +18,7 @@ export async function requestAccessAgain(formData: FormData) {
   if (ip) forward['x-client-ip'] = ip;
   if (automation) forward['x-automation-key'] = automation;
   const token = formData.get('turnstileToken');
-  await fetch(`${config.apiBaseUrl}/auth/request-access`, {
+  const res = await fetch(`${config.apiBaseUrl}/auth/request-access`, {
     method: 'POST',
     headers: {
       'content-type': 'application/json',
@@ -28,7 +28,10 @@ export async function requestAccessAgain(formData: FormData) {
     body: JSON.stringify({ turnstileToken: typeof token === 'string' ? token : '' }),
     cache: 'no-store',
   });
-  redirect('/pending');
+  // A refusal (failed bot check, bad state) is shown as such, not as the same
+  // "declined" screen again; anything else is a real failure.
+  if (res.status >= 500) throw new Error(`POST /auth/request-access failed with ${res.status}`);
+  redirect(res.ok ? '/pending' : '/pending?error=request-failed');
 }
 
 export async function signOutAction() {

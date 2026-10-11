@@ -30,7 +30,8 @@ export const { handlers, auth, signIn, signOut } = NextAuth((): NextAuthConfig =
   const config = getConfig();
   return {
     secret: config.authSecret,
-    // Behind the Cloudflare Tunnel and the FE's own host check.
+    // Behind the Cloudflare Tunnel. Production pins the origin with AUTH_URL
+    // (config.ts requires https://PUBLIC_HOSTNAME), so Host only matters in dev.
     trustHost: true,
     session: { strategy: 'jwt' },
     pages: { signIn: '/sign-in', error: '/sign-in' },

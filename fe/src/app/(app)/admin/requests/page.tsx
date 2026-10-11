@@ -5,8 +5,9 @@ import { approveRequest, denyRequest } from './actions';
 
 export const dynamic = 'force-dynamic';
 
-export default async function RequestsPage() {
+export default async function RequestsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await requireAdmin();
+  const { error } = await searchParams;
   const [users, owners] = await Promise.all([
     apiGet<PendingUser[]>('/user', { status: 'pending' }),
     apiGet<(LinkableOwner & { userId: string | null })[]>('/owner'),
@@ -16,6 +17,7 @@ export default async function RequestsPage() {
       <h1 className="text-lg font-semibold">Access requests</h1>
       <RequestsList
         users={users}
+        error={typeof error === 'string' ? error : undefined}
         owners={owners.filter((o) => !o.userId).map(({ id, name }) => ({ id, name }))}
         approveAction={approveRequest}
         denyAction={denyRequest}

@@ -59,6 +59,17 @@ describe('PendingView', () => {
     expect(screen.getByRole('button', { name: /ask again/i })).toBeInTheDocument();
     expect(container.querySelectorAll('[data-turnstile]')).toHaveLength(1);
   });
+
+  it('says when asking again failed, in fixed text', () => {
+    render(<PendingView user={{ ...user, status: 'denied' }} siteKey="k" error="anything at all" requestAccessAction={action} signOutAction={action} />);
+    expect(screen.getByRole('alert')).toHaveTextContent(/couldn.t send your request/i);
+    expect(screen.getByRole('alert')).not.toHaveTextContent(/anything at all/);
+  });
+
+  it('shows no alert without an error', () => {
+    render(<PendingView user={{ ...user, status: 'denied' }} siteKey="k" requestAccessAction={action} signOutAction={action} />);
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
 });
 
 describe('RequestsList', () => {
@@ -86,6 +97,22 @@ describe('RequestsList', () => {
     expect(within(select).getByRole('option', { name: /don.t link/i })).toBeInTheDocument();
     expect(rows[0]!.querySelector('input[name="userId"]')).toHaveValue('u-1');
   });
+
+  it.each([
+    ['conflict', /already linked/i],
+    ['gone', /no longer/i],
+    ['<script>', /couldn.t update/i],
+    ['constructor', /couldn.t update/i],
+  ])('maps ?error=%s to fixed text', (error, text) => {
+    render(<RequestsList users={pending} owners={owners} error={error} approveAction={action} denyAction={action} />);
+    expect(screen.getByRole('alert')).toHaveTextContent(text);
+    expect(screen.getByRole('alert')).not.toHaveTextContent('<script>');
+  });
+
+  it('shows the error even once the list is empty', () => {
+    render(<RequestsList users={[]} owners={owners} error="gone" approveAction={action} denyAction={action} />);
+    expect(screen.getByRole('alert')).toHaveTextContent(/no longer/i);
+  });
 });
 
 describe('NewCollectionForm', () => {
@@ -97,8 +124,15 @@ describe('NewCollectionForm', () => {
     expect(screen.getByRole('button', { name: /create/i })).toBeInTheDocument();
   });
 
-  it('shows the error from a failed attempt', () => {
-    render(<NewCollectionForm action={action} error="name is required." />);
-    expect(screen.getByRole('alert')).toHaveTextContent('name is required.');
+  it('shows fixed text for a failed attempt', () => {
+    render(<NewCollectionForm action={action} error="invalid" />);
+    expect(screen.getByRole('alert')).toHaveTextContent(/check the name and kind/i);
+  });
+
+  // ?error= is user-controlled: a crafted link must not put its text in the alert.
+  it('never echoes the error param', () => {
+    render(<NewCollectionForm action={action} error="Your account is locked, call 555-0100" />);
+    expect(screen.getByRole('alert')).not.toHaveTextContent(/555-0100/);
+    expect(screen.getByRole('alert')).toHaveTextContent(/couldn.t create/i);
   });
 });

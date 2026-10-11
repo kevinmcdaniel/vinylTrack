@@ -89,6 +89,8 @@ services:
       BE_URL: http://be
       BE_PORT_INT: "3000"
       PUBLIC_HOSTNAME: ${PUBLIC_HOSTNAME:?set PUBLIC_HOSTNAME in /Users/_vinyltrack/.env}
+      # Pins Auth.js's origin so OAuth URLs never come from the Host header (#73).
+      AUTH_URL: https://${PUBLIC_HOSTNAME:?set PUBLIC_HOSTNAME in /Users/_vinyltrack/.env}
       GOOGLE_OAUTH_CLIENT_ID: ${GOOGLE_OAUTH_CLIENT_ID:?set GOOGLE_OAUTH_CLIENT_ID in /Users/_vinyltrack/.env}
       TURNSTILE_SITE_KEY: ${TURNSTILE_SITE_KEY:?set TURNSTILE_SITE_KEY in /Users/_vinyltrack/.env}
       AUTH_SECRET_FILE: /run/secrets/auth_secret

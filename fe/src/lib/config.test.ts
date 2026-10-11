@@ -1,5 +1,6 @@
-import { describe, it, expect } from 'vitest';
-import { ConfigError, loadConfig, type Env } from './config';
+import fs from 'node:fs';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { ConfigError, getConfig, loadConfig, type Env } from './config';
 
 // Pure tests: env and file reads are injected (#65, #73).
 const files = (map: Record<string, string>) => (p: string) => {
@@ -90,6 +91,12 @@ describe('loadConfig', () => {
     expect(problemsOf(() => loadConfig({ ...base, AUTOMATION_KEY: 'auto' }, noFiles))).toEqual([expect.stringContaining('together')]);
   });
 
+  it('leaves AUTH_URL optional outside production, but on PUBLIC_HOSTNAME when set', () => {
+    expect(() => loadConfig(base, noFiles)).not.toThrow();
+    expect(() => loadConfig({ ...base, AUTH_URL: 'http://localhost:5201' }, noFiles)).not.toThrow();
+    expect(problemsOf(() => loadConfig({ ...base, AUTH_URL: 'http://elsewhere:5201' }, noFiles))).toEqual([expect.stringContaining('AUTH_URL')]);
+  });
+
   it('rejects AUTH_BOOTSTRAP_OWNER_EMAIL anywhere: the FE identifies callers by session now', () => {
     expect(problemsOf(() => loadConfig({ ...base, AUTH_BOOTSTRAP_OWNER_EMAIL: 'kevin@example.com' }, noFiles)))
       .toEqual([expect.stringContaining('AUTH_BOOTSTRAP_OWNER_EMAIL')]);
@@ -102,6 +109,7 @@ describe('loadConfig', () => {
       APP_ENV: 'production',
       VINYLTRACK_VERSION: 'v1.2.3',
       PUBLIC_HOSTNAME: 'vinyl.example.org',
+      AUTH_URL: 'https://vinyl.example.org',
       TURNSTILE_SITE_KEY: '0x4AAAAAAArealsitekey',
       GOOGLE_OAUTH_CLIENT_ID: 'id.apps.googleusercontent.com',
       AUTH_SECRET_FILE: '/run/secrets/auth_secret',
@@ -130,6 +138,15 @@ describe('loadConfig', () => {
       expect(problems.join('\n')).toMatch(/VINYLTRACK_VERSION/);
     });
 
+    // trustHost would otherwise build OAuth URLs from the Host header.
+    it('requires AUTH_URL pinned to https://PUBLIC_HOSTNAME', () => {
+      const { AUTH_URL: _u, ...unpinned } = prod;
+      expect(problemsOf(() => loadConfig(unpinned, prodFiles))).toEqual([expect.stringContaining('AUTH_URL')]);
+      for (const AUTH_URL of ['http://vinyl.example.org', 'https://evil.example.com', 'https://vinyl.example.org/api/auth', 'not a url']) {
+        expect(problemsOf(() => loadConfig({ ...prod, AUTH_URL }, prodFiles))).toEqual([expect.stringContaining('AUTH_URL')]);
+      }
+    });
+
     it('refuses plain-variable secrets', () => {
       const { AUTH_SECRET_FILE: _f, ...noFile } = prod;
       expect(problemsOf(() => loadConfig({ ...noFile, AUTH_SECRET: SECRET }, prodFiles))).toEqual([expect.stringContaining('AUTH_SECRET_FILE')]);
@@ -146,5 +163,33 @@ describe('loadConfig', () => {
       const problems = problemsOf(() => loadConfig({ ...base, APP_ENV: 'prod', AUTOMATION_KEY: 'k', TURNSTILE_TEST_SITE_KEY: TEST_SITE_KEY }, noFiles));
       expect(problems.join('\n')).toMatch(/AUTOMATION_KEY/);
     });
+  });
+});
+
+// getConfig runs several times per request; secret files are read once per environment.
+describe('getConfig', () => {
+  afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+
+  const stub = (over: Env) => {
+    const { AUTH_SECRET: _a, ...rest } = base;
+    for (const [k, v] of Object.entries({ ...rest, AUTH_SECRET_FILE: '/run/secrets/auth_secret', ...over })) vi.stubEnv(k, v);
+  };
+
+  it('reads secret files once while the environment is unchanged', () => {
+    const read = vi.spyOn(fs, 'readFileSync').mockReturnValue(SECRET);
+    stub({ BE_PORT_INT: '3001' }); // an environment no earlier test used
+    expect(getConfig().authSecret).toBe(SECRET);
+    getConfig();
+    expect(read).toHaveBeenCalledTimes(1);
+  });
+
+  it('reloads when the environment changes', () => {
+    const read = vi.spyOn(fs, 'readFileSync').mockReturnValue(SECRET);
+    stub({});
+    getConfig();
+    const before = read.mock.calls.length;
+    vi.stubEnv('BE_PORT_INT', '4000');
+    expect(getConfig().apiBaseUrl).toBe('http://vinyl.be:4000/api');
+    expect(read).toHaveBeenCalledTimes(before + 1);
   });
 });

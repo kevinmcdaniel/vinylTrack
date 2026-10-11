@@ -11,7 +11,7 @@ export async function createCollection(formData: FormData) {
     const created = await apiPost<{ id: string }>('/collection', { name: get('name'), kind: get('kind'), ...(notes ? { notes } : {}) });
     id = created.id;
   } catch (error) {
-    if (error instanceof ApiError && error.status === 406) redirect(`/collection/new?error=${encodeURIComponent(error.message)}`);
+    if (error instanceof ApiError && error.status === 406) redirect('/collection/new?error=invalid');
     throw error;
   }
   redirect(`/collection/${id}`);

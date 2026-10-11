@@ -32,6 +32,8 @@ export async function backendSignIn(
   });
   if (res.status === 401 || res.status === 406) return null;
   if (!res.ok) throw new Error(`Sign-in failed: BE answered ${res.status}`);
-  const body = await res.json();
+  const body = await res.json().catch(() => null);
+  // The id becomes the session; never sign in on a malformed 2xx.
+  if (typeof body?.data?.id !== 'string') throw new Error(`Sign-in failed: BE answered ${res.status} with no user`);
   return body.data as BackendUser;
 }

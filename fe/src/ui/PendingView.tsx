@@ -5,8 +5,8 @@ type Action = (formData: FormData) => Promise<void>;
 
 /** What a signed-in but not-yet-approved (or declined) user sees (#73). */
 export default function PendingView({
-  user, siteKey, requestAccessAction, signOutAction,
-}: { user: Pick<CurrentUser, 'email' | 'status'> & Partial<CurrentUser>; siteKey: string; requestAccessAction: Action; signOutAction: Action }) {
+  user, siteKey, error, requestAccessAction, signOutAction,
+}: { user: Pick<CurrentUser, 'email' | 'status'> & Partial<CurrentUser>; siteKey: string; error?: string; requestAccessAction: Action; signOutAction: Action }) {
   const denied = user.status === 'denied';
   return (
     <div className="flex w-full max-w-sm flex-col gap-4 text-center">
@@ -16,6 +16,12 @@ export default function PendingView({
           ? `Access for ${user.email} wasn't approved. You can ask again.`
           : `You're signed in as ${user.email}. A family admin needs to approve you before you can see the collections.`}
       </p>
+      {/* Fixed text: ?error= is user-controlled. */}
+      {error && (
+        <p role="alert" className="rounded-md border border-red-500/40 bg-red-500/10 p-3 text-sm">
+          We couldn&apos;t send your request. Please try again.
+        </p>
+      )}
       {denied && (
         <form action={requestAccessAction} className="flex flex-col items-center gap-3">
           <Turnstile siteKey={siteKey} action="request-access" />

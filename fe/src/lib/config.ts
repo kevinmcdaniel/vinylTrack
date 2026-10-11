@@ -16,7 +16,8 @@ export type Config = {
   apiBaseUrl: string;
   // Release tag baked into the image at build time (#60); "dev" outside production.
   version: string;
-  // vinyl.<family-domain> in production; Auth.js URLs and Turnstile hostname.
+  // vinyl.<family-domain> in production. Auth.js reads AUTH_URL itself; it must
+  // be https://<this> in production so OAuth URLs never come from the Host header.
   publicHostname: string;
   // Encrypts the Auth.js session cookie.
   authSecret: string;
@@ -119,6 +120,23 @@ export function loadConfig(env: Env, readFile: ReadFile): Config {
   }
 
   const publicHostname = required('PUBLIC_HOSTNAME');
+
+  // Auth.js trusts the Host header (trustHost) unless AUTH_URL pins its origin.
+  const authUrl = env.AUTH_URL;
+  if (production || authUrl !== undefined) {
+    const expected = production ? `https://${publicHostname}` : undefined;
+    let parsed: URL | undefined;
+    try {
+      parsed = authUrl ? new URL(authUrl) : undefined;
+    } catch {
+      parsed = undefined;
+    }
+    if (!authUrl) {
+      problems.push(`AUTH_URL is not set (production pins Auth.js to https://${publicHostname || 'PUBLIC_HOSTNAME'})`);
+    } else if (!parsed || parsed.hostname !== publicHostname || parsed.pathname !== '/' || (expected && parsed.origin !== expected)) {
+      problems.push(`AUTH_URL must be ${expected ?? 'an origin on PUBLIC_HOSTNAME'} (got '${authUrl}')`);
+    }
+  }
   const authSecret = requiredSecret('auth_secret', 32);
   const internalApiSecret = requiredSecret('internal_api_secret', 32);
 
@@ -173,8 +191,14 @@ export function loadConfig(env: Env, readFile: ReadFile): Config {
   };
 }
 
-// Read on every call rather than cached: it's a handful of lookups, and it
-// keeps tests free to stub the environment per test.
+// Called several times per request, so the result (and the secret-file reads
+// behind it) is kept until the environment changes. Keyed on the environment
+// rather than cached forever so tests can still stub it per test. A rotated
+// secret file needs a restart, as it does for the BE.
+let memo: { key: string; config: Config } | undefined;
+
 export function getConfig(): Config {
-  return loadConfig(process.env, (p) => fs.readFileSync(p, 'utf8'));
+  const key = JSON.stringify(process.env);
+  if (memo?.key !== key) memo = { key, config: loadConfig(process.env, (p) => fs.readFileSync(p, 'utf8')) };
+  return memo.config;
 }

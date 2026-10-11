@@ -20,18 +20,28 @@ export const requireSessionUserId = cache(async (): Promise<string> => {
   return id;
 });
 
-// The caller as the BE sees them right now, whatever their status.
-export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
-  const id = await requireSessionUserId();
+// The caller as the BE sees them right now, or null when there is no session
+// or the BE no longer knows it (user deleted, secret rotated, reseed). The
+// sign-in page uses this, not the cookie alone: a stale cookie that bounced to
+// / would come straight back here, forever.
+export const findCurrentUser = cache(async (): Promise<CurrentUser | null> => {
+  const id = (await auth())?.user?.id;
+  if (!id) return null;
   const config = getConfig();
   const res = await fetch(`${config.apiBaseUrl}/auth/me`, {
     headers: { Authorization: `Bearer ${await signInternalToken({ kind: 'user', userId: id }, config.internalApiSecret)}` },
     cache: 'no-store',
   });
-  // The session names a user the BE no longer knows (or the token was refused).
-  if (res.status === 401 || res.status === 404) redirect('/sign-in');
+  if (res.status === 401 || res.status === 404) return null;
   if (!res.ok) throw new Error(`GET /auth/me failed with ${res.status}`);
   return (await res.json()).data as CurrentUser;
+});
+
+// The caller as the BE sees them right now, whatever their status.
+export const getCurrentUser = cache(async (): Promise<CurrentUser> => {
+  const user = await findCurrentUser();
+  if (!user) redirect('/sign-in');
+  return user;
 });
 
 // Approved? Otherwise to the waiting/denied screen.

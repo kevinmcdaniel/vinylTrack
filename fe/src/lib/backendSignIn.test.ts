@@ -46,4 +46,13 @@ describe('backendSignIn', () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(fail(500));
     await expect(backendSignIn({ provider: 'google', email: 'a@example.com' }, { turnstileToken: 'tok' })).rejects.toThrow();
   });
+
+  it.each([
+    ['no envelope', { id: 'u-1' }],
+    ['no user id', { data: { status: 'active' }, status: 200 }],
+    ['null data', { data: null, status: 200 }],
+  ])('throws on a 2xx with %s rather than signing in a malformed user', async (_label, body) => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(JSON.stringify(body), { status: 200 }));
+    await expect(backendSignIn({ provider: 'google', email: 'a@example.com' }, { turnstileToken: 'tok' })).rejects.toThrow();
+  });
 });
