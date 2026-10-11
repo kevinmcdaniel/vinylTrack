@@ -36,6 +36,12 @@ export const denyUserService = async (id: string, actingAdminId: string) => {
   return prisma.user.update({ where: { id }, data: { status: 'denied' }, select });
 };
 
+export const getUserService = async (id: string) => {
+  const user = await prisma.user.findUnique({ where: { id }, select });
+  if (!user) throw new NotFoundError(`User id:${id} not found.`);
+  return user;
+};
+
 // A denied user may ask again (#11): denied → pending. Pending stays pending.
 export const requestAccessService = async (id: string) => {
   const user = await prisma.user.findUnique({ where: { id }, select });

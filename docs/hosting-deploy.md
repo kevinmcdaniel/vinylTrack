@@ -94,7 +94,22 @@ Done once per server; redo the install step whenever `host/libexec/` changes.
    sudo -l -U _vinyldeploy        # shows only that rule
    ```
 3. **`_vinyltrack`'s Docker config** must have no `credsStore` (pulls fail looking for a keychain helper), per [hosting-remote-access.md](hosting-remote-access.md#role-accounts).
-4. **Secrets and host config** on the server, per [hosting-remote-access.md](hosting-remote-access.md#role-accounts): `/Users/_vinyltrack/secrets/db_password`, and `/Users/_vinyltrack/.env` with `FE_PORT_EXT` if the default `5201` doesn't suit.
+4. **Secrets and host config** on the server, per [hosting-remote-access.md](hosting-remote-access.md#role-accounts). `compose.prod.yml` refuses to start without them, and `be`/`fe` refuse Cloudflare's test keys in production:
+
+   | `/Users/_vinyltrack/secrets/` | what |
+   |---|---|
+   | `db_password` | random |
+   | `internal_api_secret` | random, ≥32 chars (`openssl rand -hex 32`); shared by `be` and `fe` |
+   | `auth_secret` | random, ≥32 chars; encrypts the session cookie |
+   | `turnstile_secret_key` | the **real** Turnstile widget's secret for `vinyl.<family-domain>` |
+   | `google_oauth_client_secret` | from the Google OAuth client in `vinyltrack-503118` |
+
+   | `/Users/_vinyltrack/.env` (host config, not secret) | what |
+   |---|---|
+   | `PUBLIC_HOSTNAME` | `vinyl.<family-domain>` |
+   | `GOOGLE_OAUTH_CLIENT_ID` | the OAuth client's ID |
+   | `TURNSTILE_SITE_KEY` | the real widget's site key (public; sent to every browser) |
+   | `FE_PORT_EXT` | optional, default `5201` |
 5. **GitHub `production` environment** (Settings → Environments):
    - Secrets `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`; variable `DEPLOY_HOST` ([hosting-remote-access.md](hosting-remote-access.md#ci-github-actions--deploy)).
    - *Required reviewers*: you.

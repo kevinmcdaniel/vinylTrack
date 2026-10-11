@@ -1,0 +1,25 @@
+meta {
+  name: sign-in (no automation key)
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/auth/sign-in
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{serviceToken}}
+}
+
+body:json {
+  { "provider": "dev", "email": "{{ownerEmail}}", "turnstileToken": "XXXX.DUMMY.TOKEN.XXXX" }
+}
+
+tests {
+  test("goes through the regular secret: refused in CI (always-fail), allowed in dev (always-pass)", function() {
+    expect(res.status).to.equal(bru.getVar("turnstileAlwaysFails") ? 401 : 200);
+  });
+}

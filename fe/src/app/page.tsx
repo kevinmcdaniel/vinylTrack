@@ -14,6 +14,9 @@ export default async function Home() {
     <main className="mx-auto flex min-h-screen max-w-2xl flex-col items-center justify-center gap-2 p-8 text-center">
       <h1 className="text-2xl font-semibold">vinylTrack</h1>
       <p className="text-sm opacity-70">No collections are shared with you yet.</p>
+      <Link href="/collection/new" className="mt-2 text-sm text-blue-600 underline">
+        Start a collection
+      </Link>
       <Link href="/docs" className="mt-2 text-sm text-blue-600 underline">
         Read the docs
       </Link>

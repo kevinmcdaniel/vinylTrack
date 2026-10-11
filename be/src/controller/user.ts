@@ -8,6 +8,7 @@ import {
   approveUserService,
   denyUserService,
   requestAccessService,
+  getUserService,
 } from '../service/user.js';
 
 const validation = (m: string) => new ValidationError(m);
@@ -42,6 +43,17 @@ export const denyUser = async (req: Request, res: Response, next: NextFunction) 
     assertOnlyFields(req.body, [], validation);
     const record = await denyUserService(routeParam(req.params.id), req.user!.id);
     res.json({ message: 'User denied', data: record, status: 200 });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// The caller, whatever their status: the FE uses it to pick the right screen
+// (app, waiting for approval, denied) and to know whether to show admin links.
+export const me = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const record = await getUserService(req.user!.id);
+    res.json({ message: 'Current user', data: record, status: 200 });
   } catch (error) {
     next(error);
   }

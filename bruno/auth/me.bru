@@ -1,0 +1,21 @@
+meta {
+  name: me
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/auth/me
+  body: none
+  auth: none
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.data.status: eq active
+  res.body.data.isAdmin: eq false
+}

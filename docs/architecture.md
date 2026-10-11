@@ -25,6 +25,17 @@ The domain schema is **not yet implemented** — `schema.prisma` currently has n
 - `fe/src/app/` — Next.js App Router
 - `fe/src/app/docs/` — this docs viewer (reads markdown from repo-root `docs/`)
 - `fe/src/lib/config.ts` — the FE's config reader, checked at boot by `fe/src/instrumentation.ts`
+- `fe/src/auth.ts` — Auth.js (JWT sessions; Google, plus a dev-only seeded-user sign-in). Every sign-in is decided by the BE (`POST /api/auth/sign-in`)
+- `fe/src/lib/session.ts` — where pages check access (signed in? approved? admin?), right next to the data they fetch
+- `fe/src/lib/api.ts` — server-side BE client; signs a short-lived token for the current user on every call
+
+## Sign-in and access (#73)
+
+1. A visitor signs in with Google (or, in dev, as a seeded user). A Cloudflare Turnstile check rides along; the **BE** validates it.
+2. The BE finds or creates the `user`. The very first user ever becomes the admin; everyone after that starts **pending**.
+3. A pending user sees "waiting for approval". An admin approves (optionally linking an existing `owner`) or denies at `/admin/requests`; a declined user can ask again.
+4. Every FE→BE call carries a token signed with a secret only the FE and BE share. The BE re-reads the user's status on every request, so approving or denying takes effect at once.
+
 
 ## Config and secrets
 
