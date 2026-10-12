@@ -13,7 +13,9 @@
 ROOT=/Users/_vinyltrack
 REPO=kevinmcdaniel/vinylTrack
 PROJECT=vinyltrack
-SERVICES="db be fe"
+# All must be healthy for a deploy to count. mailer included (#62): a revoked
+# Gmail grant fails releases until it is re-authorised.
+SERVICES="db be fe mailer"
 HEALTH_TRIES=60       # × 2s
 TAG_RE='^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'
 

@@ -11,6 +11,7 @@ setup() {
   CALLS="$BATS_TEST_TMPDIR/calls"
   : > "$CALLS"
   HEALTH="healthy"        # what `docker inspect` reports for every service
+  UNHEALTHY_SERVICE=""    # one service that reports unhealthy regardless
   FAIL_ON=""              # a docker subcommand (e.g. "migrate") that should fail
   FETCH_FAILS=""
 
@@ -18,7 +19,7 @@ setup() {
     echo "VERSION=${VINYLTRACK_VERSION:-} docker $*" >> "$CALLS"
     local last="${!#}"
     case "$*" in
-      inspect*) echo "$HEALTH" ;;
+      inspect*) if [ -n "$UNHEALTHY_SERVICE" ] && [ "$last" = "id-$UNHEALTHY_SERVICE" ]; then echo unhealthy; else echo "$HEALTH"; fi ;;
       *" ps -q "*) echo "id-$last" ;;
       *"exec -T db pg_dump"*) echo "-- dump" ;;
     esac
@@ -124,6 +125,21 @@ line_of() { grep -n -- "$1" "$CALLS" | head -1 | cut -d: -f1; }
   run main deploy v1.2.3
   [ "$status" -ne 0 ]
   ! grep -q "compose .* pull" "$CALLS"
+}
+
+@test "deploy health-checks db, be, fe and the mailer" {
+  run main deploy v1.2.3
+  [ "$status" -eq 0 ]
+  for svc in db be fe mailer; do grep -q " ps -q $svc$" "$CALLS" || { echo "no health check for $svc"; return 1; }; done
+}
+
+@test "an unhealthy mailer fails the deploy (#62: a revoked Gmail token blocks releases)" {
+  deployed v1.2.2
+  UNHEALTHY_SERVICE=mailer
+  run main deploy v1.2.3
+  [ "$status" -ne 0 ]
+  [[ "$output" == *"mailer=unhealthy"* ]]
+  [ "$(cat "$ROOT/current-version")" = "v1.2.2" ]
 }
 
 # ── rollback ─────────────────────────────────────────────────────────────
