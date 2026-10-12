@@ -31,14 +31,18 @@ services:
       # Turnstile automation mode (#11), so the Bruno auth checks run locally too.
       AUTOMATION_KEY_FILE: /run/secrets/automation_key
       TURNSTILE_TEST_SECRET_KEY: 1x0000000000000000000000000000000AA
+      # The mailer (#62); be is its only caller. Read by #74's magic-link route.
+      MAILER_URL: http://mailer:3000
+      MAILER_TOKEN_FILE: /run/secrets/mailer_token
     # The auth secrets go to be only; migrate/seed/studio need just the DB (#73).
-    secrets: [db_password, internal_api_secret, turnstile_secret_key, automation_key]
+    secrets: [db_password, internal_api_secret, turnstile_secret_key, automation_key, mailer_token]
     volumes:
       - ./be:/app/
       - /app/node_modules
     networks:
       - default
       - vinylnet
+      - mailnet
     ports:
       - ${BE_PORT_EXT:-5202}:3000
     container_name: vinyl.be
@@ -152,6 +156,28 @@ services:
       be:
         condition: service_started
 
+  # Internal mailer (#62). Log mode in dev: it prints sign-in links instead of
+  # sending, so no Google credentials are needed. Only be can reach it.
+  mailer:
+    image: vinylmailer
+    build:
+      dockerfile: Dockerfile.mailer
+      target: dev
+    environment:
+      APP_ENV: development
+      PORT: "3000"
+      PUBLIC_HOSTNAME: localhost
+      MAILER_MODE: log
+      MAILER_FROM: vinyltrack@example.org
+      MAILER_TOKEN_FILE: /run/secrets/mailer_token
+    secrets: [mailer_token]
+    volumes:
+      - ./mailer/src:/app/src
+      - ./mailer/scripts:/app/scripts
+    networks: [mailnet]
+    container_name: vinyl.mailer
+    command: npm run dev
+
   studio:
     image: vinylstudio
     build:
@@ -174,6 +200,9 @@ services:
         condition: service_completed_successfully
 
 networks:
+  # be <-> mailer only, and no route out (#62).
+  mailnet:
+    internal: true
   vinylnet:
     driver: bridge
     ipam:
@@ -195,5 +224,7 @@ secrets:
     file: ./dev-secrets/auth_secret
   automation_key:
     file: ./dev-secrets/automation_key
+  mailer_token:
+    file: ./dev-secrets/mailer_token
   turnstile_secret_key:
     file: ./dev-secrets/turnstile_secret_key
