@@ -17,7 +17,7 @@ Both are published through the **one** existing tunnel. No second daemon.
 
 | hostname | tunnel service | Access application | who |
 |---|---|---|---|
-| `vinyl.<family-domain>` | `http://127.0.0.1:<FE port>` | none after #11. Before #11, a family email allowlist (below) | family |
+| `vinyl.<family-domain>` | `http://127.0.0.1:<FE port>`, **HTTP Host Header** `vinyl.<family-domain>` | **none**: the app's own sign-in (#73) is the front door (see below) | family |
 | `ssh.<family-domain>` | `ssh://127.0.0.1:22` | **required**, self-hosted app | you, plus the CI service token |
 
 Tunnel ingress, in the `cloudflared` config file or as the tunnel's public hostnames in the dashboard:
@@ -240,12 +240,17 @@ Use this when the Cloudflare path is down, or for the GUI.
 
 Teleport is a way into the whole home network, so the **UniFi account needs MFA**. Check who has Teleport invites during the yearly review.
 
-## Family access before #11
+## The app hostname: `vinyl.<family-domain>`
 
-Until real auth ships ([#11](https://github.com/kevinmcdaniel/vinylTrack/issues/11)), the app has no login of its own: anyone who reaches the FE is the bootstrap owner. So `vinyl.<family-domain>` stays behind an Access application:
+Live since #75 (2026-10-11). No Access application in front: vinylTrack's own sign-in (Google + Turnstile, #73) is the front door, and a second login in front would only get in the way.
 
-- Self-hosted app on `vinyl.<family-domain>`, one **Allow** policy listing family email addresses, login methods Google and one-time PIN (by email, for anyone without a Google account).
-- **Remove this application when #11 ships.** The app's own sign-in and Turnstile take over, and a second login in front would get in the way.
+- **Tunnel route:** public hostname `vinyl.<family-domain>` → HTTP `localhost:5201`, with *Additional application settings → HTTP Settings → **HTTP Host Header*** = `vinyl.<family-domain>`. Without it, requests arrive with the origin's host, and Next.js server actions (sign-in, approve, create collection) fail their origin check. Auth.js is pinned separately by `AUTH_URL=https://${PUBLIC_HOSTNAME}` in `compose.prod.yml`.
+- **DNS:** CNAME `vinyl` → `<tunnel-id>.cfargotunnel.com`, proxied. Saving the route normally creates it; if it doesn't (a stale record in the way, or the route never saved), add it by hand. Deleting an *Access application* never touches DNS; deleting a *tunnel route* can.
+- **A blank `HTTP ERROR 404` with no page** comes from `cloudflared`'s catch-all: DNS reaches the tunnel, but there is no route for the hostname. A styled page is the app's own 404/500 (its `ERROR <digest>` is in the `fe` log).
+- **Edge rules** on the zone (dashboard, not code):
+  - *Rules → Transform Rules → Modify Request Header*: when hostname equals `vinyl.<family-domain>`, **remove** `x-automation-key`. Production refuses automation mode anyway; this keeps the header from ever reaching the FE.
+  - *Security → WAF → Rate limiting rules*: URI path starts with `/api/auth/`, per IP, 10 requests / 10 s → Block (the free plan allows one rule, 10-second period).
+- **First sign-in becomes admin.** On an empty production database, whoever signs in first gets admin. For a fresh install, put a temporary Access application (your email only) in front, sign in, then delete it. That's how #75 went live.
 
 ## Quick reference
 
