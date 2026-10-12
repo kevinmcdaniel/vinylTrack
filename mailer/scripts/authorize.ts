@@ -9,7 +9,7 @@
 // on the server, then delete the local copy. Uses PKCE and a state check.
 import { createHash, randomBytes } from 'node:crypto';
 import { createServer } from 'node:http';
-import { chmodSync, writeFileSync } from 'node:fs';
+import { existsSync, writeFileSync } from 'node:fs';
 
 const SCOPE = 'https://www.googleapis.com/auth/gmail.send';
 const clientId = process.env.GMAIL_CLIENT_ID;
@@ -19,6 +19,11 @@ const out = outIndex > -1 ? process.argv[outIndex + 1] : undefined;
 
 if (!clientId || !clientSecret || !out) {
   console.error('usage: GMAIL_CLIENT_ID=… GMAIL_CLIENT_SECRET=… npm run authorize -- --out <file>');
+  process.exit(2);
+}
+// Fail before the consent dance, not after: the token is never written over an existing file.
+if (existsSync(out)) {
+  console.error(`${out} already exists; choose a new --out path (the token is never written into an existing file).`);
   process.exit(2);
 }
 
@@ -55,9 +60,10 @@ const server = createServer(async (req, res) => {
     const body = (await tokenRes.json()) as { refresh_token?: string; scope?: string; error?: string };
     if (!body.refresh_token) throw new Error(body.error ?? 'no refresh_token in the response');
     if (body.scope !== SCOPE) throw new Error(`unexpected scope granted: ${body.scope}`);
-    writeFileSync(out, `${body.refresh_token}\n`, { mode: 0o600 });
-    // mode only applies when the file is created; tighten an existing one too.
-    chmodSync(out, 0o600);
+    // 'wx': create only, never overwrite. A new file is born 600 (mode applies
+    // on creation), and an existing file or symlink at `out` is refused rather
+    // than written into. For rotation, write to a fresh path.
+    writeFileSync(out, `${body.refresh_token}\n`, { mode: 0o600, flag: 'wx' });
     res.writeHead(200).end('Done. You can close this tab.');
     console.log(`Wrote the refresh token to ${out} (mode 600).`);
   } catch (error) {

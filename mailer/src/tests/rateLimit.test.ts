@@ -20,4 +20,12 @@ describe('createRateLimiter', () => {
     limiter.allow('fresh');
     expect(limiter.size()).toBe(1);
   });
+
+  it('can check without counting', () => {
+    const limiter = createRateLimiter({ limit: 1, windowMs: 1000, now: () => 0 });
+    expect(limiter.check('a')).toBe(true);
+    expect(limiter.check('a')).toBe(true);
+    expect(limiter.allow('a')).toBe(true);
+    expect(limiter.check('a')).toBe(false);
+  });
 });

@@ -13,11 +13,18 @@ export function createRateLimiter({ limit, windowMs, now = Date.now }: { limit: 
     lastSweep = t;
   };
 
+  const recentFor = (key: string, t: number) => (hits.get(key) ?? []).filter((h) => t - h < windowMs);
+
   return {
+    // Would `allow` succeed? Counts nothing, so several limits can all be
+    // checked before any of them is spent.
+    check(key: string): boolean {
+      return recentFor(key, now()).length < limit;
+    },
     allow(key: string): boolean {
       const t = now();
       if (t - lastSweep >= windowMs) sweep(t);
-      const recent = (hits.get(key) ?? []).filter((h) => t - h < windowMs);
+      const recent = recentFor(key, t);
       if (recent.length >= limit) {
         hits.set(key, recent);
         return false;

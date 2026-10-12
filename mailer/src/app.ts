@@ -77,14 +77,18 @@ export function createApp({ config, sender, limiter, globalLimiter, log, isHealt
 
     // Log the domain only: the address is personal and the link is a login credential.
     const domain = to.split('@')[1]!.toLowerCase();
-    if (!limiter.allow(recipientKey(to))) {
+    // Check both limits before spending either, so a refusal costs nothing.
+    const key = recipientKey(to);
+    if (!limiter.check(key)) {
       log('magic-link', domain, 'rate-limited');
       return reply(res, 429, 'Too many sign-in emails to this address; try again later.', {});
     }
-    if (!globalLimiter.allow('all')) {
+    if (!globalLimiter.check('all')) {
       log('magic-link', domain, 'global-limit');
       return reply(res, 429, 'Too many sign-in emails right now; try again later.', {});
     }
+    limiter.allow(key);
+    globalLimiter.allow('all');
     try {
       await sender.send(renderMagicLinkEmail({ from: config.from, to, url }));
       log('magic-link', domain, 'sent');

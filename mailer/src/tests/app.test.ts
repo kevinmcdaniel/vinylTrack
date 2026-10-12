@@ -100,6 +100,20 @@ describe('POST /magic-link', () => {
     expect(sender.send).toHaveBeenCalledTimes(5);
   });
 
+  it('does not use up a recipient\'s allowance on a request the global cap refuses', async () => {
+    const perRecipient = createRateLimiter({ limit: 3, windowMs: 900_000, now: () => 0 });
+    const full = createApp({ config, sender, log, isHealthy: () => true, limiter: perRecipient,
+      globalLimiter: createRateLimiter({ limit: 1, windowMs: 900_000, now: () => 0 }) });
+    const sendVia = (a: ReturnType<typeof createApp>, to: string) =>
+      request(a).post('/magic-link').set('Authorization', `Bearer ${TOKEN}`).send({ to, url: goodUrl });
+    expect((await sendVia(full, 'a@example.com')).status).toBe(200);
+    expect((await sendVia(full, 'b@example.com')).status).toBe(429); // global cap
+    // Same per-recipient limiter, fresh global cap: b still has all 3.
+    const fresh = createApp({ config, sender, log, isHealthy: () => true, limiter: perRecipient,
+      globalLimiter: createRateLimiter({ limit: 30, windowMs: 900_000, now: () => 0 }) });
+    for (let i = 0; i < 3; i++) expect((await sendVia(fresh, 'b@example.com')).status).toBe(200);
+  });
+
   it('answers malformed JSON with a 400 envelope, no HTML and no stack trace', async () => {
     const res = await request(app()).post('/magic-link').set('Authorization', `Bearer ${TOKEN}`)
       .set('content-type', 'application/json').send('{"to": ');
