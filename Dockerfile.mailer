@@ -1,0 +1,40 @@
+# syntax=docker/dockerfile:1
+
+# ── dev: what docker-compose.yml runs (source bind-mounted, nodemon, log mode) ─
+FROM node:24-alpine AS dev
+RUN mkdir /app
+WORKDIR /app
+COPY mailer/package.json mailer/package-lock.json mailer/tsconfig.json ./
+RUN chown -R node:node /app
+USER node
+RUN npm install
+CMD ["npm", "run", "dev"]
+
+# ── production (#62) ─────────────────────────────────────────────────────────
+# Built on Debian trixie to match the distroless runtime's glibc.
+
+FROM node:24-trixie-slim AS build
+WORKDIR /app
+COPY mailer/package.json mailer/package-lock.json ./
+RUN npm ci
+COPY mailer/tsconfig.json mailer/tsconfig.build.json ./
+COPY mailer/src ./src
+RUN npx tsc -p tsconfig.build.json
+
+# Runtime dependencies only (Express).
+FROM node:24-trixie-slim AS prod-deps
+WORKDIR /app
+COPY mailer/package.json mailer/package-lock.json ./
+RUN npm ci --omit=dev --omit=optional --ignore-scripts
+
+# Distroless Node: no shell, no package manager, non-root.
+FROM gcr.io/distroless/nodejs24-debian13:nonroot AS prod
+WORKDIR /app
+COPY --from=prod-deps /app/package.json ./
+COPY --from=prod-deps /app/node_modules ./node_modules
+COPY --from=build /app/dist ./dist
+ARG VINYLTRACK_VERSION
+# NODE_ENV=production as belt and braces: app.ts's error handler never relies on it.
+ENV NODE_ENV=production VINYLTRACK_VERSION=${VINYLTRACK_VERSION}
+EXPOSE 3000
+CMD ["dist/server.js"]
