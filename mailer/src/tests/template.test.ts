@@ -12,6 +12,10 @@ describe('renderMagicLinkEmail', () => {
     expect(m.html).toContain('href="https://vinyl.example.org/api/auth/callback/email?token=abc&amp;email=a%40example.com"');
   });
 
+  it('carries the link itself, so callers never parse it back out of the text', () => {
+    expect(renderMagicLinkEmail({ from: 'f@example.org', to: 'a@example.com', url }).url).toBe(url);
+  });
+
   it('escapes the link in html', () => {
     const m = renderMagicLinkEmail({ from: 'f@example.org', to: 'a@example.com', url: 'https://vinyl.example.org/x?a="><script>' });
     expect(m.html).not.toContain('<script>');
@@ -30,5 +34,10 @@ describe('toGmailRaw', () => {
     expect(mime).toMatch(/Content-Type: multipart\/alternative; boundary=/);
     expect(mime).toContain('Content-Type: text/plain; charset=UTF-8');
     expect(mime).toContain('Content-Type: text/html; charset=UTF-8');
+  });
+
+  it('leaves no blank line after a body part (only the one MIME needs after the headers)', () => {
+    const mime = Buffer.from(toGmailRaw(renderMagicLinkEmail({ from: 'f@example.org', to: 'a@example.com', url })), 'base64url').toString('utf8');
+    expect(mime.match(/\r\n\r\n--vt-/g)).toHaveLength(1);
   });
 });

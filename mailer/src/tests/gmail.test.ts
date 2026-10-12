@@ -52,4 +52,23 @@ describe('createGmailSender', () => {
     const sender = createGmailSender(creds, { fetch: fetch as unknown as typeof globalThis.fetch, now: () => 0 });
     await expect(sender.send('RAW')).rejects.toThrow(/403/);
   });
+
+  it('puts a timeout on every call to Google', async () => {
+    const { sender, fetch } = setup();
+    await sender.send('RAW');
+    for (const [, init] of fetch.mock.calls) expect(init!.signal).toBeInstanceOf(AbortSignal);
+  });
+
+  it('retries a send once with a fresh token when the cached one gets 401', async () => {
+    let sends = 0;
+    const fetch = vi.fn(async (url: string, _init?: RequestInit) => {
+      if (url.startsWith('https://oauth2')) return json({ access_token: `at-${fetch.mock.calls.length}`, expires_in: 3600 });
+      sends++;
+      return sends === 1 ? json({ error: { code: 401 } }, 401) : json({ id: 'msg-1' });
+    });
+    const sender = createGmailSender(creds, { fetch: fetch as unknown as typeof globalThis.fetch, now: () => 0 });
+    await sender.send('RAW');
+    expect(fetch.mock.calls.filter(([u]) => u.startsWith('https://oauth2')).length).toBe(2);
+    expect(sends).toBe(2);
+  });
 });

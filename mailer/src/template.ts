@@ -1,7 +1,7 @@
 // template.ts - the one email the mailer can send (#62): a sign-in link.
 // The caller supplies only the recipient and the (allowlisted) link.
 
-export type RenderedEmail = { from: string; to: string; subject: string; text: string; html: string };
+export type RenderedEmail = { from: string; to: string; subject: string; text: string; html: string; url: string };
 
 const escapeHtml = (s: string) =>
   s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
@@ -21,13 +21,13 @@ export function renderMagicLinkEmail({ from, to, url }: { from: string; to: stri
 <p><a href="${href}">Sign in to vinylTrack</a></p>
 <p style="color:#666;font-size:13px">It works once and expires soon. If you didn't ask to sign in, ignore this email.</p>
 </body></html>`;
-  return { from, to, subject, text, html };
+  return { from, to, subject, text, html, url };
 }
 
 // RFC 2822 multipart/alternative, base64url-encoded as Gmail's `raw` expects.
 export function toGmailRaw(m: RenderedEmail): string {
   const boundary = `vt-${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
-  const b64 = (s: string) => Buffer.from(s, 'utf8').toString('base64').replace(/.{1,76}/g, '$&\r\n');
+  const b64 = (s: string) => Buffer.from(s, 'utf8').toString('base64').replace(/.{1,76}/g, '$&\r\n').replace(/\r\n$/, '');
   const mime = [
     `From: ${m.from}`,
     `To: ${m.to}`,

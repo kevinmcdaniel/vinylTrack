@@ -9,7 +9,7 @@
 // on the server, then delete the local copy. Uses PKCE and a state check.
 import { createHash, randomBytes } from 'node:crypto';
 import { createServer } from 'node:http';
-import { writeFileSync } from 'node:fs';
+import { chmodSync, writeFileSync } from 'node:fs';
 
 const SCOPE = 'https://www.googleapis.com/auth/gmail.send';
 const clientId = process.env.GMAIL_CLIENT_ID;
@@ -29,8 +29,18 @@ const state = randomBytes(16).toString('hex');
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? '/', 'http://127.0.0.1');
   const code = url.searchParams.get('code');
+  const denied = url.searchParams.get('error');
+  if (denied) {
+    // Consent refused (e.g. access_denied): stop rather than wait forever.
+    res.writeHead(400).end(`Authorization failed: ${denied}`);
+    console.error(`Authorization failed: ${denied}`);
+    process.exitCode = 1;
+    server.close();
+    return;
+  }
+  // A stray request (favicon, wrong state): ignore it and keep waiting.
   if (url.searchParams.get('state') !== state || !code) {
-    res.writeHead(400).end(`Authorization failed: ${url.searchParams.get('error') ?? 'bad state or no code'}`);
+    res.writeHead(400).end('Authorization failed: bad state or no code');
     return;
   }
   try {
@@ -46,6 +56,8 @@ const server = createServer(async (req, res) => {
     if (!body.refresh_token) throw new Error(body.error ?? 'no refresh_token in the response');
     if (body.scope !== SCOPE) throw new Error(`unexpected scope granted: ${body.scope}`);
     writeFileSync(out, `${body.refresh_token}\n`, { mode: 0o600 });
+    // mode only applies when the file is created; tighten an existing one too.
+    chmodSync(out, 0o600);
     res.writeHead(200).end('Done. You can close this tab.');
     console.log(`Wrote the refresh token to ${out} (mode 600).`);
   } catch (error) {

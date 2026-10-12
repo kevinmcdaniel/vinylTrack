@@ -10,4 +10,14 @@ describe('createRateLimiter', () => {
     now = 15 * 60_000 + 1;
     expect(limiter.allow('a')).toBe(true);
   });
+
+  it('forgets keys whose hits have all expired, so the map cannot grow without bound', () => {
+    let now = 0;
+    const limiter = createRateLimiter({ limit: 3, windowMs: 1000, now: () => now });
+    for (let i = 0; i < 100; i++) limiter.allow(`k${i}`);
+    expect(limiter.size()).toBe(100);
+    now = 1001;
+    limiter.allow('fresh');
+    expect(limiter.size()).toBe(1);
+  });
 });

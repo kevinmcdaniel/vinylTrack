@@ -39,6 +39,11 @@ describe('loadConfig', () => {
     expect(loadConfig({ ...dev, FE_PORT_EXT: '5301' }, noFiles).linkOrigin).toBe('http://localhost:5301');
   });
 
+  it('normalises the link origin the same way URL.origin does', () => {
+    expect(loadConfig({ ...dev, PUBLIC_HOSTNAME: 'LocalHost', FE_PORT_EXT: '80' }, noFiles).linkOrigin).toBe('http://localhost');
+    expect(problemsOf(() => loadConfig({ ...dev, PUBLIC_HOSTNAME: 'bad host name' }, noFiles))).toContainEqual(expect.stringContaining('PUBLIC_HOSTNAME'));
+  });
+
   it('reports every missing value at once', () => {
     const problems = problemsOf(() => loadConfig({}, noFiles));
     for (const name of ['APP_ENV', 'PUBLIC_HOSTNAME', 'MAILER_FROM', 'MAILER_TOKEN_FILE']) {
@@ -86,6 +91,10 @@ describe('loadConfig', () => {
       expect(config.mode).toBe('gmail');
       expect(config.linkOrigin).toBe('https://vinyl.example.org');
       expect(config.gmail).toEqual({ clientId: 'cid.apps.googleusercontent.com', clientSecret: 'csecret', refreshToken: 'rtoken' });
+    });
+
+    it('lowercases a mixed-case production hostname', () => {
+      expect(loadConfig({ ...prod, PUBLIC_HOSTNAME: 'Vinyl.Example.org' }, prodFiles).linkOrigin).toBe('https://vinyl.example.org');
     });
 
     it('refuses log mode: production must really send', () => {

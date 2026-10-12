@@ -12,6 +12,7 @@ type Deps = {
   config: Config;
   sender: Sender;
   limiter: RateLimiter;
+  globalLimiter: RateLimiter;
   log: (...parts: unknown[]) => void;
   isHealthy: () => boolean;
 };
@@ -37,7 +38,18 @@ function linkAllowed(url: string, origin: string): boolean {
   }
 }
 
-export function createApp({ config, sender, limiter, log, isHealthy }: Deps) {
+// The inbox an address actually reaches, for rate limiting: lowercase, no
+// +tag, and no dots for Gmail (which ignores them), so a+1@ / a.b@ variants
+// can't multiply one person's allowance.
+export function recipientKey(address: string): string {
+  const [local = '', domain = ''] = address.toLowerCase().split('@');
+  let base = local.split('+')[0]!;
+  const gmail = domain === 'gmail.com' || domain === 'googlemail.com';
+  if (gmail) base = base.replace(/\./g, '');
+  return `${base}@${gmail ? 'gmail.com' : domain}`;
+}
+
+export function createApp({ config, sender, limiter, globalLimiter, log, isHealthy }: Deps) {
   const app = express();
   app.disable('x-powered-by');
   app.use(express.json({ limit: '4kb' }));
@@ -49,8 +61,9 @@ export function createApp({ config, sender, limiter, log, isHealthy }: Deps) {
   };
 
   app.get('/health', (_req, res) => {
-    const data = { status: isHealthy() ? 'ok' : 'unhealthy', version: config.version, mode: config.mode };
-    res.status(isHealthy() ? 200 : 503).json({ data, message: data.status, status: isHealthy() ? 200 : 503 });
+    const healthy = isHealthy();
+    const data = { status: healthy ? 'ok' : 'unhealthy', version: config.version, mode: config.mode };
+    return reply(res, healthy ? 200 : 503, data.status, data);
   });
 
   // Fixed template only: the caller chooses the recipient and the link, nothing else.
@@ -64,9 +77,13 @@ export function createApp({ config, sender, limiter, log, isHealthy }: Deps) {
 
     // Log the domain only: the address is personal and the link is a login credential.
     const domain = to.split('@')[1]!.toLowerCase();
-    if (!limiter.allow(to.toLowerCase())) {
+    if (!limiter.allow(recipientKey(to))) {
       log('magic-link', domain, 'rate-limited');
       return reply(res, 429, 'Too many sign-in emails to this address; try again later.', {});
+    }
+    if (!globalLimiter.allow('all')) {
+      log('magic-link', domain, 'global-limit');
+      return reply(res, 429, 'Too many sign-in emails right now; try again later.', {});
     }
     try {
       await sender.send(renderMagicLinkEmail({ from: config.from, to, url }));
@@ -79,5 +96,15 @@ export function createApp({ config, sender, limiter, log, isHealthy }: Deps) {
   });
 
   app.use((_req, res) => reply(res, 404, 'Not found.'));
+
+  // Last resort, so nothing ever reaches Express's default handler: that one
+  // answers in HTML and includes a stack trace unless NODE_ENV=production.
+  // Body-parser errors (bad JSON 400, too large 413) keep their status.
+  app.use((err: unknown, _req: Request, res: Response, _next: NextFunction) => {
+    const status = typeof (err as { status?: unknown }).status === 'number' ? (err as { status: number }).status : 500;
+    if (status >= 500) log('error', err instanceof Error ? err.name : 'error');
+    const message = status === 400 ? 'Malformed request body.' : status === 413 ? 'Request body too large.' : status >= 500 ? 'Internal error.' : 'Bad request.';
+    return reply(res, status >= 400 && status < 600 ? status : 500, message);
+  });
   return app;
 }

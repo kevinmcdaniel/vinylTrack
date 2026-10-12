@@ -18,7 +18,7 @@ if (config.mode === 'gmail') {
 } else {
   // Log mode (development/test only; config refuses it in production): print
   // the link so local sign-in works without Google credentials.
-  sender = { send: async (m) => { console.log(`mailer: [log mode] sign-in link for ${m.to}: ${m.text.split('\n')[2]}`); } };
+  sender = { send: async (m) => { console.log(`mailer: [log mode] sign-in link for ${m.to}: ${m.url}`); } };
 }
 
 const health = createHealthMonitor({ mode: config.mode, checkToken, intervalMs: 15 * 60_000, log });
@@ -28,6 +28,9 @@ const app = createApp({
   config,
   sender,
   limiter: createRateLimiter({ limit: 3, windowMs: 15 * 60_000 }),
+  // Bounds a leaked mailer_token or a compromised be: the family mailbox sends
+  // at most this many sign-in emails per 15 minutes, to anyone.
+  globalLimiter: createRateLimiter({ limit: 30, windowMs: 15 * 60_000 }),
   log,
   isHealthy: health.isHealthy,
 });

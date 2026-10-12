@@ -16,7 +16,11 @@ type LogFn = (...parts: unknown[]) => void;
 let sender: Sender & { send: ReturnType<typeof vi.fn<Sender['send']>> };
 let log: ReturnType<typeof vi.fn<LogFn>>;
 let healthy: boolean;
-const app = () => createApp({ config, sender, limiter: createRateLimiter({ limit: 3, windowMs: 900_000, now: () => 0 }), log, isHealthy: () => healthy });
+const limiters = () => ({
+  limiter: createRateLimiter({ limit: 3, windowMs: 900_000, now: () => 0 }),
+  globalLimiter: createRateLimiter({ limit: 30, windowMs: 900_000, now: () => 0 }),
+});
+const app = () => createApp({ config, sender, ...limiters(), log, isHealthy: () => healthy });
 const post = (body: object, token: string | null = TOKEN) => {
   const r = request(app()).post('/magic-link');
   return (token ? r.set('Authorization', `Bearer ${token}`) : r).send(body);
@@ -70,11 +74,46 @@ describe('POST /magic-link', () => {
   });
 
   it('429s the fourth request for one recipient in the window', async () => {
-    const shared = createApp({ config, sender, limiter: createRateLimiter({ limit: 3, windowMs: 900_000, now: () => 0 }), log, isHealthy: () => true });
+    const shared = createApp({ config, sender, ...limiters(), log, isHealthy: () => true });
     const send = () => request(shared).post('/magic-link').set('Authorization', `Bearer ${TOKEN}`).send({ to: 'a@example.com', url: goodUrl });
     for (let i = 0; i < 3; i++) expect((await send()).status).toBe(200);
     expect((await send()).status).toBe(429);
     expect(sender.send).toHaveBeenCalledTimes(3);
+  });
+
+  it('counts +tag and Gmail dot variants as the same recipient', async () => {
+    const shared = createApp({ config, sender, ...limiters(), log, isHealthy: () => true });
+    const send = (to: string) => request(shared).post('/magic-link').set('Authorization', `Bearer ${TOKEN}`).send({ to, url: goodUrl });
+    for (const to of ['someone@gmail.com', 'some.one+1@gmail.com', 'Some.One+2@GMAIL.com']) expect((await send(to)).status).toBe(200);
+    expect((await send('s.o.m.e.o.n.e+3@googlemail.com')).status).toBe(429);
+  });
+
+  it('429s once the global cap is reached, whoever the recipients are', async () => {
+    const shared = createApp({
+      config, sender, log, isHealthy: () => true,
+      limiter: createRateLimiter({ limit: 3, windowMs: 900_000, now: () => 0 }),
+      globalLimiter: createRateLimiter({ limit: 5, windowMs: 900_000, now: () => 0 }),
+    });
+    const send = (i: number) => request(shared).post('/magic-link').set('Authorization', `Bearer ${TOKEN}`).send({ to: `p${i}@example.com`, url: goodUrl });
+    for (let i = 0; i < 5; i++) expect((await send(i)).status).toBe(200);
+    expect((await send(99)).status).toBe(429);
+    expect(sender.send).toHaveBeenCalledTimes(5);
+  });
+
+  it('answers malformed JSON with a 400 envelope, no HTML and no stack trace', async () => {
+    const res = await request(app()).post('/magic-link').set('Authorization', `Bearer ${TOKEN}`)
+      .set('content-type', 'application/json').send('{"to": ');
+    expect(res.status).toBe(400);
+    expect(res.headers['content-type']).toMatch(/json/);
+    expect(res.body).toMatchObject({ data: null, status: 400 });
+    expect(JSON.stringify(res.body)).not.toMatch(/at |stack|node_modules/);
+  });
+
+  it('answers an oversized body with a 413 envelope', async () => {
+    const res = await request(app()).post('/magic-link').set('Authorization', `Bearer ${TOKEN}`)
+      .send({ to: 'a@example.com', url: goodUrl + 'x'.repeat(5000) });
+    expect(res.status).toBe(413);
+    expect(res.body).toMatchObject({ data: null, status: 413 });
   });
 
   it('502s when the sender fails', async () => {

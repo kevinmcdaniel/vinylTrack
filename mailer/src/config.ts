@@ -115,7 +115,17 @@ export function loadConfig(env: Env, readFile: ReadFile): Config {
   const publicHostname = required('PUBLIC_HOSTNAME');
   const fePort = env.FE_PORT_EXT ?? '5201';
   if (!production && !/^\d+$/.test(fePort)) problems.push(`FE_PORT_EXT must be a port number (got '${fePort}')`);
-  const linkOrigin = production ? `https://${publicHostname}` : `http://${publicHostname}:${fePort}`;
+  // Normalised exactly as URL.origin (lowercase host, default port dropped),
+  // because that's what links are compared against.
+  let linkOrigin = '';
+  if (publicHostname) {
+    try {
+      linkOrigin = new URL(production ? `https://${publicHostname}` : `http://${publicHostname}:${fePort}`).origin;
+      if (linkOrigin === 'null') throw new Error('no origin');
+    } catch {
+      problems.push(`PUBLIC_HOSTNAME is not a valid hostname (got '${publicHostname}')`);
+    }
+  }
 
   let gmail: Config['gmail'];
   if (mode === 'gmail') {
