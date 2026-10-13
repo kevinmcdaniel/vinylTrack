@@ -28,7 +28,7 @@ describe('createHealthMonitor', () => {
     const log = vi.fn();
     const checkToken = vi.fn(async () => {})
       .mockRejectedValueOnce(new TokenRevokedError('revoked'));
-    const monitor = createHealthMonitor({ mode: 'gmail', checkToken, intervalMs: 1000, log });
+    const monitor = createHealthMonitor({ mode: 'gmail', checkToken, intervalMs: 60_000, retryMs: 1000, log });
     await monitor.start();
     expect(monitor.isHealthy()).toBe(false);
     expect(log.mock.calls.join(' ')).toMatch(/revoked|re-authori/i);
@@ -41,6 +41,25 @@ describe('createHealthMonitor', () => {
     const monitor = createHealthMonitor({ mode: 'gmail', checkToken: vi.fn(async () => { throw new Error('ECONNRESET'); }), intervalMs: 1000, log: vi.fn() });
     await monitor.start();
     expect(monitor.isHealthy()).toBe(false);
+    monitor.stop();
+  });
+
+  it('rechecks every retryMs while unhealthy, then every intervalMs once healthy', async () => {
+    vi.useFakeTimers();
+    const checkToken = vi.fn(async () => {})
+      .mockRejectedValueOnce(new Error('blip'))
+      .mockRejectedValueOnce(new Error('blip'));
+    const monitor = createHealthMonitor({ mode: 'gmail', checkToken, intervalMs: 15 * 60_000, retryMs: 30_000, log: vi.fn() });
+    await monitor.start();                       // 1st: fails
+    expect(monitor.isHealthy()).toBe(false);
+    await vi.advanceTimersByTimeAsync(30_000);   // 2nd: fails
+    expect(checkToken).toHaveBeenCalledTimes(2);
+    await vi.advanceTimersByTimeAsync(30_000);   // 3rd: passes
+    expect(monitor.isHealthy()).toBe(true);
+    await vi.advanceTimersByTimeAsync(60_000);   // healthy: no recheck at 30 s
+    expect(checkToken).toHaveBeenCalledTimes(3);
+    await vi.advanceTimersByTimeAsync(15 * 60_000);
+    expect(checkToken).toHaveBeenCalledTimes(4);
     monitor.stop();
   });
 });

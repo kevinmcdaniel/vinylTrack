@@ -106,18 +106,37 @@ Done once per server; redo the install step whenever `host/libexec/` changes.
    | `auth_secret` | random, ≥32 chars; encrypts the session cookie |
    | `turnstile_secret_key` | the **real** Turnstile widget's secret for `vinyl.<family-domain>` |
    | `google_oauth_client_secret` | from the Google OAuth client in `vinyltrack-503118` |
+   | `mailer_token` | random, ≥32 chars; shared by `be` and `mailer` |
+   | `gmail_client_secret` | the mailer's Desktop OAuth client secret (`vinyltrack-mailer` project) |
+   | `gmail_refresh_token` | written by `npm run authorize` (step 7 below) |
 
    | `/Users/_vinyltrack/.env` (host config, not secret) | what |
    |---|---|
    | `PUBLIC_HOSTNAME` | `vinyl.<family-domain>` |
    | `GOOGLE_OAUTH_CLIENT_ID` | the OAuth client's ID |
    | `TURNSTILE_SITE_KEY` | the real widget's site key (public; sent to every browser) |
+   | `MAILER_FROM` | the sender mailbox, e.g. `vinyltrack@<family-domain>` |
+   | `GMAIL_CLIENT_ID` | the mailer's OAuth client ID |
    | `FE_PORT_EXT` | optional, default `5201` |
 5. **GitHub `production` environment** (Settings → Environments):
    - Secrets `DEPLOY_SSH_KEY`, `DEPLOY_KNOWN_HOSTS`, `CF_ACCESS_CLIENT_ID`, `CF_ACCESS_CLIENT_SECRET`; variable `DEPLOY_HOST` ([hosting-remote-access.md](hosting-remote-access.md#ci-github-actions--deploy)).
    - *Required reviewers*: you.
    - *Deployment branches and tags* → *Selected branches and tags* → tag rule `v*`, and **nothing else**. No branch rules, `main` included: only a release tag may deploy.
-6. **GHCR packages public.** The first release creates `vinyltrack-be`, `vinyltrack-fe` and `vinyltrack-migrate` as *private* packages, and the server pulls without logging in. For each: github.com/kevinmcdaniel?tab=packages → the package → *Package settings* → *Change visibility* → Public. The repo is public anyway; this needs doing once, after the first release's image job and before its deploy is approved.
+6. **GHCR packages public.** The first release creates `vinyltrack-be`, `vinyltrack-fe`, `vinyltrack-migrate` (and, from #62, `vinyltrack-mailer`) as *private* packages, and the server pulls without logging in. For each: github.com/kevinmcdaniel?tab=packages → the package → *Package settings* → *Change visibility* → Public. The repo is public anyway; this needs doing once, after the first release's image job and before its deploy is approved.
+
+7. **The mailer's Gmail access (#62).** Releases from #62 on won't deploy until this is done: `deploy.sh` requires the mailer healthy, and it is only healthy with a working Gmail grant.
+   - **Sender user** in Workspace, e.g. `vinyltrack@<family-domain>`: a dedicated mailbox, never a person's, so a leaked token can only send as it. 2-step verification on, password in the password manager, no other use.
+   - **GCP project `vinyltrack-mailer`**, parent = the family domain's organization (IAM & Admin → Manage resources), **not** `vinyltrack-503118`: the consent-screen audience is per project, and family sign-in must be External while this must be Internal.
+     - APIs & Services → Library → **Gmail API** → Enable.
+     - OAuth consent screen: audience **Internal**; scopes: `https://www.googleapis.com/auth/gmail.send` **only**.
+     - Credentials → OAuth client ID → **Desktop app** → keep the client ID (`.env` `GMAIL_CLIENT_ID`) and secret (`secrets/gmail_client_secret`).
+   - **Admin console** → Security → Access and data control → API controls → Manage third-party app access → add the client ID → **Trusted**.
+   - **Authorize**, in a browser signed in as the **sender user**, from a checkout on your laptop:
+     ```bash
+     cd mailer && GMAIL_CLIENT_ID=… GMAIL_CLIENT_SECRET=… npm run authorize -- --out ./gmail_refresh_token
+     ```
+     It prints a consent URL, catches Google's redirect on `127.0.0.1`, and writes the token with mode `600`. It refuses to overwrite an existing file, so always pass a fresh path. Copy it to the server as `_vinyltrack` (`sudo -u _vinyltrack -H vi /Users/_vinyltrack/secrets/gmail_refresh_token`, paste), then delete the local file.
+   - **Check after the next deploy:** send a sign-in email to yourself, and in Gmail → *Show original* expect SPF, DKIM and DMARC all `PASS`.
 
 ## The images
 
@@ -126,5 +145,6 @@ Done once per server; redo the install step whenever `host/libexec/` changes.
 | `vinyltrack-be` | `gcr.io/distroless/nodejs24-debian13:nonroot` | compiled `dist/` + runtime deps only. No shell, no package manager, uid 65532 |
 | `vinyltrack-fe` | same | Next.js standalone output + `docs/` |
 | `vinyltrack-migrate` | same | Prisma CLI, schema engine, schema + migrations. Runs `prisma migrate deploy` and exits |
+| `vinyltrack-mailer` | same | compiled mailer + Express; reachable from `be` only (`mailnet`, internal), out to Google via `egress` |
 
 Distroless has no shell: `docker exec … sh` doesn't work, and Node is `/nodejs/bin/node`. Healthchecks in `compose.prod.yml` use Node's `fetch`. For a look inside a running container, `docker exec <c> /nodejs/bin/node -e "…"`.

@@ -185,13 +185,26 @@ Same steps as the monthly window, for just the affected piece.
 
 | credential | cadence | how |
 |---|---|---|
-| Mailer Gmail refresh token + `MAILER_TOKEN` | every 6 months, or on suspected leak | [#62](https://github.com/kevinmcdaniel/vinylTrack/issues/62) rotation steps |
+| Mailer Gmail refresh token + `mailer_token` | every 6 months, or on suspected leak | see [Mailer token](#mailer-token) below. **A revoked or expired grant fails every deploy** (mailer unhealthy) until replaced |
 | Cloudflare Access service token `vinyltrack-ci` (`CF_ACCESS_CLIENT_*`) | yearly, **before its 1-year expiry** | create a new token → add it to the `ssh.<family-domain>` CI policy → update the GitHub `production` secrets → test a `status` deploy → delete the old token |
 | CI deploy SSH key (`DEPLOY_SSH_KEY`) | yearly, alongside the service token | new ed25519 key → public half into `_vinyldeploy`'s `authorized_keys` (with `restrict`) → GitHub secret → test → remove the old public key |
 | Admin SSH key (`id_ed25519_vinyl_admin`) | on a new laptop, or on suspected leak | new key → add the public half on the Mac → test `ssh vinyl-admin` → remove the old one |
 | Cloudflare Tunnel token | on suspected leak | rotate the tunnel's token in the Cloudflare Zero Trust dashboard → write it to the token file (owner `_cloudflared`, mode `600`; see [`cloudflared` daemon](#cloudflared-daemon)) → `kickstart -k` the daemon |
 | Turnstile secret | on suspected leak | rotate in the Cloudflare dashboard → `secrets/turnstile_secret_key` → restart `be` |
 | Production DB password | on suspected leak | `ALTER USER` in Postgres and `secrets/db_password` together, then restart `be`. Postgres reads the file only when it first creates the database, so changing the file alone does nothing |
+
+### Mailer token
+
+The mailer's Gmail grant (#62) is a refresh token for the sender user, `gmail.send` only.
+
+1. Run `npm run authorize -- --out <new path>` as the sender user ([hosting-deploy.md](hosting-deploy.md#one-time-setup), step 7) → a new token file.
+2. Replace `/Users/_vinyltrack/secrets/gmail_refresh_token` (as `_vinyltrack`), then restart the mailer: `sudo -u _vinyltrack -H sh -c 'cd && v=$(cat current-version) && VINYLTRACK_VERSION=$v docker compose -p vinyltrack --env-file .env -f releases/$v/compose.prod.yml up -d --force-recreate mailer'`. **`--force-recreate` is required:** a changed secret file doesn't change the compose config, so a plain `up -d` leaves the old container running with the old token in memory. Check `deploy.sh status` shows it healthy **before** step 3, or step 3 revokes the token the mailer is still using.
+3. Revoke the old grant: the sender's Google Account → Security → Third-party connections, or Admin console → Security → API controls.
+4. Rotate `mailer_token` alongside it: new random value in `secrets/mailer_token`, then recreate **both** in one go: `up -d --force-recreate be mailer` (same command shape as step 2). Without `--force-recreate` neither restarts, and the old (possibly leaked) token keeps working.
+
+**Emergency stop: change the sender user's password.** Google revokes every refresh token carrying Gmail scopes on a password change. Expect the mailer to go unhealthy, and deploys to fail, until step 1–2 are redone.
+
+**Known gap:** the mailer's `egress` network can reach any host, not only Google's APIs. Docker/Colima can't restrict destinations without a filtering proxy. The fixed template, link allowlist, bearer token and rate limits (3 per recipient, 30 overall, per 15 min) are what bound misuse.
 
 **Emergency revoke:** deleting the `vinyltrack-ci` service token in Zero Trust cuts CI off at the edge immediately. Removing a key from `authorized_keys` cuts that key off at the Mac. Either alone is enough.
 

@@ -104,6 +104,12 @@ The copied design system in `design/system/` is **not** wired in — it's still 
 - The BE has two loaders: `getConfig()` (everything, used by the app) and `getDatabaseConfig()` (APP_ENV + DB only, used by `database.ts` and `prisma.config.ts`), so `migrate`/`seed`/`studio` never need the auth secrets. Auth secrets (`internal_api_secret`, `turnstile_secret_key`) are mounted into `be` only.
 - BE tests in `src/tests/` all run `src/tests/setup.ts`, whose `afterAll` needs a live DB — even pure unit tests like `config.test.ts`. Run the suite inside `vinyl.be`.
 
+### Mailer (#62)
+- `mailer/` is a third package (Express 5, same toolchain and config pattern as `be`; tests in `mailer/src/tests/`, no DB). It sends **one fixed email** (the sign-in link) through the family Workspace's Gmail API as a dedicated sender user: `POST /magic-link { to, url }` with bearer `mailer_token`, link allowlisted to the app origin, one recipient, 3 per recipient + 30 overall per 15 min, logs the recipient's domain only.
+- `GET /health` reflects a Gmail token check (at start, then every 15 min while healthy and every 30 s while not); `invalid_grant` → 503. `deploy.sh` requires every long-running service in the *target release's* `compose.prod.yml` healthy (`compose config --services`, minus `migrate`), so from #62 on **a revoked Gmail grant blocks releases until re-authorised** (`npm run authorize`, runbook in `docs/hosting-maintenance.md`); rollbacks to pre-#62 releases check only the services those releases have.
+- `MAILER_MODE=log` (dev/test) prints links instead of sending; production refuses it. Dev compose runs the mailer in log mode.
+- Network: `mailnet` (`internal: true`) holds only `be` and `mailer`; prod `mailer` also joins `egress` (any destination: known gap). `be` gets `MAILER_URL` + `mailer_token`; #74 adds the caller.
+
 ### Release and deploy (#60)
 - **A `v*` tag is a release**; nothing deploys from `main`. `release.yml` re-runs `ci.yml` (`workflow_call`) on the tagged commit, builds arm64 images to GHCR, creates the GitHub Release with `compose.prod.yml` attached, then calls `deploy.yml`, which waits for approval on the `production` environment. Redeploy/rollback: `gh workflow run deploy.yml --ref <tag> [-f action=rollback]`. Runbook: `docs/hosting-deploy.md`.
 - The git tag is the only version (`VINYLTRACK_VERSION`, baked in at build, reported by `/api/health`). Don't bump `package.json` versions.

@@ -1,15 +1,24 @@
 // health.ts - whether the mailer can actually send (#62). In gmail mode a
-// token refresh runs at start and every intervalMs; a revoked grant (or any
-// failure) makes /health 503, which blocks deploys (deploy.sh) and feeds
+// token refresh runs at start, then every intervalMs while healthy and every
+// retryMs while not, so a brief Google blip during a deploy clears well within
+// deploy.sh's health window instead of lasting a full interval. A revoked
+// grant (or any failure) makes /health 503, which blocks deploys and feeds
 // monitoring. Log mode can't fail to send, so it's always healthy.
 import type { MailerMode } from './config.js';
 import { TokenRevokedError } from './gmail.js';
 
 export function createHealthMonitor({
-  mode, checkToken, intervalMs, log,
-}: { mode: MailerMode; checkToken: () => Promise<void>; intervalMs: number; log: (...parts: unknown[]) => void }) {
+  mode, checkToken, intervalMs, retryMs = 30_000, log,
+}: {
+  mode: MailerMode;
+  checkToken: () => Promise<void>;
+  intervalMs: number;
+  retryMs?: number;
+  log: (...parts: unknown[]) => void;
+}) {
   let healthy = mode === 'log';
-  let timer: ReturnType<typeof setInterval> | undefined;
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let stopped = false;
 
   async function check() {
     try {
@@ -23,16 +32,25 @@ export function createHealthMonitor({
     }
   }
 
+  function schedule() {
+    if (stopped) return;
+    timer = setTimeout(async () => {
+      await check();
+      schedule();
+    }, healthy ? intervalMs : retryMs);
+    timer.unref?.();
+  }
+
   return {
     isHealthy: () => healthy,
     async start() {
       if (mode === 'log') return;
       await check();
-      timer = setInterval(() => { void check(); }, intervalMs);
-      timer.unref?.();
+      schedule();
     },
     stop() {
-      if (timer) clearInterval(timer);
+      stopped = true;
+      if (timer) clearTimeout(timer);
     },
   };
 }

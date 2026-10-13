@@ -13,7 +13,6 @@
 ROOT=/Users/_vinyltrack
 REPO=kevinmcdaniel/vinylTrack
 PROJECT=vinyltrack
-SERVICES="db be fe"
 HEALTH_TRIES=60       # × 2s
 TAG_RE='^v[0-9]+\.[0-9]+\.[0-9]+(-rc\.[0-9]+)?$'
 
@@ -58,11 +57,26 @@ backup() {
   fi
 }
 
+# Every long-running service in *that release's* compose file must be healthy
+# for a deploy to count: from #62 on that includes the mailer (a revoked Gmail
+# grant fails releases), while a rollback to an older release checks only what
+# it has. `migrate` is a one-shot, never health-checked.
+release_services() {
+  local file="$1" list svc out=""
+  list="$(compose "$file" config --services)" || return 1
+  for svc in $list; do
+    [ "$svc" = migrate ] || out="$out $svc"
+  done
+  [ -n "$out" ] || return 1
+  echo "$out"
+}
+
 wait_healthy() {
-  local file="$1" tries="$2" i svc id state all report
+  local file="$1" tries="$2" i svc id state all report services
+  services="$(release_services "$file")" || { log "could not read the services in $file"; return 1; }
   for ((i = 0; i < tries; i++)); do
     all=1 report=""
-    for svc in $SERVICES; do
+    for svc in $services; do
       id="$(compose "$file" ps -q "$svc")"
       state="$(docker inspect -f '{{.State.Health.Status}}' "$id" 2>/dev/null)" || state="missing"
       [ -n "$state" ] || state="missing"

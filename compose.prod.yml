@@ -6,7 +6,7 @@
 #   (#65), mounted only into the services that list them.
 # - Host config (not secret, kept out of the repo) comes from
 #   /Users/_vinyltrack/.env via --env-file: PUBLIC_HOSTNAME, GOOGLE_OAUTH_CLIENT_ID,
-#   TURNSTILE_SITE_KEY (all required; none secret), FE_PORT_EXT,
+#   TURNSTILE_SITE_KEY, MAILER_FROM, GMAIL_CLIENT_ID (all required; none secret), FE_PORT_EXT,
 #   and optionally VINYLTRACK_SECRETS_DIR for a local test run.
 # - Nothing publishes a port except the FE, on 127.0.0.1 only: the Cloudflare
 #   Tunnel is the only way in. No seed, no Studio.
@@ -71,9 +71,12 @@ services:
       PUBLIC_HOSTNAME: ${PUBLIC_HOSTNAME:?set PUBLIC_HOSTNAME in /Users/_vinyltrack/.env}
       INTERNAL_API_SECRET_FILE: /run/secrets/internal_api_secret
       TURNSTILE_SECRET_KEY_FILE: /run/secrets/turnstile_secret_key
+      # The mailer (#62); be is its only caller.
+      MAILER_URL: http://mailer:3000
+      MAILER_TOKEN_FILE: /run/secrets/mailer_token
     # Auth secrets go to be only; migrate needs just the DB (#73).
-    secrets: [db_password, internal_api_secret, turnstile_secret_key]
-    networks: [backend]
+    secrets: [db_password, internal_api_secret, turnstile_secret_key, mailer_token]
+    networks: [backend, mailnet]
     depends_on:
       db:
         condition: service_healthy
@@ -108,8 +111,35 @@ services:
       <<: *node-health
       test: ["CMD", "/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:4000/api/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
 
+  # Internal mailer (#62): sends the sign-in email through the family Workspace.
+  # No published port and no tunnel route; only be can reach it (mailnet), and
+  # it reaches Google through egress. Must be healthy for a deploy to count.
+  mailer:
+    image: ghcr.io/kevinmcdaniel/vinyltrack-mailer:${VINYLTRACK_VERSION:?set VINYLTRACK_VERSION to the release tag}
+    restart: unless-stopped
+    environment:
+      APP_ENV: production
+      PORT: "3000"
+      PUBLIC_HOSTNAME: ${PUBLIC_HOSTNAME:?set PUBLIC_HOSTNAME in /Users/_vinyltrack/.env}
+      MAILER_FROM: ${MAILER_FROM:?set MAILER_FROM in /Users/_vinyltrack/.env}
+      GMAIL_CLIENT_ID: ${GMAIL_CLIENT_ID:?set GMAIL_CLIENT_ID in /Users/_vinyltrack/.env}
+      MAILER_TOKEN_FILE: /run/secrets/mailer_token
+      GMAIL_CLIENT_SECRET_FILE: /run/secrets/gmail_client_secret
+      GMAIL_REFRESH_TOKEN_FILE: /run/secrets/gmail_refresh_token
+    secrets: [mailer_token, gmail_client_secret, gmail_refresh_token]
+    networks: [mailnet, egress]
+    healthcheck:
+      <<: *node-health
+      test: ["CMD", "/nodejs/bin/node", "-e", "fetch('http://127.0.0.1:3000/health').then(r => process.exit(r.ok ? 0 : 1), () => process.exit(1))"]
+
 networks:
   backend: {}
+  # be <-> mailer only, and no route out.
+  mailnet:
+    internal: true
+  # The mailer's way out to Google. Docker can't restrict destinations, so any
+  # host is reachable from here: a known gap (#62).
+  egress: {}
 
 volumes:
   vinyldb: {}
@@ -125,3 +155,9 @@ secrets:
     file: ${VINYLTRACK_SECRETS_DIR:-/Users/_vinyltrack/secrets}/auth_secret
   google_oauth_client_secret:
     file: ${VINYLTRACK_SECRETS_DIR:-/Users/_vinyltrack/secrets}/google_oauth_client_secret
+  mailer_token:
+    file: ${VINYLTRACK_SECRETS_DIR:-/Users/_vinyltrack/secrets}/mailer_token
+  gmail_client_secret:
+    file: ${VINYLTRACK_SECRETS_DIR:-/Users/_vinyltrack/secrets}/gmail_client_secret
+  gmail_refresh_token:
+    file: ${VINYLTRACK_SECRETS_DIR:-/Users/_vinyltrack/secrets}/gmail_refresh_token

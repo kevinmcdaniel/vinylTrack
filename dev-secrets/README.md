@@ -10,6 +10,7 @@ obviously fake values, so `docker compose up` works straight after a clone.
 | `auth_secret` | `/run/secrets/auth_secret` | `AUTH_SECRET_FILE` (fe): encrypts the Auth.js session cookie |
 | `turnstile_secret_key` | `/run/secrets/turnstile_secret_key` | `TURNSTILE_SECRET_KEY_FILE` (be): Cloudflare's always-pass **test** secret |
 | `automation_key` | `/run/secrets/automation_key` | `AUTOMATION_KEY_FILE` (be): Turnstile automation mode, so the Bruno `auth` checks run locally |
+| `mailer_token` | `/run/secrets/mailer_token` | `MAILER_TOKEN_FILE` (be, mailer): be's bearer token for the mailer. The dev mailer runs in log mode, so there are no Gmail secrets here |
 
 Rules (naming convention in #65):
 
