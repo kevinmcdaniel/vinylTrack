@@ -140,6 +140,28 @@ describe('POST /api/auth/sign-in', () => {
     expect(await prisma.user.findUnique({ where: { email: `${T}bot@example.com` } })).toBeNull();
   });
 
+  it('accepts provider email with no Turnstile token: the requester already passed it, and the link is single-use (#74)', async () => {
+    vi.restoreAllMocks(); // earlier tests' spies would carry their call history
+    const fetchSpy = vi.spyOn(globalThis, 'fetch');
+    const res = await request(app).post('/api/auth/sign-in').set(await service())
+      .send({ provider: 'email', email: `${T}magic@example.com` });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toMatchObject({ status: 'pending', isAdmin: false });
+    expect(fetchSpy).not.toHaveBeenCalled(); // no siteverify
+  });
+
+  it('still requires Turnstile for google (and dev)', async () => {
+    siteverify({ success: false, 'error-codes': ['missing-input-response'] });
+    for (const provider of ['google', 'dev']) {
+      const res = await request(app).post('/api/auth/sign-in').set(await service()).send({ provider, email: `${T}x-${provider}@example.com` });
+      expect(res.status, provider).toBe(401);
+    }
+  });
+
+  it('still requires the service token for provider email', async () => {
+    expect((await request(app).post('/api/auth/sign-in').send({ provider: 'email', email: `${T}nosvc@example.com` })).status).toBe(401);
+  });
+
   it('406s an unknown provider', async () => {
     siteverify(testKeyOk);
     const res = await request(app).post('/api/auth/sign-in').set(await service())

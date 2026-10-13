@@ -149,6 +149,16 @@ describe('loadConfig', () => {
     expect(loadConfig({ ...base, APP_ENV: 'test', DB_PASSWORD: 'pw' }, noFiles).devIdentityHeader).toBe(true);
   });
 
+  it('leaves the mailer off outside production unless both its settings are set (#74)', () => {
+    expect(loadConfig({ ...base, DB_PASSWORD: 'pw' }, noFiles).mailer).toBeUndefined();
+    const config = loadConfig({ ...base, DB_PASSWORD: 'pw', MAILER_URL: 'http://mailer:3000', MAILER_TOKEN: 'm'.repeat(32) }, noFiles);
+    expect(config.mailer).toEqual({ url: 'http://mailer:3000', token: 'm'.repeat(32) });
+    expect(problemsOf(() => loadConfig({ ...base, DB_PASSWORD: 'pw', MAILER_URL: 'http://mailer:3000' }, noFiles)))
+      .toEqual([expect.stringContaining('together')]);
+    expect(problemsOf(() => loadConfig({ ...base, DB_PASSWORD: 'pw', MAILER_URL: 'not a url', MAILER_TOKEN: 'm'.repeat(32) }, noFiles)))
+      .toEqual([expect.stringContaining('MAILER_URL')]);
+  });
+
   it('rejects AUTH_BOOTSTRAP_OWNER_EMAIL anywhere: the fallback identity is gone', () => {
     expect(problemsOf(() => loadConfig({ ...base, DB_PASSWORD: 'pw', AUTH_BOOTSTRAP_OWNER_EMAIL: 'kevin@example.com' }, noFiles)))
       .toEqual([expect.stringContaining('AUTH_BOOTSTRAP_OWNER_EMAIL')]);
@@ -164,11 +174,14 @@ describe('loadConfig', () => {
       DB_PASSWORD_FILE: '/run/secrets/db_password',
       INTERNAL_API_SECRET_FILE: '/run/secrets/internal_api_secret',
       TURNSTILE_SECRET_KEY_FILE: '/run/secrets/turnstile_secret_key',
+      MAILER_URL: 'http://mailer:3000',
+      MAILER_TOKEN_FILE: '/run/secrets/mailer_token',
     };
     const secretFiles: Record<string, string> = {
       '/run/secrets/db_password': 'pw\n',
       '/run/secrets/internal_api_secret': `${INTERNAL}\n`,
       '/run/secrets/turnstile_secret_key': '0x4AAAAAAAreal-looking-secret\n',
+      '/run/secrets/mailer_token': `${'m'.repeat(32)}\n`,
     };
     const prodFiles = files(secretFiles);
 
@@ -197,6 +210,13 @@ describe('loadConfig', () => {
         expect(problems.length, JSON.stringify(extra)).toBeGreaterThan(0);
         expect(problems.join('\n'), JSON.stringify(extra)).toMatch(/not allowed in production/);
       }
+    });
+
+    it('requires the mailer in production (magic links, #74)', () => {
+      const { MAILER_URL: _u, MAILER_TOKEN_FILE: _t, ...noMailer } = prod;
+      const problems = problemsOf(() => loadConfig(noMailer, prodFiles)).join('\n');
+      expect(problems).toMatch(/MAILER_URL/);
+      expect(problems).toMatch(/MAILER_TOKEN_FILE/);
     });
 
     it("refuses Cloudflare's test Turnstile secrets (1x/2x/3x)", () => {

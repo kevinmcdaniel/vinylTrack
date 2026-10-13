@@ -178,3 +178,14 @@ model want_item {
   @@index([artistId])
   @@index([albumId])
 }
+
+// One-time magic-link tokens (#74), written by the FE's Auth.js adapter through
+// service-token BE endpoints. `token` is already hashed by Auth.js. Used rows
+// are deleted; expired, never-used rows linger until cleanup (#87).
+model verification_token {
+  identifier String
+  token      String
+  expires    DateTime
+
+  @@unique([identifier, token])
+}

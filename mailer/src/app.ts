@@ -56,7 +56,11 @@ export function createApp({ config, sender, limiter, globalLimiter, log, isHealt
 
   const requireToken = (req: Request, res: Response, next: NextFunction) => {
     const match = /^Bearer (.+)$/.exec(req.headers.authorization ?? '');
-    if (!match || !sameToken(match[1]!, config.mailerToken)) return reply(res, 401, 'Unauthorized.');
+    if (!match || !sameToken(match[1]!, config.mailerToken)) {
+      // A mismatched mailer_token otherwise shows up only as the BE's 502.
+      log('magic-link', 'unauthorized', match ? 'wrong token' : 'no token');
+      return reply(res, 401, 'Unauthorized.');
+    }
     next();
   };
 

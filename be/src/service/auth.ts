@@ -2,7 +2,7 @@
 import { Prisma, type PrismaClient } from '../generated/client/client.js';
 import { AuthError, ValidationError } from '../common/errorHandler.js';
 
-export type SignInProvider = 'google' | 'dev';
+export type SignInProvider = 'google' | 'email' | 'dev';
 export type SignInInput = { provider: SignInProvider; email: string; name?: string | null; avatar?: string | null };
 export type SignedInUser = { id: string; email: string; name: string | null; status: string; isAdmin: boolean };
 
@@ -25,7 +25,7 @@ function isWriteConflict(error: unknown): boolean {
 // regardless of case, so nobody gets a second account over capitalisation.
 const byEmail = (email: string) => ({ email: { equals: email, mode: 'insensitive' as const } });
 
-// Google (or, later, magic link): find the user by email, or create one.
+// Google or a magic link (#74): find the user by email, or create one.
 // The very first user ever, on a completely empty user table, becomes an
 // active admin; everyone after that starts pending and needs approval.
 // Dev provider (development/test only): signs in an existing user, never creates.
