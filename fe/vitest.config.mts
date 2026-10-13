@@ -8,6 +8,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/tests/setup.ts'],
+    // next-auth imports `next/server` without an extension; let Vite resolve it.
+    server: { deps: { inline: ['next-auth'] } },
   },
   resolve: {
     alias: {
