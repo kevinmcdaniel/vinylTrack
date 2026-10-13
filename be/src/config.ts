@@ -24,6 +24,9 @@ export type Config = {
   automation?: { key: string; testSecretKey: string };
   // x-user-email identity for the BE suite and Bruno: development/test only.
   devIdentityHeader: boolean;
+  // The internal mailer (#62), for magic links (#74). Required in production;
+  // optional elsewhere (CI's BE job has no mailer).
+  mailer?: { url: string; token: string };
 };
 
 export class ConfigError extends Error {
@@ -138,6 +141,26 @@ export function loadConfig(env: Env, readFile: ReadFile): Config {
     }
   }
 
+  let mailer: Config['mailer'];
+  const mailerUrl = env.MAILER_URL;
+  const mailerToken = readOptionalSecret('mailer_token', env, readFile, effectiveEnv);
+  if (mailerToken && 'problem' in mailerToken) problems.push(mailerToken.problem);
+  if (mailerUrl !== undefined) {
+    try {
+      const parsed = new URL(mailerUrl);
+      if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') throw new Error('scheme');
+    } catch {
+      problems.push(`MAILER_URL must be an http(s) URL (got '${mailerUrl}')`);
+    }
+  }
+  if (effectiveEnv === 'production') {
+    if (!mailerUrl) problems.push('MAILER_URL is not set (required in production for magic links)');
+    if (!mailerToken) problems.push("MAILER_TOKEN_FILE is not set (secret 'mailer_token', required in production)");
+  } else if (!mailerUrl !== !mailerToken) {
+    problems.push('MAILER_URL and the mailer_token secret must be set together');
+  }
+  if (mailerUrl && mailerToken && 'value' in mailerToken) mailer = { url: mailerUrl.replace(/\/$/, ''), token: mailerToken.value };
+
   if (problems.length > 0 || !appEnv || 'problem' in password || 'problem' in internalApiSecret || 'problem' in turnstileSecret) {
     throw new ConfigError(problems);
   }
@@ -153,6 +176,7 @@ export function loadConfig(env: Env, readFile: ReadFile): Config {
     turnstile: { secretKey: turnstileSecret.value, expectedHostname: publicHostname },
     ...(automation ? { automation } : {}),
     devIdentityHeader: appEnv !== 'production',
+    ...(mailer ? { mailer } : {}),
   };
 }
 
