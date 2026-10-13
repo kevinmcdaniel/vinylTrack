@@ -56,8 +56,15 @@ before concluding anything is unimplemented.
 docker exec vinyl.be sh -c "cd /app && npx prisma migrate dev --name <descriptive_name>"
 ```
 
-`migrate dev` creates a migration SQL file in `src/prisma/migrations/` AND applies it AND
-regenerates the client. One command does all three.
+`migrate dev` creates a migration SQL file in `src/prisma/migrations/` AND applies it.
+**On Prisma 7 it no longer regenerates the client**, so follow it with:
+
+```bash
+docker exec vinyl.be sh -c "cd /app && npx prisma generate"
+```
+
+Without it, the running app and tests see the old client (`prisma.<new_model>` is
+`undefined`). Restarting `vinyl.be` also works, because `npm run dev` runs `prisma generate`.
 
 **If `migrate dev` fails with P3014 (shadow database error):**
 
