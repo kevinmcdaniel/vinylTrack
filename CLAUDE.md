@@ -106,7 +106,7 @@ The copied design system in `design/system/` is **not** wired in — it's still 
 
 ### Mailer (#62)
 - `mailer/` is a third package (Express 5, same toolchain and config pattern as `be`; tests in `mailer/src/tests/`, no DB). It sends **one fixed email** (the sign-in link) through the family Workspace's Gmail API as a dedicated sender user: `POST /magic-link { to, url }` with bearer `mailer_token`, link allowlisted to the app origin, one recipient, 3 per recipient + 30 overall per 15 min, logs the recipient's domain only.
-- `GET /health` reflects a Gmail token check (start + every 15 min); `invalid_grant` → 503, and `deploy.sh` requires the mailer healthy, so **a revoked Gmail grant blocks releases** until re-authorised (`npm run authorize`, runbook in `docs/hosting-maintenance.md`).
+- `GET /health` reflects a Gmail token check (start + every 15 min); `invalid_grant` → 503, and `deploy.sh` requires every long-running service in the *target release's* `compose.prod.yml` healthy (`compose config --services`, minus `migrate`), so from #62 on **a revoked Gmail grant blocks releases**, while rollbacks to older releases check only what those have until re-authorised (`npm run authorize`, runbook in `docs/hosting-maintenance.md`).
 - `MAILER_MODE=log` (dev/test) prints links instead of sending; production refuses it. Dev compose runs the mailer in log mode.
 - Network: `mailnet` (`internal: true`) holds only `be` and `mailer`; prod `mailer` also joins `egress` (any destination: known gap). `be` gets `MAILER_URL` + `mailer_token`; #74 adds the caller.
 

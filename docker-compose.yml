@@ -169,6 +169,8 @@ services:
       PUBLIC_HOSTNAME: localhost
       MAILER_MODE: log
       MAILER_FROM: vinyltrack@example.org
+      # Links point at the dev FE, which may be on an overridden port.
+      FE_PORT_EXT: ${FE_PORT_EXT:-5201}
       MAILER_TOKEN_FILE: /run/secrets/mailer_token
     secrets: [mailer_token]
     volumes:

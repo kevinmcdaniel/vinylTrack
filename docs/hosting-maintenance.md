@@ -198,9 +198,9 @@ Same steps as the monthly window, for just the affected piece.
 The mailer's Gmail grant (#62) is a refresh token for the sender user, `gmail.send` only.
 
 1. Run `npm run authorize -- --out <new path>` as the sender user ([hosting-deploy.md](hosting-deploy.md#one-time-setup), step 7) → a new token file.
-2. Replace `/Users/_vinyltrack/secrets/gmail_refresh_token` (as `_vinyltrack`), then restart the mailer: `sudo -u _vinyltrack -H sh -c 'cd && v=$(cat current-version) && VINYLTRACK_VERSION=$v docker compose -p vinyltrack --env-file .env -f releases/$v/compose.prod.yml up -d mailer'`. Check `deploy.sh status` shows it healthy.
+2. Replace `/Users/_vinyltrack/secrets/gmail_refresh_token` (as `_vinyltrack`), then restart the mailer: `sudo -u _vinyltrack -H sh -c 'cd && v=$(cat current-version) && VINYLTRACK_VERSION=$v docker compose -p vinyltrack --env-file .env -f releases/$v/compose.prod.yml up -d --force-recreate mailer'`. **`--force-recreate` is required:** a changed secret file doesn't change the compose config, so a plain `up -d` leaves the old container running with the old token in memory. Check `deploy.sh status` shows it healthy **before** step 3, or step 3 revokes the token the mailer is still using.
 3. Revoke the old grant: the sender's Google Account → Security → Third-party connections, or Admin console → Security → API controls.
-4. Rotate `mailer_token` alongside it: new random value in `secrets/mailer_token`, then restart **both** `be` and `mailer` in one `up -d be mailer`.
+4. Rotate `mailer_token` alongside it: new random value in `secrets/mailer_token`, then recreate **both** in one go: `up -d --force-recreate be mailer` (same command shape as step 2). Without `--force-recreate` neither restarts, and the old (possibly leaked) token keeps working.
 
 **Emergency stop: change the sender user's password.** Google revokes every refresh token carrying Gmail scopes on a password change. Expect the mailer to go unhealthy, and deploys to fail, until step 1–2 are redone.
 
