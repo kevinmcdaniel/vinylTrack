@@ -19,7 +19,8 @@ Steps 1–3 run straight away. Step 4 sits as *Waiting for review* until you app
 
 - The **git tag is the only version.** `be/` and `fe/` `package.json` versions are never bumped.
 - The tag is baked into every image at build time. `GET /api/health` on the BE and the FE reports it, so `curl …/api/health` always tells you what's running.
-- `vX.Y.Z-rc.N` for dry runs (GitHub pre-release, no `latest` image tag), `vX.Y.Z` for real releases. Before 1.0: minor for features, patch for fixes. `v1.0.0` once the family is using it (after #11).
+- `vX.Y.Z-rc.N` for dry runs (GitHub pre-release, no `latest` image tag), `vX.Y.Z` for real releases. Before 1.0: minor for features, patch for fixes. `v1.0.0` once the family is using it.
+- **Never tag an `-rc` for a version that's already released.** `v0.1.0-rc.3` sorts *below* `v0.1.0`, so newer code would carry an older version and the older release stays "Latest". After `vX.Y.Z` ships, the next candidates are `vX.Y+1.0-rc.N` (or `vX.Y.Z+1-rc.N`). `v0.1.0` (Oct 8) is a pre-auth build superseded by `v0.2.0`.
 - **If 30 days pass without a release, cut a patch release anyway**, to pick up base-image security fixes ([hosting-maintenance.md](hosting-maintenance.md#app-images-and-base-images)).
 
 ## Everyday use
@@ -30,7 +31,9 @@ git tag v0.2.0 && git push origin v0.2.0      # release; approve the deploy in A
 gh run watch                                   # follow it
 ```
 
-Approve in GitHub: Actions → the *Release* run → *Review deployments* → `production` → Approve.
+Approve in GitHub: Actions → the *Release* run → *Review deployments* → tick `production` → **Approve and deploy** (without the tick, nothing happens).
+
+**Check the run's tag before approving.** Deploys wait for approval for up to 30 days, so an older release's deploy can still be sitting in the queue: on #75, approving a forgotten `v0.1.0` deploy put pre-auth code back on the server. When you cut a newer release, cancel or reject any older deploy still waiting (`gh run cancel <id>`).
 
 **Redeploy or roll back** by running `deploy.yml` *from the tag you want*:
 
