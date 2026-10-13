@@ -1,0 +1,34 @@
+meta {
+  name: magic-link (automation, flagged user)
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{baseUrl}}/api/auth/magic-link
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{serviceToken}}
+  x-automation-key: {{automationKey}}
+}
+
+body:json {
+  { "email": "{{ownerEmail}}", "url": "http://localhost:5201/api/auth/callback/email?token=bruno&email=x", "turnstileToken": "XXXX.DUMMY.TOKEN.XXXX" }
+}
+
+tests {
+  // Over the wire to a log-mode mailer (#74). CI's mailer is fresh, so 200.
+  // Locally the mailer's 3-per-15-min limit for this address can be spent by
+  // earlier runs; 429 still proves BE → mailer works.
+  test("the BE asks the mailer and passes on its answer", function() {
+    if (bru.getVar('turnstileAlwaysFails')) {
+      expect(res.status).to.equal(200);
+    } else {
+      expect([200, 429]).to.include(res.status);
+    }
+    if (res.status === 200) expect(res.body.data).to.eql({ sent: true });
+  });
+}

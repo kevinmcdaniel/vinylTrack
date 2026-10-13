@@ -113,13 +113,19 @@ jobs:
       # through. AUTOMATION_KEY itself is generated per run, below.
       TURNSTILE_TEST_SECRET_KEY: 1x0000000000000000000000000000000AA
       TURNSTILE_ALWAYS_FAILS: "true"
+      # Magic links (#74): the BE calls a real mailer in log mode, started
+      # below, so POST /api/auth/magic-link goes over the wire end to end.
+      MAILER_URL: http://localhost:5299
+      MAILER_TOKEN: ci-mailer-token-not-a-secret-0123456789abcdef
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
           cache: npm
-          cache-dependency-path: be/package-lock.json
+          cache-dependency-path: |
+            be/package-lock.json
+            mailer/package-lock.json
       # npm 11.6.1 writes lockfiles every other npm rejects (#44), and the npm
       # bundled with Node drifts across patch releases — so pin it explicitly
       # rather than inheriting whatever Node 24 happens to ship.
@@ -130,6 +136,26 @@ jobs:
       # The collection drives the x-user-email dev identities (#26) and asserts
       # on seeded rows, so it needs the seed, not just the schema.
       - run: npx prisma db seed
+
+      - name: Start mailer (log mode) and wait for /health
+        working-directory: mailer
+        env:
+          PORT: "5299"
+          MAILER_MODE: log
+          MAILER_FROM: vinyltrack@example.org
+        run: |
+          npm ci
+          npx tsx src/server.ts > "$RUNNER_TEMP/mailer.log" 2>&1 &
+          for i in $(seq 1 30); do
+            if curl -fs "http://localhost:$PORT/health" > /dev/null 2>&1; then
+              echo "mailer answered /health on port $PORT after ${i}s"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "::error::mailer never answered http://localhost:$PORT/health"
+          cat "$RUNNER_TEMP/mailer.log"
+          exit 1
 
       - name: Generate a per-run automation key
         run: echo "AUTOMATION_KEY=$(openssl rand -hex 32)" >> "$GITHUB_ENV"
@@ -164,6 +190,10 @@ jobs:
       - name: API log
         if: failure()
         run: cat "$RUNNER_TEMP/api.log"
+
+      - name: Mailer log
+        if: failure()
+        run: cat "$RUNNER_TEMP/mailer.log"
 
       - name: Upload JUnit report
         if: always()
