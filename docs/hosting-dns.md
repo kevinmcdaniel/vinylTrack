@@ -74,6 +74,17 @@ Then check each thing by actually using it:
 - Load the website, if there is one.
 - GCP console (`vinyltrack-503118`) → OAuth consent screen: the authorized domain still shows as verified.
 
+### Mail authentication: DKIM and DMARC
+
+The mailer (#62) sends sign-in links from the domain, so they must pass DMARC or Gmail rejects them (`p=reject`). SPF comes with Workspace's `MX` setup; DKIM and DMARC don't.
+
+- **DKIM.** Workspace doesn't sign until you turn it on. Admin console → **Apps → Google Workspace → Gmail → Authenticate email** → **Generate new record** (2048-bit, selector `google`). Add it in Cloudflare as `TXT` `google._domainkey`, then back in the Admin console click **Start authentication**. Google can take a while to see the record; the status reads *Authenticating email with DKIM* when it's done.
+- **DMARC.** One `TXT` at **`_dmarc`**, not at the domain root, and no trailing `.` in the value:
+  ```
+  v=DMARC1; p=reject; rua=mailto:webmaster@<family-domain>; pct=100; aspf=s
+  ```
+- **Check it** by sending from the domain (or a sign-in link from the app) to an outside Gmail account → **Show original**. The `Authentication-Results` header should show `spf=pass`, `dkim=pass header.d=<family-domain>`, and `dmarc=pass`. Mail that arrives through a forwarding address is re-sent by the forwarder, so its last-hop SPF/DMARC can fail; read the `ARC-Authentication-Results` header instead, which records what the first hop saw (`dmarc=pass`).
+
 ## Step 4: re-enable DNSSEC
 
 Cloudflare → `<family-domain>` → **DNS** → **Settings** → **Enable DNSSEC**. Cloudflare shows a DS record. Add it at Squarespace (**DNSSEC** → add DS record: key tag, algorithm, digest type, digest). Or leave DNSSEC off until the transfer finishes, since Cloudflare Registrar then sets DS automatically. That's the simpler path when the transfer follows soon after.

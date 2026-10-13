@@ -74,6 +74,12 @@ Three hidden service accounts, none of which you can log in as:
   sudo -u _vinyltrack -H vi /Users/_vinyltrack/secrets/<name>                                                # one you were given
   ```
   Generating straight into the file, or typing into `vi`, keeps the value off screen, out of shell history, and out of any file you own. The same `sudo -u … vi` pattern edits `_vinyldeploy`'s `authorized_keys`.
+- **Never create or edit a secret with plain `sudo`** (`sudo vi`, `sudo cp`): the file ends up owned by root, and the next deploy fails with `stat /Users/_vinyltrack/secrets/<name>: permission denied` (the `v0.3.0` deploy did, on `gmail_client_secret`). To repair, then redeploy the tag:
+  ```bash
+  sudo chown -R _vinyltrack:$(id -gn _vinyltrack) /Users/_vinyltrack/secrets
+  sudo chmod 700 /Users/_vinyltrack/secrets
+  sudo sh -c 'chmod 600 /Users/_vinyltrack/secrets/*'      # sh -c: only root can expand the glob in a 700 dir
+  ```
 - Inside Colima's VM, file modes don't protect anything: every container user can read a mounted secret (spike in #65). The `600`/`700` modes keep other *macOS* accounts out; per-service `secrets:` lists in compose decide which container sees what. A secret file outside `/Users/_vinyltrack` shows up in the container as an empty directory, not an error.
 - **`_vinyltrack`'s Docker config**, `/Users/_vinyltrack/.docker/config.json`, edited as `_vinyltrack` (`sudo -u _vinyltrack -H vi …`). Colima creates it. It should end up as:
   ```json
