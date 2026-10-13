@@ -19,15 +19,18 @@ Steps 1–3 run straight away. Step 4 sits as *Waiting for review* until you app
 
 - The **git tag is the only version.** `be/` and `fe/` `package.json` versions are never bumped.
 - The tag is baked into every image at build time. `GET /api/health` on the BE and the FE reports it, so `curl …/api/health` always tells you what's running.
-- `vX.Y.Z-rc.N` for dry runs (GitHub pre-release, no `latest` image tag), `vX.Y.Z` for real releases. Before 1.0: minor for features, patch for fixes. `v1.0.0` once the family is using it.
-- **Never tag an `-rc` for a version that's already released.** `v0.1.0-rc.3` sorts *below* `v0.1.0`, so newer code would carry an older version and the older release stays "Latest". After `vX.Y.Z` ships, the next candidates are `vX.Y+1.0-rc.N` (or `vX.Y.Z+1-rc.N`). `v0.1.0` (Oct 8) is a pre-auth build superseded by `v0.2.0`.
+- **No release candidates.** Every release is a plain `vX.Y.Z`:
+  - a **feature** starts a new **minor**: the mailer (#62) is `v0.3.0`;
+  - each further release while that feature is still being built bumps the **patch**: e.g. magic links (#74) on top of the mailer is `v0.3.1`;
+  - the **next feature** gets the next minor (`v0.4.0`). `v1.0.0` once the family is using it.
+- History: `v0.1.0-rc.N` and `v0.2.0-rc.1` were dry runs before this rule. `v0.1.0` (Oct 8) is a pre-auth build superseded by `v0.2.0`. A `-rc` sorts *below* its release (`v0.1.0-rc.3` < `v0.1.0`), which is how newer code once ended up with an older version.
 - **If 30 days pass without a release, cut a patch release anyway**, to pick up base-image security fixes ([hosting-maintenance.md](hosting-maintenance.md#app-images-and-base-images)).
 
 ## Everyday use
 
 ```bash
 git switch main && git pull
-git tag v0.2.0 && git push origin v0.2.0      # release; approve the deploy in Actions when ready
+git tag -m v0.3.0 v0.3.0 && git push origin v0.3.0   # release; approve the deploy in Actions when ready
 gh run watch                                   # follow it
 ```
 
