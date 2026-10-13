@@ -4,6 +4,7 @@ import app from '../app.js';
 import { prisma } from '../database.js';
 import { getConfig } from '../config.js';
 import { signInternalToken } from '../common/internalToken.js';
+import { MAILER_TIMEOUT_MS } from '../common/mailerClient.js';
 import { cleanupTestData } from './setup.js';
 
 // POST /api/auth/magic-link (#74): FE service + Turnstile → the mailer.
@@ -88,5 +89,31 @@ describe('POST /api/auth/magic-link', () => {
     vi.restoreAllMocks();
     stub({ mailer: () => { throw new TypeError('fetch failed'); } });
     expect((await request(app).post('/api/auth/magic-link').set(await service()).send({ email: 'a@example.com', url, turnstileToken: 'tok' })).status).toBe(502);
+  });
+
+  it('logs every mailer failure by status or error name, never the address or the link', async () => {
+    const cases: [() => Response, string][] = [
+      [() => json({ data: {} }, 401), '401'],
+      [() => json({ data: {} }, 406), '406'],
+      [() => json({ data: {} }, 429), '429'],
+      [() => json({ data: {} }, 502), '502'],
+      [() => { throw new TypeError('fetch failed'); }, 'TypeError'],
+      [() => { throw new DOMException('timed out', 'TimeoutError'); }, 'TimeoutError'],
+    ];
+    for (const [mailer, expected] of cases) {
+      stub({ mailer });
+      const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+      await request(app).post('/api/auth/magic-link').set(await service()).send({ email: 'secret.person@example.com', url, turnstileToken: 'tok' });
+      const logged = warn.mock.calls.map((c) => c.join(' ')).join('\n');
+      expect(logged, expected).toContain('mailer');
+      expect(logged, expected).toContain(expected);
+      expect(logged, expected).not.toContain('secret.person');
+      expect(logged, expected).not.toContain('token=abc');
+      vi.restoreAllMocks();
+    }
+  });
+
+  it('waits longer than the mailer can take (2 token exchanges + 2 sends at 10s each)', () => {
+    expect(MAILER_TIMEOUT_MS).toBeGreaterThan(4 * 10_000);
   });
 });

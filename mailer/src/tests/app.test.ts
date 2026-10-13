@@ -47,6 +47,13 @@ describe('POST /magic-link', () => {
     expect(sender.send).not.toHaveBeenCalled();
   });
 
+  it('logs a 401, without the presented token', async () => {
+    await post({ to: 'a@example.com', url: goodUrl }, 'x'.repeat(32));
+    const logged = log.mock.calls.map((c) => c.join(' ')).join('\n');
+    expect(logged).toContain('unauthorized');
+    expect(logged).not.toContain('x'.repeat(32));
+  });
+
   it.each([
     'https://evil.example.com/api/auth/callback/email?token=abc',
     'http://vinyl.example.org/api/auth/callback/email?token=abc',
