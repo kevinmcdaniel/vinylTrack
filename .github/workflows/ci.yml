@@ -46,6 +46,10 @@ jobs:
       PUBLIC_HOSTNAME: localhost
       INTERNAL_API_SECRET: ci-internal-api-secret-not-a-secret-0123456789
       TURNSTILE_SECRET_KEY: 2x0000000000000000000000000000000AA
+      # The mailer as dev has it (#74). The suite stubs its HTTP, so nothing
+      # listens here; the BE just needs it configured.
+      MAILER_URL: http://localhost:5299
+      MAILER_TOKEN: ci-mailer-token-not-a-secret-0123456789abcdef
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
