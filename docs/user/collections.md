@@ -8,7 +8,7 @@ You only see collections that are yours or that someone shared with you. If one 
 
 ## Switching
 
-On a collection page, the box at the top names the collection you're in and how many albums it has. Pick another from it to switch.
+On a collection page, the box at the top names the collection you're in and how many albums it has. That counts albums, not copies: one album can have several copies. Pick another collection from the box to switch.
 
 ## Physical and digital
 

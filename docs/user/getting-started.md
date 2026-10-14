@@ -19,4 +19,4 @@ If your request was declined, you'll see **Ask again**. That sends a new request
 
 ## Signing out
 
-Use **Sign out** at the top right of any page.
+Use **Sign out** at the top of the page.

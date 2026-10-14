@@ -4,7 +4,7 @@
 
 On a collection page:
 
-- **Search by title**: type part of an album title and press Enter (or Go).
+- **Search by title**: type part of an album title and press Enter (Search or Go on a phone keyboard).
 - **Any artist / Any format / Any genre**: pick one to narrow the list. They combine with the search and with each other.
 - **Clear filters** puts the whole list back.
 
