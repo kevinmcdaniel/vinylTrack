@@ -51,8 +51,8 @@ jobs:
       MAILER_URL: http://localhost:5299
       MAILER_TOKEN: ci-mailer-token-not-a-secret-0123456789abcdef
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -118,8 +118,8 @@ jobs:
       MAILER_URL: http://localhost:5299
       MAILER_TOKEN: ci-mailer-token-not-a-secret-0123456789abcdef
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -197,7 +197,7 @@ jobs:
 
       - name: Upload JUnit report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: bruno-junit
           path: bruno-junit.xml
@@ -210,8 +210,8 @@ jobs:
       run:
         working-directory: fe
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -232,8 +232,8 @@ jobs:
       run:
         working-directory: mailer
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: npm
@@ -250,14 +250,14 @@ jobs:
     # macOS, because the home server runs these under macOS's /bin/bash 3.2.
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: npx --yes bats@1.11.1 host/tests
 
   host-lint:
     name: Host scripts (shellcheck)
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       # shellcheck ships on GitHub's Ubuntu images.
       - run: shellcheck -s bash host/libexec/deploy-shell host/libexec/deploy.sh
 
@@ -267,7 +267,7 @@ jobs:
     # only: nothing is pushed from CI.
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - run: docker build -f Dockerfile.be --target prod --build-arg VINYLTRACK_VERSION=ci -t vinyltrack-be:ci .
       - run: docker build -f Dockerfile.be --target migrate --build-arg VINYLTRACK_VERSION=ci -t vinyltrack-migrate:ci .
       - run: docker build -f Dockerfile.fe --target prod --build-arg VINYLTRACK_VERSION=ci -t vinyltrack-fe:ci .

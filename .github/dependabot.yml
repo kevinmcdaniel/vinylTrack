@@ -1,0 +1,14 @@
+# Keeps workflow actions on supported majors (#91: they sat on Node 20
+# versions until GitHub's deprecation warning surfaced it). Actions only;
+# npm and Docker base images are upgraded deliberately (#31, #47).
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+    commit-message:
+      prefix: ci
+    groups:
+      actions:
+        patterns: ["*"]
