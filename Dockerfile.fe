@@ -17,9 +17,6 @@ WORKDIR /app
 COPY fe/package.json fe/package-lock.json ./
 RUN npm ci
 COPY fe/ ./
-# /docs pages are pre-rendered from <cwd>/docs via generateStaticParams, so the
-# markdown has to be here at build time as well as in the runtime image.
-COPY docs ./docs
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN npm run build
 
