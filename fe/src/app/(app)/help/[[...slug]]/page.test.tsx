@@ -1,19 +1,16 @@
 // @vitest-environment node
 import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest';
 import fs from 'fs';
+import os from 'os';
 import path from 'path';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { stubAppEnv } from '@/tests/env';
 import type * as DocsFs from '@/lib/docsFs';
 
 // A help set inside an admin set: /help must only ever read the inner one.
-const dirs = await vi.hoisted(async () => {
-  const [{ default: nodeFs }, { default: nodeOs }, { default: nodePath }] =
-    await Promise.all([import('fs'), import('os'), import('path')]);
-  const root = nodeFs.mkdtempSync(nodePath.join(nodeOs.tmpdir(), 'help-'));
-  const admin = nodePath.join(root, 'docs');
-  return { root, admin, user: nodePath.join(admin, 'user') };
-});
+// vi.mock's factory runs lazily, at the page import below, so plain consts do.
+const root = fs.mkdtempSync(path.join(os.tmpdir(), 'help-'));
+const dirs = { root, admin: path.join(root, 'docs'), user: path.join(root, 'docs', 'user') };
 fs.mkdirSync(dirs.user, { recursive: true });
 fs.writeFileSync(path.join(dirs.admin, 'hosting-deploy.md'), '# Releasing and deploying\n\nrunbook');
 fs.writeFileSync(path.join(dirs.user, 'README.md'), '# Help\n\nStart here: [Getting started](getting-started.md).');
