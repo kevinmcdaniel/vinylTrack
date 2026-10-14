@@ -2,6 +2,8 @@
 
 A family record/album/MP3 collection tracker. Multiple named collections (Vinyl, Square Dance Calls, General MP3s, …), each with artists, releases, physical or digital copies, where they physically live, and a want list — shared across family members and devices.
 
+These pages are the dev/ops set, shown in-app at `/docs` to admins only. User help lives in `user/` and is shown at `/help` to every approved user (#90).
+
 ## Where to go next
 
 - [Architecture](architecture.md) — repo layout, the stack, how the pieces fit together.
