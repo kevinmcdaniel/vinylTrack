@@ -93,3 +93,18 @@ export type AlbumWithCopies = Album & { copies: Copy[] };
 export type ArtistDetail = Artist & {
   albums: (Album & { collection: CollectionRef })[];
 };
+
+/** GET /api/admin/summary (#90): what an admin needs to act on, as counts. */
+export type AdminSummary = { pendingUsers: number; unlinkedOwners: number };
+
+type Down = { status: 'down'; detail: string };
+
+/**
+ * GET /api/admin/health (#90). A workload that fails is a `down` entry, never
+ * an error response; a down mailer still reports its version when it can.
+ */
+export type AdminHealth = {
+  be: { status: 'up'; version: string; uptimeSeconds: number };
+  db: { status: 'up'; latencyMs: number } | Down;
+  mailer: ({ status: 'up' | 'not configured' } | Down) & { version?: string; mode?: string };
+};
