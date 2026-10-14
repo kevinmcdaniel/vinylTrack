@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import Turnstile from './Turnstile';
 import SignInForms from './SignInForms';
 import PendingView from './PendingView';
@@ -57,6 +58,36 @@ describe('SignInForms', () => {
     expect(screen.queryByRole('button', { name: /google/i })).not.toBeInTheDocument();
     expect(screen.getByLabelText(/^email$/i)).toHaveValue('kevin@example.com');
     expect(screen.getByRole('button', { name: /dev sign-in/i })).toBeInTheDocument();
+  });
+
+  it('keeps every submit button disabled until the bot check gives a token', () => {
+    const renderMock = vi.fn();
+    (window as unknown as { turnstile: unknown }).turnstile = { render: renderMock, remove: vi.fn() };
+    render(<SignInForms siteKey="k" google dev googleAction={action} devAction={action} emailAction={action} />);
+    const buttons = () => screen.getAllByRole('button');
+    expect(buttons()).toHaveLength(3);
+    buttons().forEach((b) => expect(b).toBeDisabled());
+    act(() => (renderMock.mock.calls[0]![1] as { callback: (t: string) => void }).callback('tok-1'));
+    buttons().forEach((b) => expect(b).toBeEnabled());
+    delete (window as unknown as { turnstile?: unknown }).turnstile;
+  });
+
+  it('spends the token on submit: sends it, then clears it and asks the widget for a new one', async () => {
+    // A failed send redirects back to /sign-in?error=…, which re-renders this
+    // component without remounting it; a kept token would already be spent.
+    const renderMock = vi.fn(() => 'w');
+    (window as unknown as { turnstile: unknown }).turnstile = { render: renderMock, remove: vi.fn() };
+    const emailAction = vi.fn(async (_fd: FormData) => {});
+    const { container } = render(<SignInForms siteKey="k" google={false} dev={false} googleAction={action} devAction={action} emailAction={emailAction} />);
+    act(() => ((renderMock.mock.calls[0] as unknown[])[1] as { callback: (t: string) => void }).callback('tok-1'));
+    await userEvent.type(screen.getByLabelText(/email address/i), 'a@example.com');
+    await userEvent.click(screen.getByRole('button', { name: /email me a sign-in link/i }));
+    await waitFor(() => expect(emailAction).toHaveBeenCalledTimes(1));
+    expect(emailAction.mock.calls[0]![0].get('turnstileToken')).toBe('tok-1');
+    expect(new FormData(container.querySelector('form')!).get('turnstileToken')).toBe('');
+    expect(renderMock).toHaveBeenCalledTimes(2);
+    expect(screen.getByRole('button', { name: /email me a sign-in link/i })).toBeDisabled();
+    delete (window as unknown as { turnstile?: unknown }).turnstile;
   });
 
   it('always offers a sign-in link by email', () => {

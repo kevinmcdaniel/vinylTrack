@@ -13,19 +13,27 @@ const ERRORS: Record<string, string> = {
   Verification: 'That sign-in link has expired or was already used. Ask for a new one below.',
 };
 
-const buttonClass = 'w-full rounded-md bg-[var(--foreground)] px-4 py-2 text-sm font-medium text-[var(--background)]';
+const buttonClass = 'w-full rounded-md bg-[var(--foreground)] px-4 py-2 text-sm font-medium text-[var(--background)] disabled:opacity-50';
 
 /**
  * The sign-in page body (#73, #74): Google, an emailed link, and in
  * development/test the dev sign-in. One bot check serves every form: its token
- * is copied into each form's `turnstileToken` field, and only one form is ever
- * submitted (the page navigates away), so the single-use token is spent once.
+ * is copied into each form's `turnstileToken` field. Tokens are single use, and
+ * a failed send redirects back here without remounting this component, so
+ * every submit clears the token and replaces the widget for the next try.
  */
 export default function SignInForms({
   siteKey, google, dev, error, googleAction, devAction, emailAction,
 }: { siteKey: string; google: boolean; dev: boolean; error?: string; googleAction: Action; devAction: Action; emailAction: Action }) {
   const [token, setToken] = useState('');
+  const [widgetRound, setWidgetRound] = useState(0);
   const tokenField = <input type="hidden" name="turnstileToken" value={token} />;
+  // The form's data (token included) is captured before this runs.
+  const spending = (act: Action): Action => async (formData) => {
+    setToken('');
+    setWidgetRound((n) => n + 1);
+    await act(formData);
+  };
   return (
     <div className="flex w-full max-w-sm flex-col gap-6">
       {error && (
@@ -33,30 +41,30 @@ export default function SignInForms({
           {Object.hasOwn(ERRORS, error) ? ERRORS[error] : 'We couldn\u2019t sign you in. Please try again.'}
         </p>
       )}
-      <Turnstile siteKey={siteKey} action="sign-in" onToken={setToken} />
+      <Turnstile siteKey={siteKey} action="sign-in" onToken={setToken} resetKey={widgetRound} />
       {google && (
-        <form action={googleAction} className="flex flex-col gap-3">
+        <form action={spending(googleAction)} className="flex flex-col gap-3">
           {tokenField}
-          <button type="submit" className={buttonClass}>Sign in with Google</button>
+          <button type="submit" disabled={!token} className={buttonClass}>Sign in with Google</button>
         </form>
       )}
-      <form action={emailAction} className="flex flex-col gap-3">
+      <form action={spending(emailAction)} className="flex flex-col gap-3">
         <label className="flex flex-col gap-1 text-sm">
           Email address
           <input name="email" type="email" autoComplete="email" required className="rounded border border-black/20 bg-transparent px-2 py-1 dark:border-white/25" />
         </label>
         {tokenField}
-        <button type="submit" className={buttonClass}>Email me a sign-in link</button>
+        <button type="submit" disabled={!token} className={buttonClass}>Email me a sign-in link</button>
       </form>
       {dev && (
-        <form action={devAction} className="flex flex-col gap-3 rounded-md border border-dashed border-black/20 p-4 dark:border-white/25">
+        <form action={spending(devAction)} className="flex flex-col gap-3 rounded-md border border-dashed border-black/20 p-4 dark:border-white/25">
           <p className="text-xs opacity-70">Development only: sign in as a seeded user.</p>
           <label className="flex flex-col gap-1 text-sm">
             Email
             <input name="email" type="email" defaultValue="kevin@example.com" required className="rounded border border-black/20 bg-transparent px-2 py-1 dark:border-white/25" />
           </label>
           {tokenField}
-          <button type="submit" className={buttonClass}>Dev sign-in</button>
+          <button type="submit" disabled={!token} className={buttonClass}>Dev sign-in</button>
         </form>
       )}
     </div>

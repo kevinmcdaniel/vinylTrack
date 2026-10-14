@@ -32,12 +32,15 @@ function loadScript(): Promise<void> {
  * decides whether it passed. Rendered explicitly so it works after client-side
  * navigation, not just on a full page load. With `onToken`, the token (or ''
  * once it expires or errors) also goes to the caller, for a widget that sits
- * outside the form(s) it serves.
+ * outside the form(s) it serves. Changing `resetKey` replaces the widget,
+ * which fetches a fresh token: for a caller whose token was spent while it
+ * stayed mounted.
  */
-export default function Turnstile({ siteKey, action, onToken }: {
+export default function Turnstile({ siteKey, action, onToken, resetKey }: {
   siteKey: string;
   action: 'sign-in' | 'request-access';
   onToken?: (token: string) => void;
+  resetKey?: number;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   // Latest callback without re-rendering the widget when its identity changes.
@@ -65,7 +68,7 @@ export default function Turnstile({ siteKey, action, onToken }: {
       cancelled = true;
       if (widgetId && window.turnstile) window.turnstile.remove(widgetId);
     };
-  }, [siteKey, action]);
+  }, [siteKey, action, resetKey]);
 
   return <div ref={ref} data-turnstile className="min-h-[65px]" />;
 }
