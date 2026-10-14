@@ -9,7 +9,12 @@ import { servicePost } from './serviceApi';
  *
  * Users are not the adapter's business. The signIn callback (src/auth.ts)
  * resolves the real user through BE sign-in and puts its id on `user`, so
- * getUserByEmail always misses and createUser just hands that user back.
+ * every lookup misses and createUser just hands that user back.
+ *
+ * Setting an adapter puts *every* provider on Auth.js's database path, not
+ * just email: Google's callback calls getUserByAccount, then createUser and
+ * linkAccount. So those exist too, as no-ops (authAdapter.test.ts runs
+ * Auth.js's own login handler to keep this honest across upgrades).
  */
 const toToken = (data: { identifier: string; token: string; expires: string }): VerificationToken => ({
   identifier: data.identifier,
@@ -35,6 +40,8 @@ export const authAdapter: Adapter = {
     return data ? toToken(data) : null;
   },
   getUserByEmail: async () => null,
+  getUserByAccount: async () => null,
   getUser: async () => null,
   createUser: async (user) => user,
+  linkAccount: async (account) => account,
 };

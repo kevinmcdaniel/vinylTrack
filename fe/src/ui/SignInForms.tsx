@@ -4,7 +4,8 @@ type Action = (formData: FormData) => Promise<void>;
 
 // ?error= is user-controlled, so it only ever picks one of these.
 const ERRORS: Record<string, string> = {
-  'email-rate-limited': 'Too many sign-in emails to that address. Please try again in 15 minutes.',
+  // 429 covers one address's limit and the mailer's overall cap alike.
+  'email-rate-limited': 'Too many sign-in emails right now. Please try again in 15 minutes.',
   'email-failed': 'We couldn\u2019t send the sign-in email. Please try again.',
   Verification: 'That sign-in link has expired or was already used. Ask for a new one below.',
 };

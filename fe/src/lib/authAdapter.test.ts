@@ -4,6 +4,9 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { decodeJwt } from 'jose';
 import { authAdapter } from './authAdapter';
 import { stubAppEnv } from '@/tests/env';
+// Auth.js's own login handler, imported by path (it isn't in the package's
+// exports) so these tests break if an upgrade asks the adapter for more.
+import { handleLoginOrRegister } from '../../node_modules/@auth/core/lib/actions/callback/handle-login.js';
 
 // Auth.js adapter for magic links (#74): tokens live in the BE, users come from BE sign-in.
 const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
@@ -55,5 +58,37 @@ describe('authAdapter', () => {
   it('createUser hands back the user the signIn callback already resolved through the BE', async () => {
     const user = { id: 'be-user-1', email: 'a@example.com', emailVerified: new Date() };
     await expect(authAdapter.createUser!(user)).resolves.toBe(user);
+  });
+
+  // What Auth.js passes handleLoginOrRegister for a JWT-session app. '' = no session cookie.
+  const options = (provider: Record<string, unknown> = {}) => ({
+    adapter: authAdapter, events: {}, jwt: {},
+    session: { strategy: 'jwt', generateSessionToken: () => 'unused' },
+    provider: { account: () => ({}), ...provider },
+    cookies: { sessionToken: { name: 'authjs.session-token' } },
+  }) as unknown as Parameters<typeof handleLoginOrRegister>[3];
+
+  it('carries the BE user id through Auth.js\'s Google (OAuth) login path', async () => {
+    // The signIn callback has already swapped in the BE id (src/auth.ts).
+    const user = { id: 'be-user-1', email: 'a@example.com', name: 'A' };
+    const account = { provider: 'google', type: 'oidc' as const, providerAccountId: 'google-sub-1' };
+    await expect(authAdapter.getUserByAccount!({ provider: 'google', providerAccountId: 'google-sub-1' })).resolves.toBeNull();
+    const result = await handleLoginOrRegister('', user, account, options({ id: 'google' }));
+    expect(result.user.id).toBe('be-user-1');
+    expect(result.isNewUser).toBe(true);
+  });
+
+  it('carries the BE user id through Auth.js\'s email login path', async () => {
+    const user = { id: 'be-user-2', email: 'a@example.com', emailVerified: null };
+    const account = { provider: 'email', type: 'email' as const, providerAccountId: 'a@example.com' };
+    const result = await handleLoginOrRegister('', user, account, options({ id: 'email' }));
+    expect(result.user.id).toBe('be-user-2');
+  });
+
+  it('ignores a stale session cookie rather than linking to it', async () => {
+    const user = { id: 'be-user-3', email: 'a@example.com' };
+    const account = { provider: 'google', type: 'oidc' as const, providerAccountId: 'google-sub-3' };
+    const result = await handleLoginOrRegister('not-a-real-jwt', user, account, options({ id: 'google' }));
+    expect(result.user.id).toBe('be-user-3');
   });
 });
