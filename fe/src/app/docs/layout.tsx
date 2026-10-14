@@ -1,12 +1,12 @@
 import Link from 'next/link';
-import { getDocList } from './docsFs';
+import { adminDocsDir, getDocList } from '@/lib/docsFs';
 import { requireAdmin } from '@/lib/session';
 
 // The sidebar lists every doc title, so the layout checks too. The page's own
 // check is the one that counts: layouts don't re-run on navigation.
 export default async function DocsLayout({ children }: { children: React.ReactNode }) {
   await requireAdmin('/help');
-  const docs = getDocList();
+  const docs = getDocList(adminDocsDir);
 
   return (
     <div className="flex min-h-screen flex-col md:flex-row">

@@ -12,6 +12,7 @@ export default async function UserMenu() {
   return (
     <nav className="flex items-center gap-3 text-xs">
       <Link href="/collection/new" className="underline">New collection</Link>
+      <Link href="/help" className="underline">Help</Link>
       {user.isAdmin && <Link href="/admin/requests" className="underline">Requests</Link>}
       <span className="opacity-70">{user.name ?? user.email}</span>
       <form action={signOutAction}>

@@ -15,6 +15,13 @@ describe('UserMenu', () => {
     expect(screen.queryByRole('link', { name: /requests/i })).not.toBeInTheDocument();
   });
 
+  // Help is for everyone (#90, PR #96 review): reachable without typing the URL.
+  it.each([[false], [true]])('links to /help (admin: %s)', async (isAdmin) => {
+    user.current = { ...user.current, isAdmin };
+    render(await UserMenu());
+    expect(screen.getByRole('link', { name: 'Help' })).toHaveAttribute('href', '/help');
+  });
+
   it('links admins to access requests', async () => {
     user.current = { ...user.current, isAdmin: true };
     render(await UserMenu());

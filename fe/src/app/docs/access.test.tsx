@@ -9,7 +9,8 @@ vi.mock('next/navigation', () => ({
   redirect: vi.fn((url: string) => { throw new Error(`REDIRECT ${url}`); }),
   notFound: vi.fn(() => { throw new Error('NOT_FOUND'); }),
 }));
-vi.mock('./docsFs', () => ({
+vi.mock('@/lib/docsFs', () => ({
+  adminDocsDir: '/docs',
   getDocList: () => [{ slug: 'hosting-deploy', label: 'Releasing and deploying' }],
   resolveDocFile: () => import.meta.filename,
 }));
