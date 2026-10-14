@@ -95,7 +95,7 @@ See `be/src/route/*.ts` for how each route wires these in, and the doc comment a
 
 Browse filters live in `searchParams`, not component state — the list is re-fetched on the server, so filtered views are shareable and the back button works. `CollectionSwitcher`/`FilterBar` are the only client components; everything else is a Server Component.
 
-The copied design system in `design/system/` is **not** wired in — it's still squaretrack's, pending #18. The browse UI is plain Tailwind on the `--background`/`--foreground` tokens, factored into `fe/src/ui/` so #18 restyles components rather than rewriting pages.
+**Design (#18).** The look comes from `design/wireframes/`, written up in `docs/design-system.md`; squaretrack's copied `design/system/` is gone. Its tokens (`--bg`, `--surface`, `--text`, `--primary`, … light + dark) live in `globals.css` and map to Tailwind colors (`bg-surface`, `text-text-muted`) and `font-display`/`font-sans`/`font-mono`. Use those, not raw `black/10`/`red-500` utilities or `var(--…)` arbitrary values. Components haven't been restyled against them yet; UI lives in `fe/src/ui/` so #18 restyles components rather than rewriting pages.
 
 ### Config and secrets (#65)
 - **Only `be/src/config.ts` and `fe/src/lib/config.ts` read `process.env`.** Everything else calls `getConfig()`. Add new settings there, with a test.

@@ -1,5 +1,7 @@
 # vinylTrack — Design
 
-`system/` was copied over from squaretrack's design system (tokens, foundation guidelines, component mockups) as a starting point. It's squaretrack's look-and-feel as-is — **not yet reviewed or adapted for vinylTrack** (naming, colors, branding all still say squaretrack in places). Not wired into the FE app yet either.
+`wireframes/` holds the vinylTrack UX pass: `VinylTrackApp.dc.html` (every screen, mobile and desktop, three palettes) and `VinylTrack Wireframes.dc.html` (device frames, theme picker, data-model findings). They are the source of truth for how the app looks.
 
-See the tracked issue for adapting this to vinylTrack before it's actually used.
+The rules they follow (tokens, type, shape, components, layout) are written up in [docs/design-system.md](../docs/design-system.md), and the tokens are wired into `fe/src/app/globals.css` and `fe/tailwind.config.ts`.
+
+The squaretrack design system that used to sit in `system/` was dropped in #18: it was built for square-dance calling (sequences, choreography, difficulty ramp) and none of its components applied here.
