@@ -2,7 +2,7 @@ import 'server-only';
 import { getConfig } from './config';
 import { signInternalToken } from './internalToken';
 
-export type SignInProvider = 'google' | 'dev';
+export type SignInProvider = 'google' | 'email' | 'dev';
 export type BackendUser = { id: string; status: 'pending' | 'active' | 'denied'; isAdmin: boolean };
 
 /**

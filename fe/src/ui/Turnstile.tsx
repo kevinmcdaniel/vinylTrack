@@ -32,7 +32,7 @@ function loadScript(): Promise<void> {
  * decides whether it passed. Rendered explicitly so it works after client-side
  * navigation, not just on a full page load.
  */
-export default function Turnstile({ siteKey, action }: { siteKey: string; action: 'sign-in' | 'request-access' }) {
+export default function Turnstile({ siteKey, action }: { siteKey: string; action: 'sign-in' | 'magic-link' | 'request-access' }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {

@@ -131,6 +131,9 @@ services:
       BE_URL: http://vinyl.be
       BE_PORT_INT: "3000"
       PUBLIC_HOSTNAME: localhost
+      # The browser's origin. Without it Auth.js builds error redirects (an
+      # expired magic link) from the container's own port 4000.
+      AUTH_URL: http://localhost:${FE_PORT_EXT:-5201}
       # Cloudflare's always-pass test site key: dev holds no real credentials (#73).
       TURNSTILE_SITE_KEY: 1x00000000000000000000AA
       AUTH_SECRET_FILE: /run/secrets/auth_secret

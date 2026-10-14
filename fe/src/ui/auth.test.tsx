@@ -24,21 +24,42 @@ describe('Turnstile', () => {
 
 describe('SignInForms', () => {
   it('offers Google when configured, each form with its own bot check', () => {
-    const { container } = render(<SignInForms siteKey="k" google dev={false} googleAction={action} devAction={action} />);
+    const { container } = render(<SignInForms siteKey="k" google dev={false} googleAction={action} devAction={action} emailAction={action} />);
     expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
-    expect(screen.queryByLabelText(/email/i)).not.toBeInTheDocument();
-    expect(container.querySelectorAll('[data-turnstile]')).toHaveLength(1);
+    expect(screen.queryByLabelText(/^email$/i)).not.toBeInTheDocument();
+    expect(container.querySelectorAll('[data-turnstile]')).toHaveLength(2); // Google + email link
   });
 
   it('offers the dev sign-in (development/test) with a seeded email prefilled', () => {
-    render(<SignInForms siteKey="k" google={false} dev googleAction={action} devAction={action} />);
+    render(<SignInForms siteKey="k" google={false} dev googleAction={action} devAction={action} emailAction={action} />);
     expect(screen.queryByRole('button', { name: /google/i })).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/email/i)).toHaveValue('kevin@example.com');
+    expect(screen.getByLabelText(/^email$/i)).toHaveValue('kevin@example.com');
     expect(screen.getByRole('button', { name: /dev sign-in/i })).toBeInTheDocument();
   });
 
+  it('always offers a sign-in link by email, behind its own magic-link bot check', () => {
+    const renderMock = vi.fn();
+    (window as unknown as { turnstile: unknown }).turnstile = { render: renderMock, remove: vi.fn() };
+    render(<SignInForms siteKey="k" google dev={false} googleAction={action} devAction={action} emailAction={action} />);
+    expect(screen.getByLabelText(/email address/i)).toHaveValue('');
+    expect(screen.getByRole('button', { name: /email me a sign-in link/i })).toBeInTheDocument();
+    expect(renderMock.mock.calls.map((c) => (c[1] as { action: string }).action)).toEqual(['sign-in', 'magic-link']);
+    delete (window as unknown as { turnstile?: unknown }).turnstile;
+  });
+
+  it.each([
+    ['email-rate-limited', /too many sign-in emails/i],
+    ['email-failed', /couldn.t send/i],
+    ['Verification', /expired or was already used/i],
+    ['email-refused', /couldn.t sign you in/i],
+    ['constructor', /couldn.t sign you in/i],
+  ])('maps ?error=%s to fixed text', (error, text) => {
+    render(<SignInForms siteKey="k" google dev={false} error={error} googleAction={action} devAction={action} emailAction={action} />);
+    expect(screen.getByRole('alert')).toHaveTextContent(text);
+  });
+
   it('explains a refused sign-in without leaking why', () => {
-    render(<SignInForms siteKey="k" google dev={false} error="AccessDenied" googleAction={action} devAction={action} />);
+    render(<SignInForms siteKey="k" google dev={false} error="AccessDenied" googleAction={action} devAction={action} emailAction={action} />);
     expect(screen.getByRole('alert')).toHaveTextContent(/couldn.t sign you in/i);
   });
 });

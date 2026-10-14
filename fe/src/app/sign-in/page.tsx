@@ -4,7 +4,7 @@ import { getConfig } from '@/lib/config';
 import { findCurrentUser } from '@/lib/session';
 import { turnstileSiteKey } from '@/lib/turnstileKey';
 import SignInForms from '@/ui/SignInForms';
-import { signInWithDev, signInWithGoogle } from './actions';
+import { signInWithDev, signInWithEmail, signInWithGoogle } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,6 +23,7 @@ export default async function SignInPage({ searchParams }: { searchParams: Promi
         error={typeof error === 'string' ? error : undefined}
         googleAction={signInWithGoogle}
         devAction={signInWithDev}
+        emailAction={signInWithEmail}
       />
     </main>
   );
