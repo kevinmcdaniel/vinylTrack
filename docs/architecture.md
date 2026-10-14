@@ -61,10 +61,21 @@ Landed in [issue #2](https://github.com/kevinmcdaniel/vinylTrack/issues/2) and r
 
 1. A visitor signs in with Google, or asks for a sign-in link by email (or, in dev, signs in as a seeded user). A Cloudflare Turnstile check rides along; the **BE** validates it. The emailed link is good for 15 minutes, once.
 2. The BE finds or creates the `user`. The very first user ever becomes the admin; everyone after that starts **pending**.
-3. A pending user sees "waiting for approval". An admin approves (optionally linking an existing `owner`) or denies at `/admin/requests`; a declined user can ask again.
+3. A pending user sees "waiting for approval". An admin approves (optionally linking an existing `owner`) or denies at `/admin/requests`, reached from the `/admin` back office; a declined user can ask again.
 4. Every FE→BE call carries a token signed with a secret only the FE and BE share. The BE re-reads the user's status on every request, so approving or denying takes effect at once.
 
 The FE never touches the database. Sessions are JWTs, and the only things Auth.js stores — magic-link tokens, hashed — go through the BE.
+
+## Admin back office (#90)
+
+Admins get an **Admin** link in the header, badged with the number of pending access requests. `/admin` answers "what do I need to do?":
+
+- **To do:** pending access requests (→ `/admin/requests`) and owners with no linked account. From BE `GET /api/admin/summary`, two counts, which also feeds the badge; non-admins never call it.
+- **Version:** the release each workload reports. Different versions mean a deploy didn't finish.
+- **Workloads:** fe, be, db and mailer, each up or down. From BE `GET /api/admin/health`: a `SELECT 1` and the mailer's own `/health`, 3 s each. A failing workload is a `down` entry, never an error response, and a BE that doesn't answer shows as down. A down mailer links to the re-authorize runbook. Health comes over the network, not from Docker: mounting the Docker socket into `be` would hand it root on the host.
+- **Runbooks:** links into `/docs`.
+
+The docs are split: `docs/` (this set: architecture, process, hosting runbooks) is admin-only at `/docs`, and `docs/user/` is the help any approved user reads at `/help`. Help is in the header for everyone; admins reach `/docs` from `/admin`.
 
 ## Mailer
 
