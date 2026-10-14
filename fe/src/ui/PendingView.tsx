@@ -25,7 +25,7 @@ export default function PendingView({
       {denied && (
         <form action={requestAccessAction} className="flex flex-col items-center gap-3">
           <Turnstile siteKey={siteKey} action="request-access" />
-          <button type="submit" className="rounded-md bg-[var(--foreground)] px-4 py-2 text-sm font-medium text-[var(--background)]">Ask again</button>
+          <button type="submit" className="rounded-md bg-text px-4 py-2 text-sm font-medium text-bg">Ask again</button>
         </form>
       )}
       <form action={signOutAction}>

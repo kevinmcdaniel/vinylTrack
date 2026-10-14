@@ -1,20 +1,65 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Hanken+Grotesk:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #eef1f4;
+  --surface: #ffffff;
+  --surface-alt: #f4f7fb;
+  --border: #dbe2e9;
+  --border-light: #e1e7ee;
+  --border-strong: #cdd6e0;
+  --text: #142031;
+  --text-secondary: #3a4856;
+  --text-tertiary: #5b6878;
+  --text-muted: #8a98a8;
+  --chevron: #aebccb;
+  --primary: #2f6fed;
+  --primary-text: #ffffff;
+  --primary-bg: #e7eefc;
+  --primary-border: #c7d9fb;
+  --accent-purple: #7a52c4;
+  --accent-green: #2f9e63;
+  --success-bg: #e3f3ea;
+  --warn-bg: #fbf1df;
+  --warn-border: #e0a64e;
+  --warn-text: #a9701a;
+  --danger-bg: #fdeceb;
+  --danger-text: #c2483f;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    --bg: #14161b;
+    --surface: #1d2027;
+    --surface-alt: #23262d;
+    --border: #2b2f38;
+    --border-light: #262a32;
+    --border-strong: #383d47;
+    --text: #eef1f4;
+    --text-secondary: #c3c9d4;
+    --text-tertiary: #9aa2b0;
+    --text-muted: #737b8a;
+    --chevron: #565e6b;
+    --primary: #5b8cff;
+    --primary-text: #ffffff;
+    --primary-bg: #223256;
+    --primary-border: #33487a;
+    --accent-purple: #a480e0;
+    --accent-green: #4fbf82;
+    --success-bg: #1d3327;
+    --warn-bg: #3a2f18;
+    --warn-border: #a9761f;
+    --warn-text: #e3b767;
+    --danger-bg: #3a2020;
+    --danger-text: #e2685a;
   }
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Hanken Grotesk", system-ui, sans-serif;
 }

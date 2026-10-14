@@ -13,7 +13,7 @@ const ERRORS: Record<string, string> = {
   Verification: 'That sign-in link has expired or was already used. Ask for a new one below.',
 };
 
-const buttonClass = 'w-full rounded-md bg-[var(--foreground)] px-4 py-2 text-sm font-medium text-[var(--background)] disabled:opacity-50';
+const buttonClass = 'w-full rounded-md bg-text px-4 py-2 text-sm font-medium text-bg disabled:opacity-50';
 
 /**
  * The sign-in page body (#73, #74): Google, an emailed link, and in
