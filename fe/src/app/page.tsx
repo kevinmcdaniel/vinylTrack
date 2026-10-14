@@ -17,8 +17,8 @@ export default async function Home() {
       <Link href="/collection/new" className="mt-2 text-sm text-blue-600 underline">
         Start a collection
       </Link>
-      <Link href="/docs" className="mt-2 text-sm text-blue-600 underline">
-        Read the docs
+      <Link href="/help" className="mt-2 text-sm text-blue-600 underline">
+        Help
       </Link>
     </main>
   );

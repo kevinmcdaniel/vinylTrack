@@ -8,7 +8,7 @@ vinylTrack is a family record/album/MP3 collection tracker. It supports more tha
 
 Full design history and the up-to-date plan live in the GitHub issue tracker — issues #1–#18 (as of this writing) cover scaffold, schema, APIs, UI, auth, hosting, album art, external metadata lookup, and design system adaptation. Treat the issues as the living spec; this file documents what's actually been built.
 
-See also [docs/](./docs/README.md) — the human-facing companion to this file (architecture, dev process, design brief), rendered in-app at `/docs`.
+See also [docs/](./docs/README.md) — the human-facing companion to this file (architecture, dev process, design brief, hosting runbooks), rendered in-app at `/docs` for admins only (#90); approved non-admins are redirected to `/help`.
 
 Monorepo structure:
 - `be/` — Express.js backend API with Prisma ORM

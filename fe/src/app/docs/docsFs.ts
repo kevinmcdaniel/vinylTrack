@@ -44,8 +44,3 @@ export function resolveDocFile(slug: string[]): string | null {
   const file = path.join(docsDir, `${slug[0]}.md`);
   return fs.existsSync(file) ? file : null;
 }
-
-/** Every resolvable slug, for generateStaticParams. */
-export function getAllDocSlugs(): string[][] {
-  return [[], ...getDocList().map((doc) => [doc.slug])];
-}

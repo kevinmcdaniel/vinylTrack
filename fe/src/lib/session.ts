@@ -51,9 +51,10 @@ export const requireActiveUser = cache(async (): Promise<CurrentUser> => {
   return user;
 });
 
-// Admin pages.
-export const requireAdmin = cache(async (): Promise<CurrentUser> => {
+// Admin pages. An approved non-admin goes to `nonAdminTo`: home by default,
+// /help from the docs (#90).
+export const requireAdmin = cache(async (nonAdminTo = '/'): Promise<CurrentUser> => {
   const user = await requireActiveUser();
-  if (!user.isAdmin) redirect('/');
+  if (!user.isAdmin) redirect(nonAdminTo);
   return user;
 });

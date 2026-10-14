@@ -9,7 +9,7 @@ vi.mock('next/navigation', () => ({
   redirect: vi.fn((url: string) => { throw new Error(`REDIRECT ${url}`); }),
 }));
 
-const { findCurrentUser, getCurrentUser } = await import('./session');
+const { findCurrentUser, getCurrentUser, requireAdmin } = await import('./session');
 
 const reply = (status: number, data: unknown = null) =>
   new Response(JSON.stringify({ data, status }), { status, headers: { 'content-type': 'application/json' } });
@@ -55,5 +55,30 @@ describe('getCurrentUser', () => {
     auth.mockResolvedValue({ user: { id: 'u-1' } });
     vi.spyOn(globalThis, 'fetch').mockResolvedValue(reply(401));
     await expect(getCurrentUser()).rejects.toThrow('REDIRECT /sign-in');
+  });
+});
+
+describe('requireAdmin', () => {
+  beforeEach(() => stubAppEnv());
+  afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); auth.mockReset(); });
+
+  const as = (over: Partial<typeof user>) => {
+    auth.mockResolvedValue({ user: { id: 'u-1' } });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(reply(200, { ...user, ...over }));
+  };
+
+  it('returns an admin', async () => {
+    as({ isAdmin: true });
+    await expect(requireAdmin()).resolves.toMatchObject({ isAdmin: true });
+  });
+
+  it('sends a non-admin home by default', async () => {
+    as({});
+    await expect(requireAdmin()).rejects.toThrow('REDIRECT /');
+  });
+
+  it('sends a non-admin where the caller says', async () => {
+    as({});
+    await expect(requireAdmin('/help')).rejects.toThrow('REDIRECT /help');
   });
 });
