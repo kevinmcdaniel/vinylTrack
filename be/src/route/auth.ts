@@ -27,7 +27,8 @@ authRoute.post('/verification-token', requireService, createVerificationToken);
 authRoute.post('/verification-token/use', requireService, useVerificationToken);
 
 // Send a magic link (#74): Turnstile first; automation acts for the user with that email.
-authRoute.post('/magic-link', requireService, verifyTurnstile('magic-link', signingInUser), magicLink);
+// Action 'sign-in': the sign-in page has one widget for every method.
+authRoute.post('/magic-link', requireService, signInTurnstile, magicLink);
 
 // A denied user asks again (#11). For automation mode, the user acted for is the caller.
 const caller = async (req: express.Request) =>

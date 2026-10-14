@@ -15,7 +15,7 @@ const TEST_SECRET = /^[123]x0+AA$/;
 // What siteverify reports for any token checked with a test secret.
 const TEST_HOSTNAME = 'example.com';
 
-export type TurnstileAction = 'sign-in' | 'request-access' | 'magic-link';
+export type TurnstileAction = 'sign-in' | 'request-access';
 
 export type TurnstileInput = {
   token: string | undefined;
