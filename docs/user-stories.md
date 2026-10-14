@@ -5,6 +5,7 @@ A framework to design the UX against — not the UX itself. Each story is someth
 ## Auth & session
 
 - I log in with my Google account. ([#11](https://github.com/kevinmcdaniel/vinylTrack/issues/11))
+- If I don't have a Google account, I can get a sign-in link by email instead. ([#74](https://github.com/kevinmcdaniel/vinylTrack/issues/74))
 - My login stays active over time — I'm not re-entering credentials every visit. ([#11](https://github.com/kevinmcdaniel/vinylTrack/issues/11))
 - If I'm new, I request access and see a "waiting for approval" state until an admin approves me. ([#11](https://github.com/kevinmcdaniel/vinylTrack/issues/11))
 - As an admin, I see who's requested access and can approve or deny them. ([#11](https://github.com/kevinmcdaniel/vinylTrack/issues/11))
