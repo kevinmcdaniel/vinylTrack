@@ -1,0 +1,32 @@
+meta {
+  name: health (admin)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/admin/health
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{adminEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.data.be.status: eq up
+  res.body.data.db.status: eq up
+}
+
+tests {
+  test("reports the running version", function() {
+    expect(res.body.data.be.version).to.be.a("string").and.not.empty;
+  });
+  // A real call to the mailer: CI and dev compose run one in log mode.
+  test("reaches the mailer", function() {
+    expect(res.body.data.mailer.status).to.equal("up");
+    expect(res.body.data.mailer.mode).to.equal("log");
+  });
+}

@@ -1,5 +1,5 @@
 // Access policy for collection-scoped resources (album, copy, location,
-// want_item) and for the global ones (artist, owner). Central place to see what
+// want_item), the global ones (artist, owner), and the admin-only routes. Central place to see what
 // each resource/action requires — see be/src/route/*.ts for how each route
 // wires these in, and issue #26 for the plan this implements.
 //
@@ -16,6 +16,9 @@
 //   location/    | scoped to accessible      | requireCollectionAccess-  | requireCollectionAccess
 //   want_item    | collections (list), or    | ForCreate                 | (404 if not accessible)
 //                | 404 if :id not accessible |                           |
+//   user         | requireAdmin              | (sign-in only, #73)       | requireAdmin (approve/deny)
+//   admin/*      | requireAdmin (summary,    | —                         | —
+//                | health; #90)              |                           |
 //
 // location joined that row in #53: it carries a collectionId now, so the old
 // ownerId special case (and the unowned-is-communal rule with it) is gone.
