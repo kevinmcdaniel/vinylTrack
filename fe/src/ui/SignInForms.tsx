@@ -1,3 +1,6 @@
+'use client';
+
+import { useState } from 'react';
 import Turnstile from './Turnstile';
 
 type Action = (formData: FormData) => Promise<void>;
@@ -12,10 +15,17 @@ const ERRORS: Record<string, string> = {
 
 const buttonClass = 'w-full rounded-md bg-[var(--foreground)] px-4 py-2 text-sm font-medium text-[var(--background)]';
 
-/** The sign-in page body (#73, #74): Google, an emailed link, and in development/test the dev sign-in. */
+/**
+ * The sign-in page body (#73, #74): Google, an emailed link, and in
+ * development/test the dev sign-in. One bot check serves every form: its token
+ * is copied into each form's `turnstileToken` field, and only one form is ever
+ * submitted (the page navigates away), so the single-use token is spent once.
+ */
 export default function SignInForms({
   siteKey, google, dev, error, googleAction, devAction, emailAction,
 }: { siteKey: string; google: boolean; dev: boolean; error?: string; googleAction: Action; devAction: Action; emailAction: Action }) {
+  const [token, setToken] = useState('');
+  const tokenField = <input type="hidden" name="turnstileToken" value={token} />;
   return (
     <div className="flex w-full max-w-sm flex-col gap-6">
       {error && (
@@ -23,9 +33,10 @@ export default function SignInForms({
           {Object.hasOwn(ERRORS, error) ? ERRORS[error] : 'We couldn\u2019t sign you in. Please try again.'}
         </p>
       )}
+      <Turnstile siteKey={siteKey} action="sign-in" onToken={setToken} />
       {google && (
         <form action={googleAction} className="flex flex-col gap-3">
-          <Turnstile siteKey={siteKey} action="sign-in" />
+          {tokenField}
           <button type="submit" className={buttonClass}>Sign in with Google</button>
         </form>
       )}
@@ -34,7 +45,7 @@ export default function SignInForms({
           Email address
           <input name="email" type="email" autoComplete="email" required className="rounded border border-black/20 bg-transparent px-2 py-1 dark:border-white/25" />
         </label>
-        <Turnstile siteKey={siteKey} action="magic-link" />
+        {tokenField}
         <button type="submit" className={buttonClass}>Email me a sign-in link</button>
       </form>
       {dev && (
@@ -44,7 +55,7 @@ export default function SignInForms({
             Email
             <input name="email" type="email" defaultValue="kevin@example.com" required className="rounded border border-black/20 bg-transparent px-2 py-1 dark:border-white/25" />
           </label>
-          <Turnstile siteKey={siteKey} action="sign-in" />
+          {tokenField}
           <button type="submit" className={buttonClass}>Dev sign-in</button>
         </form>
       )}

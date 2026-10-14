@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { act, render, screen, within } from '@testing-library/react';
 import Turnstile from './Turnstile';
 import SignInForms from './SignInForms';
 import PendingView from './PendingView';
@@ -23,11 +23,33 @@ describe('Turnstile', () => {
 });
 
 describe('SignInForms', () => {
-  it('offers Google when configured, each form with its own bot check', () => {
-    const { container } = render(<SignInForms siteKey="k" google dev={false} googleAction={action} devAction={action} emailAction={action} />);
+  it('offers Google when configured', () => {
+    render(<SignInForms siteKey="k" google dev={false} googleAction={action} devAction={action} emailAction={action} />);
     expect(screen.getByRole('button', { name: /sign in with google/i })).toBeInTheDocument();
     expect(screen.queryByLabelText(/^email$/i)).not.toBeInTheDocument();
-    expect(container.querySelectorAll('[data-turnstile]')).toHaveLength(2); // Google + email link
+  });
+
+  it('shows one bot check for the whole page, whichever forms are offered', () => {
+    const renderMock = vi.fn();
+    (window as unknown as { turnstile: unknown }).turnstile = { render: renderMock, remove: vi.fn() };
+    const { container } = render(<SignInForms siteKey="k" google dev googleAction={action} devAction={action} emailAction={action} />);
+    expect(container.querySelectorAll('[data-turnstile]')).toHaveLength(1);
+    expect(renderMock.mock.calls.map((c) => (c[1] as { action: string }).action)).toEqual(['sign-in']);
+    delete (window as unknown as { turnstile?: unknown }).turnstile;
+  });
+
+  it('puts the one token in every form, and clears it when it expires', () => {
+    const renderMock = vi.fn();
+    (window as unknown as { turnstile: unknown }).turnstile = { render: renderMock, remove: vi.fn() };
+    const { container } = render(<SignInForms siteKey="k" google dev googleAction={action} devAction={action} emailAction={action} />);
+    const tokens = () => [...container.querySelectorAll('form')].map((f) => new FormData(f).get('turnstileToken'));
+    expect(tokens()).toEqual(['', '', '']);
+    const options = renderMock.mock.calls[0]![1] as { callback: (t: string) => void; 'expired-callback': () => void };
+    act(() => options.callback('tok-1'));
+    expect(tokens()).toEqual(['tok-1', 'tok-1', 'tok-1']);
+    act(() => options['expired-callback']());
+    expect(tokens()).toEqual(['', '', '']);
+    delete (window as unknown as { turnstile?: unknown }).turnstile;
   });
 
   it('offers the dev sign-in (development/test) with a seeded email prefilled', () => {
@@ -37,14 +59,10 @@ describe('SignInForms', () => {
     expect(screen.getByRole('button', { name: /dev sign-in/i })).toBeInTheDocument();
   });
 
-  it('always offers a sign-in link by email, behind its own magic-link bot check', () => {
-    const renderMock = vi.fn();
-    (window as unknown as { turnstile: unknown }).turnstile = { render: renderMock, remove: vi.fn() };
-    render(<SignInForms siteKey="k" google dev={false} googleAction={action} devAction={action} emailAction={action} />);
+  it('always offers a sign-in link by email', () => {
+    render(<SignInForms siteKey="k" google={false} dev={false} googleAction={action} devAction={action} emailAction={action} />);
     expect(screen.getByLabelText(/email address/i)).toHaveValue('');
     expect(screen.getByRole('button', { name: /email me a sign-in link/i })).toBeInTheDocument();
-    expect(renderMock.mock.calls.map((c) => (c[1] as { action: string }).action)).toEqual(['sign-in', 'magic-link']);
-    delete (window as unknown as { turnstile?: unknown }).turnstile;
   });
 
   it.each([

@@ -30,17 +30,33 @@ function loadScript(): Promise<void> {
  * Cloudflare Turnstile widget (#73). It only produces a token: the widget puts
  * it in a hidden `turnstileToken` field of the surrounding form, and the BE
  * decides whether it passed. Rendered explicitly so it works after client-side
- * navigation, not just on a full page load.
+ * navigation, not just on a full page load. With `onToken`, the token (or ''
+ * once it expires or errors) also goes to the caller, for a widget that sits
+ * outside the form(s) it serves.
  */
-export default function Turnstile({ siteKey, action }: { siteKey: string; action: 'sign-in' | 'magic-link' | 'request-access' }) {
+export default function Turnstile({ siteKey, action, onToken }: {
+  siteKey: string;
+  action: 'sign-in' | 'request-access';
+  onToken?: (token: string) => void;
+}) {
   const ref = useRef<HTMLDivElement>(null);
+  // Latest callback without re-rendering the widget when its identity changes.
+  const onTokenRef = useRef(onToken);
+  useEffect(() => { onTokenRef.current = onToken; });
 
   useEffect(() => {
     let widgetId: string | undefined;
     let cancelled = false;
     const mount = () => {
       if (cancelled || !ref.current || !window.turnstile) return;
-      widgetId = window.turnstile.render(ref.current, { sitekey: siteKey, action, 'response-field-name': 'turnstileToken' });
+      widgetId = window.turnstile.render(ref.current, {
+        sitekey: siteKey,
+        action,
+        'response-field-name': 'turnstileToken',
+        callback: (token: string) => onTokenRef.current?.(token),
+        'expired-callback': () => onTokenRef.current?.(''),
+        'error-callback': () => onTokenRef.current?.(''),
+      });
     };
     // Already loaded (any page after the first): render straight away.
     if (window.turnstile) mount();
