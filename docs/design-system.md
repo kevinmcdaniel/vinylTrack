@@ -17,6 +17,8 @@ It replaces the squaretrack design system that was copied into `design/system/` 
 
 Defined once in [`fe/src/lib/themes.ts`](../fe/src/lib/themes.ts). The root layout renders them as CSS custom properties, and [`fe/tailwind.config.ts`](../fe/tailwind.config.ts) maps each one to a Tailwind color name (`bg-surface`, `text-text-muted`, `border-border-strong`, …). Use the tokens, never raw palette utilities like `black/10` or `red-500`: `fe/src/ui/colorTokens.test.ts` fails on new ones (#18).
 
+For a visual of all three themes with these values, open [`design/palette.html`](../design/palette.html).
+
 ### Themes
 
 There are three themes. **Classic** (light) and **dark** come from the wireframe. **Warm** is the wireframe's "record store" palette, a light theme with terracotta on cream. Each person picks one per device from the **Theme** menu in the header, and the choice is kept in the `vt_theme` cookie. **System**, the default, follows the OS light/dark setting between classic and dark. The server sets `<html data-theme>`, so the page never flashes the wrong theme, and Tailwind's `dark:` variant follows the chosen theme rather than the OS.

@@ -1,0 +1,171 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>vinylTrack palettes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Hanken+Grotesk:wght@400;600;700&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+  body { margin: 0; padding: 24px 16px; background: #f6f7f9; color: #142031; font-family: 'Hanken Grotesk', system-ui, sans-serif; }
+  h1 { font-family: 'Space Grotesk', sans-serif; font-size: 22px; margin: 0 0 4px; }
+  .lede { color: #3a4856; font-size: 14px; margin: 0 0 20px; max-width: 760px; }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+  .themes { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px; }
+  .theme { border-radius: 14px; padding: 16px; }
+  .eyebrow { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 10px; }
+  .card { border-radius: 12px; padding: 14px; border: 1px solid; margin-bottom: 14px; }
+  .avatar { width: 28px; height: 28px; border-radius: 999px; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; }
+  .tag { font-size: 10px; font-weight: 600; padding: 3px 7px; }
+  .btn { flex: 1; text-align: center; border-radius: 7px; padding: 8px; font-size: 13px; font-weight: 600; }
+  .tokens { display: grid; grid-template-columns: 26px 1fr auto; gap: 6px 10px; align-items: center; font-size: 12px; }
+  .sw { width: 26px; height: 20px; border-radius: 5px; border: 1px solid rgba(127,127,127,0.35); }
+  .pairs { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 14px; }
+  .pairs td { padding: 3px 0; }
+  .pairs td:last-child { text-align: right; }
+</style>
+</head>
+<body>
+<h1>vinylTrack palettes</h1>
+<p class="lede">The three themes from <span class="mono">fe/src/lib/themes.ts</span>, with the contrast-adjusted values (#18). Every text pair the design uses reaches 4.5:1; <span class="mono">themes.test.ts</span> enforces it and <span class="mono">palettePage.test.ts</span> keeps this page in step with the code. Rules: <span class="mono">docs/design-system.md</span>.</p>
+<div class="themes" id="themes"></div>
+
+<script type="application/json" id="palettes">{
+  "classic": {
+    "label": "Classic",
+    "palette": {
+      "bg": "#eef1f4",
+      "surface": "#ffffff",
+      "surface-alt": "#f4f7fb",
+      "border": "#dbe2e9",
+      "border-light": "#e1e7ee",
+      "border-strong": "#cdd6e0",
+      "text": "#142031",
+      "text-secondary": "#3a4856",
+      "text-tertiary": "#505b69",
+      "text-muted": "#5f6e7f",
+      "chevron": "#aebccb",
+      "primary": "#1a60eb",
+      "primary-text": "#ffffff",
+      "primary-bg": "#e7eefc",
+      "primary-border": "#c7d9fb",
+      "accent-purple": "#7a52c4",
+      "accent-green": "#24794c",
+      "on-accent": "#ffffff",
+      "success-bg": "#e3f3ea",
+      "warn-bg": "#fbf1df",
+      "warn-border": "#e0a64e",
+      "warn-text": "#956317",
+      "danger-bg": "#fdeceb",
+      "danger-text": "#b9443b"
+    }
+  },
+  "warm": {
+    "label": "Warm",
+    "palette": {
+      "bg": "#f7f1e6",
+      "surface": "#fffaf2",
+      "surface-alt": "#f0e6d2",
+      "border": "#e3d5bb",
+      "border-light": "#ecdfc7",
+      "border-strong": "#d8c7a3",
+      "text": "#2c2118",
+      "text-secondary": "#4f412d",
+      "text-tertiary": "#605241",
+      "text-muted": "#71644e",
+      "chevron": "#c2ae8a",
+      "primary": "#a1472a",
+      "primary-text": "#ffffff",
+      "primary-bg": "#f3ded1",
+      "primary-border": "#e4b79a",
+      "accent-purple": "#7d5a8c",
+      "accent-green": "#546f46",
+      "on-accent": "#ffffff",
+      "success-bg": "#e6ecdc",
+      "warn-bg": "#f6e3c4",
+      "warn-border": "#cf9a3e",
+      "warn-text": "#8a5a12",
+      "danger-bg": "#f3ddd6",
+      "danger-text": "#a8402c"
+    }
+  },
+  "dark": {
+    "label": "Dark",
+    "palette": {
+      "bg": "#14161b",
+      "surface": "#1d2027",
+      "surface-alt": "#23262d",
+      "border": "#2b2f38",
+      "border-light": "#262a32",
+      "border-strong": "#383d47",
+      "text": "#eef1f4",
+      "text-secondary": "#c3c9d4",
+      "text-tertiary": "#9da5b2",
+      "text-muted": "#888f9c",
+      "chevron": "#565e6b",
+      "primary": "#6d99ff",
+      "primary-text": "#14161b",
+      "primary-bg": "#223256",
+      "primary-border": "#33487a",
+      "accent-purple": "#a480e0",
+      "accent-green": "#4fbf82",
+      "on-accent": "#14161b",
+      "success-bg": "#1d3327",
+      "warn-bg": "#3a2f18",
+      "warn-border": "#a9761f",
+      "warn-text": "#e3b767",
+      "danger-bg": "#3a2020",
+      "danger-text": "#e36c5e"
+    }
+  }
+}</script>
+<script>
+  const THEMES = JSON.parse(document.getElementById('palettes').textContent);
+  const lum = (h) => {
+    const c = [1, 3, 5].map((i) => { const v = parseInt(h.slice(i, i + 2), 16) / 255; return v <= 0.03928 ? v / 12.92 : ((v + 0.055) / 1.055) ** 2.4; });
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2];
+  };
+  const ratio = (a, b) => { const [x, y] = [lum(a), lum(b)].sort((m, n) => n - m); return (x + 0.05) / (y + 0.05); };
+  const PAIRS = [
+    ['text-muted', 'bg', 'metadata, eyebrows'],
+    ['text-tertiary', 'surface-alt', 'not-found result'],
+    ['primary-text', 'primary', 'primary button'],
+    ['primary', 'primary-bg', 'active chip, VG+'],
+    ['on-accent', 'accent-green', 'avatar initial'],
+    ['accent-green', 'success-bg', 'NM tag'],
+    ['warn-text', 'warn-bg', 'VG tag'],
+    ['danger-text', 'danger-bg', 'must-have tag'],
+  ];
+  const tag = (p, bg, fg, text, radius) =>
+    `<span class="tag mono" style="border-radius:${radius};background:${p[bg]};color:${p[fg]}">${text}</span>`;
+  document.getElementById('themes').innerHTML = Object.values(THEMES).map(({ label, palette: p }) => `
+    <section class="theme" style="background:${p.bg};color:${p.text}">
+      <div class="eyebrow mono" style="color:${p['text-muted']}">${label}</div>
+      <div class="card" style="background:${p.surface};border-color:${p.border}">
+        <div style="font-family:'Space Grotesk',sans-serif;font-weight:700;font-size:17px">Kind of Blue</div>
+        <div style="font-size:13px;color:${p['text-secondary']}">Miles Davis</div>
+        <div class="mono" style="font-size:12px;color:${p['text-muted']};margin:4px 0 10px">LP · 1959 · Columbia</div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span class="avatar" style="background:${p.primary};color:${p['primary-text']}">K</span>
+          <span class="avatar" style="background:${p['accent-green']};color:${p['on-accent']}">D</span>
+          <span class="avatar" style="background:${p['accent-purple']};color:${p['on-accent']}">M</span>
+          <span class="mono" style="font-size:11px;color:${p['text-tertiary']}">Garage → Box 3</span>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">
+          ${tag(p, 'success-bg', 'accent-green', 'NM', '5px')}${tag(p, 'primary-bg', 'primary', 'VG+', '5px')}${tag(p, 'warn-bg', 'warn-text', 'VG', '5px')}${tag(p, 'danger-bg', 'danger-text', 'MUST', '999px')}${tag(p, 'bg', 'text-tertiary', 'NICE', '999px')}
+        </div>
+        <div style="display:flex;gap:6px">
+          <span class="btn" style="background:${p.primary};color:${p['primary-text']}">Add a copy</span>
+          <span class="btn" style="background:${p['accent-green']};color:${p['on-accent']}">Save copy</span>
+          <span class="btn" style="border:1px solid ${p['border-strong']};color:${p['text-secondary']}">Cancel</span>
+        </div>
+      </div>
+      <div class="tokens">
+        ${Object.entries(p).map(([t, hex]) => `<span class="sw" style="background:${hex}"></span><span class="mono">${t}</span><span class="mono" style="color:${p['text-tertiary']}">${hex}</span>`).join('')}
+      </div>
+      <table class="pairs mono">
+        ${PAIRS.map(([fg, bg, use]) => `<tr><td><span style="background:${p[bg]};color:${p[fg]};padding:1px 5px;border-radius:4px">Aa</span> ${use}</td><td>${ratio(p[fg], p[bg]).toFixed(2)}:1</td></tr>`).join('')}
+      </table>
+    </section>`).join('');
+</script>
+</body>
+</html>
