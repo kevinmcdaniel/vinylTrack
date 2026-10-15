@@ -12,7 +12,7 @@ import ThemePicker from './ThemePicker';
 export default async function UserMenu() {
   const [user, theme] = await Promise.all([getCurrentUser(), getThemeChoice()]);
   return (
-    <nav className="flex items-center gap-3 text-xs">
+    <nav className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 whitespace-nowrap text-xs">
       <Link href="/collection/new" className="underline">New collection</Link>
       <Link href="/help" className="underline">Help</Link>
       {user.isAdmin && <Link href="/admin/requests" className="underline">Requests</Link>}

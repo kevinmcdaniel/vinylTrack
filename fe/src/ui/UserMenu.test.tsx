@@ -29,6 +29,13 @@ describe('UserMenu', () => {
     expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveValue('warm');
   });
 
+  // Six items for an admin overflowed a 375px phone (PR #97 review). jsdom
+  // can't measure, so this pins the fix: wrap to a second row, never mid-label.
+  it('wraps onto a second row instead of overflowing a phone screen', async () => {
+    render(await UserMenu());
+    expect(screen.getByRole('navigation')).toHaveClass('flex-wrap', 'justify-end', 'whitespace-nowrap');
+  });
+
   it('links admins to access requests', async () => {
     user.current = { ...user.current, isAdmin: true };
     render(await UserMenu());
