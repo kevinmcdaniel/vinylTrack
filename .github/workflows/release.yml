@@ -37,6 +37,9 @@ jobs:
     name: CI
     needs: tag
     uses: ./.github/workflows/ci.yml
+    # The images job below builds and pushes; CI's build-only copy would be a duplicate.
+    with:
+      skip_images: true
 
   images:
     name: Build and push images

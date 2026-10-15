@@ -7,6 +7,11 @@ on:
     branches: [main]
   # release.yml re-runs this whole file against the tagged commit as its gate (#60).
   workflow_call:
+    inputs:
+      skip_images:
+        description: Skip the build-only images job. release.yml builds and pushes the same images itself.
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -264,7 +269,10 @@ jobs:
   images:
     name: Production images build
     # Native arm64, like the home server and the release build (#60). Build
-    # only: nothing is pushed from CI.
+    # only: nothing is pushed from CI. Skipped on a release, whose own images
+    # job builds the same Dockerfiles and would fail the same way. `inputs` is
+    # empty on pull_request/push, so PRs and main still build.
+    if: ${{ !inputs.skip_images }}
     runs-on: ubuntu-24.04-arm
     steps:
       - uses: actions/checkout@v7
