@@ -7,7 +7,12 @@ vi.mock('@/app/pending/actions', () => ({ signOutAction: vi.fn() }));
 vi.mock('@/app/theme/actions', () => ({ setThemeAction: vi.fn() }));
 vi.mock('@/lib/themeChoice', () => ({ getThemeChoice: vi.fn(async () => 'warm') }));
 const apiGet = vi.hoisted(() => vi.fn());
-vi.mock('@/lib/api', () => ({ apiGet }));
+const { ApiError } = vi.hoisted(() => ({
+  ApiError: class ApiError extends Error {
+    constructor(readonly status: number, message: string) { super(message); }
+  },
+}));
+vi.mock('@/lib/api', () => ({ apiGet, ApiError }));
 
 import UserMenu from './UserMenu';
 
@@ -69,8 +74,16 @@ describe('UserMenu', () => {
   // The header renders on every page: a BE hiccup must not take it down.
   it('drops the badge, not the header, when the summary fails', async () => {
     user.current = { ...user.current, isAdmin: true };
-    apiGet.mockRejectedValue(new Error('BE down'));
+    apiGet.mockRejectedValue(new ApiError(500, 'BE down'));
     render(await UserMenu());
     expect(screen.getByRole('link', { name: 'Admin' })).toHaveAttribute('href', '/admin');
+  });
+
+  // apiGet → requireActiveUser throws NEXT_REDIRECT when the session goes mid-render.
+  it('lets a redirect through instead of swallowing it', async () => {
+    user.current = { ...user.current, isAdmin: true };
+    const redirect = Object.assign(new Error('NEXT_REDIRECT'), { digest: 'NEXT_REDIRECT;replace;/sign-in;307;' });
+    apiGet.mockRejectedValue(redirect);
+    await expect(UserMenu()).rejects.toBe(redirect);
   });
 });

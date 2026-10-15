@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { apiGet } from '@/lib/api';
+import { ApiError, apiGet } from '@/lib/api';
 import { getCurrentUser } from '@/lib/session';
 import type { AdminSummary } from '@/lib/types';
 import { signOutAction } from '@/app/pending/actions';
@@ -13,9 +13,13 @@ import ThemePicker from './ThemePicker';
  */
 export default async function UserMenu() {
   const [user, theme] = await Promise.all([getCurrentUser(), getThemeChoice()]);
-  // Admins only, and a failure just drops the badge: this renders on every page.
+  // Admins only, and a BE failure just drops the badge: this renders on every page.
   const pending = user.isAdmin && user.status === 'active'
-    ? await apiGet<AdminSummary>('/admin/summary').then((s) => s.pendingUsers, () => 0)
+    ? await apiGet<AdminSummary>('/admin/summary').then((s) => s.pendingUsers, (error: unknown) => {
+      // A redirect (session gone mid-render) must still fire.
+      if (error instanceof ApiError) return 0;
+      throw error;
+    })
     : 0;
   return (
     <nav className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 whitespace-nowrap text-xs">

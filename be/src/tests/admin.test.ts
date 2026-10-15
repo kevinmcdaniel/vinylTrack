@@ -3,6 +3,7 @@ import request from 'supertest';
 import app from '../app.js';
 import { prisma } from '../database.js';
 import { getConfig } from '../config.js';
+import { adminHealthService, DB_HEALTH_TIMEOUT_MS } from '../service/admin.js';
 import { T, cleanupTestData, authHeader, createTestAdmin } from './setup.js';
 
 // Admin back office (#90): action-item counts and workload health.
@@ -110,6 +111,21 @@ describe('GET /api/admin/health', () => {
       expect(fetch).not.toHaveBeenCalled();
     } finally {
       config.mailer = mailer;
+    }
+  });
+
+  it('marks a hung db down after its timeout', async () => {
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    mailerReplies(async () => json({ data: { status: 'ok', version: 'dev', mode: 'log' } }));
+    vi.spyOn(prisma, '$queryRaw').mockReturnValueOnce(new Promise(() => {}) as never);
+    vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] });
+    try {
+      const pending = adminHealthService();
+      await vi.advanceTimersByTimeAsync(DB_HEALTH_TIMEOUT_MS);
+      expect((await pending).db).toEqual({ status: 'down', detail: 'TimeoutError' });
+      expect(warn).toHaveBeenCalledWith('admin', 'health', 'db', 'TimeoutError');
+    } finally {
+      vi.useRealTimers();
     }
   });
 

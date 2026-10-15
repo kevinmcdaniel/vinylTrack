@@ -22,12 +22,21 @@ describe('AdminDashboard', () => {
     expect(screen.queryByRole('link', { name: /request/i })).not.toBeInTheDocument();
   });
 
-  it('counts waiting requests, linking to them, and owners with no account', () => {
+  it('counts waiting requests, linking to them, with owners they could be linked to', () => {
     renderIt({ summary: summary({ pendingUsers: 2, unlinkedOwners: 1 }) });
     const items = section('Action items');
     expect(within(items).getByRole('link', { name: '2 access requests waiting' })).toHaveAttribute('href', '/admin/requests');
     expect(within(items).getByText(/1 owner with no linked account/)).toBeInTheDocument();
     expect(within(items).queryByText('All clear.')).not.toBeInTheDocument();
+  });
+
+  // An owner with no account is normal (#53: a grandparent, a kid), and only
+  // actionable while someone is waiting to be approved and linked.
+  it('is all clear with unlinked owners but no requests', () => {
+    renderIt({ summary: summary({ unlinkedOwners: 3 }) });
+    const items = section('Action items');
+    expect(within(items).getByText('All clear.')).toBeInTheDocument();
+    expect(within(items).queryByText(/no linked account/)).not.toBeInTheDocument();
   });
 
   it('uses the singular for one request', () => {

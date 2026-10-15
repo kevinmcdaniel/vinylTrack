@@ -55,7 +55,9 @@ export default function AdminDashboard({ summary, health, feVersion }: {
   health: AdminHealth | null;
   feVersion: string;
 }) {
-  const allClear = summary.pendingUsers === 0 && summary.unlinkedOwners === 0;
+  // An owner with no account is normal (#53); it only matters while someone
+  // is waiting to be approved and could be linked to it.
+  const allClear = summary.pendingUsers === 0;
   const workloads: [string, WorkloadHealth][] = [
     ['fe', { status: 'up', version: feVersion }],
     ...(health ? [['be', health.be], ['db', health.db], ['mailer', health.mailer]] as [string, WorkloadHealth][] : []),
@@ -69,21 +71,16 @@ export default function AdminDashboard({ summary, health, feVersion }: {
         {allClear ? (
           <p className="text-sm text-text-muted">All clear.</p>
         ) : (
-          <ul className={`${card} divide-y divide-border text-sm`}>
-            {summary.pendingUsers > 0 && (
-              <li className="px-3 py-2">
-                <Link href="/admin/requests" className="text-primary underline">
-                  {plural(summary.pendingUsers, 'access request', 'access requests')} waiting
-                </Link>
-              </li>
-            )}
+          <div className={`${card} flex flex-col gap-1 px-3 py-2 text-sm`}>
+            <Link href="/admin/requests" className="text-primary underline">
+              {plural(summary.pendingUsers, 'access request', 'access requests')} waiting
+            </Link>
             {summary.unlinkedOwners > 0 && (
-              <li className="px-3 py-2">
-                {plural(summary.unlinkedOwners, 'owner', 'owners')} with no linked account.{' '}
-                <span className="text-text-muted">Link one when you approve its person&apos;s request.</span>
-              </li>
+              <p className="text-text-muted">
+                {plural(summary.unlinkedOwners, 'owner', 'owners')} with no linked account, to link on approve.
+              </p>
             )}
-          </ul>
+          </div>
         )}
       </Section>
 
