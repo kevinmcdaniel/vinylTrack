@@ -2,6 +2,15 @@ import type { Config } from "tailwindcss";
 import typography from "@tailwindcss/typography";
 
 export default {
+  // `dark:` follows the theme: an explicit data-theme="dark", or the OS when
+  // nothing is chosen. Picking classic or warm on a dark-mode OS turns it off.
+  darkMode: [
+    "variant",
+    [
+      "@media (prefers-color-scheme: dark) { &:not([data-theme] *) }",
+      '&:is([data-theme="dark"] *)',
+    ],
+  ],
   content: [
     "./src/app/**/*.{js,ts,jsx,tsx,mdx}",
     "./src/ui/**/*.{js,ts,jsx,tsx,mdx}",
@@ -26,6 +35,7 @@ export default {
         "primary-border": "var(--primary-border)",
         "accent-purple": "var(--accent-purple)",
         "accent-green": "var(--accent-green)",
+        "on-accent": "var(--on-accent)",
         "success-bg": "var(--success-bg)",
         "warn-bg": "var(--warn-bg)",
         "warn-border": "var(--warn-border)",
