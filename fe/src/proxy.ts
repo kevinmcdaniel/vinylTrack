@@ -19,8 +19,15 @@ export const SESSION_COOKIES = ['authjs.session-token', '__Secure-authjs.session
 const hasSession = (request: NextRequest) =>
   request.cookies.getAll().some(({ name }) => SESSION_COOKIES.some((s) => name === s || name.startsWith(`${s}.`)));
 
+// A server action POST. A 307 would keep the method and the action id, so a
+// tab left open past cookie expiry would get "failed to find server action"
+// rather than the sign-in page. Let it through: the action's own
+// requireActiveUser() redirect comes back as an action redirect, as before.
+const isServerAction = (request: NextRequest) =>
+  request.method === 'POST' && request.headers.has('next-action');
+
 export function proxy(request: NextRequest) {
-  if (hasSession(request)) return NextResponse.next();
+  if (hasSession(request) || isServerAction(request)) return NextResponse.next();
   return NextResponse.redirect(new URL('/sign-in', request.url));
 }
 

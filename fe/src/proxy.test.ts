@@ -37,6 +37,21 @@ describe('proxy', () => {
     expect(getRedirectUrl(res)).toBeNull();
   });
 
+  // A server action from a tab left open past cookie expiry: a 307 keeps the
+  // POST and its action id, so the client would get "failed to find server
+  // action" instead of the sign-in page. Let it through; the DAL's redirect()
+  // comes back as an action redirect, as before (PR #100 review).
+  it('lets a server action POST through without a cookie', () => {
+    const req = new NextRequest(`${BASE}/help`, { method: 'POST', headers: { 'next-action': 'abc123' } });
+    const res = proxy(req);
+    expect(res.status).toBe(200);
+    expect(getRedirectUrl(res)).toBeNull();
+  });
+
+  it('still redirects a plain POST without a cookie', () => {
+    expect(proxy(new NextRequest(`${BASE}/help`, { method: 'POST' })).status).toBe(307);
+  });
+
   it('ignores other Auth.js cookies', () => {
     expect(proxy(request('/help', { 'authjs.csrf-token': 'x', 'authjs.callback-url': 'y' })).status).toBe(307);
   });
