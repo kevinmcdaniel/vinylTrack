@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { apiGet } from '@/lib/api';
 import { requireAdmin } from '@/lib/session';
 import RequestsList, { type LinkableOwner, type PendingUser } from '@/ui/RequestsList';
@@ -14,6 +15,7 @@ export default async function RequestsPage({ searchParams }: { searchParams: Pro
   ]);
   return (
     <section className="flex flex-col gap-4">
+      <Link href="/admin" className="text-sm text-primary underline">← Admin</Link>
       <h1 className="text-lg font-semibold">Access requests</h1>
       <RequestsList
         users={users}
