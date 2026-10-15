@@ -67,12 +67,27 @@ END \$\$;
 -- Every run, so a role left by an earlier hand setup matches dev-secrets/.
 ALTER ROLE vinyltrack LOGIN SUPERUSER PASSWORD '$PW';
 SQL
-su postgres -c "psql -tAc \"SELECT 1 FROM pg_database WHERE datname = 'vinyltrack'\"" | grep -q 1 \
-  || su postgres -c "createdb -O vinyltrack vinyltrack" >&2
+seed=""
+if ! su postgres -c "psql -tAc \"SELECT 1 FROM pg_database WHERE datname = 'vinyltrack'\"" | grep -q 1; then
+  su postgres -c "createdb -O vinyltrack vinyltrack" >&2
+  seed="new database"
+fi
 
-# Seed wipes and refills its own tables, so it is safe on every start.
 cd "$ROOT/be"
 npx prisma generate >&2
-npx prisma migrate deploy >&2
-npx prisma db seed >&2
-echo "session-start: deps, Postgres, migrations and seed ready" >&2
+migrated="$(npx prisma migrate deploy 2>&1)"
+echo "$migrated" >&2
+grep -q "No pending migrations" <<< "$migrated" || seed="${seed:-migrations applied}"
+# An earlier run that died between createdb and the seed leaves no users.
+users="$(su postgres -c "psql -d vinyltrack -tAc 'SELECT count(*) FROM \"user\"'" 2> /dev/null || echo 0)"
+[ "$users" = "0" ] && seed="${seed:-no users}"
+
+# The seed wipes and refills its tables, so only run it on a new or changed
+# DB: a resumed container keeps whatever state a session built up.
+if [ -n "$seed" ]; then
+  echo "session-start: seeding ($seed)" >&2
+  npx prisma db seed >&2
+else
+  echo "session-start: DB kept as is; reseed with: cd be && npx prisma db seed" >&2
+fi
+echo "session-start: deps, Postgres, migrations ready" >&2

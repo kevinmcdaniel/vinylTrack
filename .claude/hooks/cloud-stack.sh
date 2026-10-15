@@ -20,6 +20,7 @@ start() { # name dir health-url cmd...
   local name=$1 dir=$2 url=$3; shift 3
   if health "$url"; then echo "$name: already up"; return; fi
   # setsid: its own process group, which records its leader's pid for `down`.
+  # shellcheck disable=SC2016 # $$, $0 and $@ belong to the inner bash
   (cd "$dir" && nohup setsid bash -c 'echo $$ > "$0"; exec "$@"' "$RUN/$name.pid" "$@" > "$RUN/$name.log" 2>&1 &)
   for _ in $(seq 1 90); do
     if health "$url"; then echo "$name: up ($url)"; return; fi
@@ -73,10 +74,13 @@ case "${1:-}" in
     for s in fe be mailer; do stop "$s"; done
     ;;
   status)
-    for s in "mailer http://localhost:5299/health" "be http://localhost:5202/api/health" "fe http://localhost:5201/api/health"; do
-      set -- $s
-      if health "$2"; then echo "$1: up"; else echo "$1: down"; fi
-    done
+    while read -r name url; do
+      if health "$url"; then echo "$name: up"; else echo "$name: down"; fi
+    done <<'EOF'
+mailer http://localhost:5299/health
+be http://localhost:5202/api/health
+fe http://localhost:5201/api/health
+EOF
     pg_isready -q -h localhost && echo "postgres: up" || echo "postgres: down"
     ;;
   *)

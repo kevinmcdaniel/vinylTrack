@@ -265,6 +265,8 @@ jobs:
       - uses: actions/checkout@v7
       # shellcheck ships on GitHub's Ubuntu images.
       - run: shellcheck -s bash host/libexec/deploy-shell host/libexec/deploy.sh
+      # Cloud-session hooks: cloud containers can't fetch shellcheck themselves.
+      - run: shellcheck -s bash .claude/hooks/*.sh
 
   images:
     name: Production images build
