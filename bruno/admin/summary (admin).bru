@@ -1,0 +1,27 @@
+meta {
+  name: summary (admin)
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/admin/summary
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{adminEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("counts pending users and unlinked owners", function() {
+    expect(res.body.data.pendingUsers).to.be.a("number");
+    expect(res.body.data.unlinkedOwners).to.be.a("number");
+  });
+}

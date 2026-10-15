@@ -1,0 +1,20 @@
+meta {
+  name: summary (unknown identity)
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/admin/summary
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{unknownEmail}}
+}
+
+assert {
+  res.status: eq 401
+  res.body.data: isNull
+}
