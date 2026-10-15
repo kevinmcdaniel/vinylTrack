@@ -2,7 +2,8 @@ name: Release
 
 # A release tag is the release (#60). Pushing vX.Y.Z or vX.Y.Z-rc.N:
 #   1. re-runs CI against the tagged commit; a red commit never ships
-#   2. builds and pushes arm64 images to GHCR, tagged with the release tag
+#   2. builds and pushes arm64 images to GHCR, tagged with the release tag;
+#      `latest` moves only after all of them are pushed
 #   3. creates the GitHub Release, with compose.prod.yml attached
 #      (deploy.sh fetches it from there, so compose always matches the images)
 #   4. deploys, after approval on the `production` environment
@@ -63,17 +64,6 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Image tags
-        id: tags
-        env:
-          IMAGE: ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}
-          TAG: ${{ github.ref_name }}
-          PRERELEASE: ${{ needs.tag.outputs.prerelease }}
-        run: |
-          tags="$IMAGE:$TAG"
-          # `latest` only ever means the newest final release.
-          [[ "$PRERELEASE" == false ]] && tags="$tags,$IMAGE:latest"
-          echo "tags=$tags" >> "$GITHUB_OUTPUT"
       - uses: docker/build-push-action@v7
         with:
           context: .
@@ -81,7 +71,8 @@ jobs:
           target: ${{ matrix.target }}
           platforms: linux/arm64
           push: true
-          tags: ${{ steps.tags.outputs.tags }}
+          # Release tag only: `latest` moves in the job below, once every image is pushed.
+          tags: ghcr.io/${{ github.repository_owner }}/${{ matrix.name }}:${{ github.ref_name }}
           build-args: VINYLTRACK_VERSION=${{ github.ref_name }}
           # Links the package to this repo in GHCR.
           labels: |
@@ -90,6 +81,32 @@ jobs:
             org.opencontainers.image.revision=${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=${{ matrix.name }}
+
+  latest:
+    name: Tag latest
+    # `latest` only ever means the newest final release, and only once all four
+    # images are pushed: a matrix leg that fails must not leave `latest` on a
+    # mix of releases. Same image list as the matrix above.
+    needs: [tag, images]
+    if: needs.tag.outputs.prerelease == 'false'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: docker/setup-buildx-action@v4
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - env:
+          REGISTRY: ghcr.io/${{ github.repository_owner }}
+          TAG: ${{ github.ref_name }}
+        run: |
+          for name in vinyltrack-be vinyltrack-migrate vinyltrack-fe vinyltrack-mailer; do
+            docker buildx imagetools create -t "$REGISTRY/$name:latest" "$REGISTRY/$name:$TAG"
+          done
 
   release:
     name: GitHub Release
