@@ -17,7 +17,7 @@ export const dynamic = 'force-dynamic';
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="mx-auto flex min-h-screen w-full max-w-2xl flex-col">
-      <header className="sticky top-0 z-10 border-b border-black/10 bg-[var(--background)] px-4 py-3 dark:border-white/15">
+      <header className="sticky top-0 z-10 border-b border-black/10 bg-bg px-4 py-3 dark:border-white/15">
         <div className="flex items-center justify-between gap-3">
           <Link href="/" className="text-sm font-semibold tracking-tight">
             vinylTrack

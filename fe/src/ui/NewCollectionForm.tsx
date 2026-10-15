@@ -27,7 +27,7 @@ export default function NewCollectionForm({ action, error }: { action: Action; e
         Notes
         <textarea name="notes" rows={2} className="rounded border border-black/20 bg-transparent px-2 py-1 dark:border-white/25" />
       </label>
-      <button type="submit" className="rounded-md bg-[var(--foreground)] px-4 py-2 text-sm font-medium text-[var(--background)]">Create collection</button>
+      <button type="submit" className="rounded-md bg-text px-4 py-2 text-sm font-medium text-bg">Create collection</button>
     </form>
   );
 }

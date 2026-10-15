@@ -38,7 +38,7 @@ export default function RequestsList({
                     {owners.map((o) => <option key={o.id} value={o.id}>{o.name}</option>)}
                   </select>
                 </label>
-                <button type="submit" className="rounded-md bg-[var(--foreground)] px-3 py-1 text-sm text-[var(--background)]">Approve</button>
+                <button type="submit" className="rounded-md bg-text px-3 py-1 text-sm text-bg">Approve</button>
               </form>
               <form action={denyAction}>
                 <input type="hidden" name="userId" value={u.id} />

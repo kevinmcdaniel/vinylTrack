@@ -6,7 +6,7 @@
 - `fe/` — Next.js 16 App Router frontend
 - `mailer/` — a small Express service that sends the sign-in email (see [Mailer](#mailer))
 - `bruno/` — the [Bruno](https://www.usebruno.com) API collection, one folder per resource (see [process](process.md))
-- `design/` — design tokens/components/guidelines (carried over from squaretrack, not yet adapted — see [issue #18](https://github.com/kevinmcdaniel/vinylTrack/issues/18))
+- `design/` — UX wireframes (`design/wireframes/`), the source of truth for the look; the rules are in [Design system](design-system.md)
 - `docker-compose.yml` — local dev orchestration: `be`, `fe`, `mailer`, `db`, `studio`, plus one-shot `migrate`/`seed` jobs
 - `compose.prod.yml` — the production stack, attached to each GitHub Release (see [Releasing and deploying](hosting-deploy.md))
 - `dev-secrets/` — committed fake secrets for dev (see [Config and secrets](#config-and-secrets))

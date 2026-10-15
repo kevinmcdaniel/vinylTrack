@@ -4,6 +4,8 @@ import { render, screen } from '@testing-library/react';
 const user = vi.hoisted(() => ({ current: { id: 'u-1', email: 'kevin@example.com', name: 'Kevin', avatar: null, status: 'active', isAdmin: false } }));
 vi.mock('@/lib/session', () => ({ getCurrentUser: vi.fn(async () => user.current) }));
 vi.mock('@/app/pending/actions', () => ({ signOutAction: vi.fn() }));
+vi.mock('@/app/theme/actions', () => ({ setThemeAction: vi.fn() }));
+vi.mock('@/lib/themeChoice', () => ({ getThemeChoice: vi.fn(async () => 'warm') }));
 
 import UserMenu from './UserMenu';
 
@@ -20,6 +22,18 @@ describe('UserMenu', () => {
     user.current = { ...user.current, isAdmin };
     render(await UserMenu());
     expect(screen.getByRole('link', { name: 'Help' })).toHaveAttribute('href', '/help');
+  });
+
+  it('lets anyone pick a theme, showing this device\'s choice', async () => {
+    render(await UserMenu());
+    expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveValue('warm');
+  });
+
+  // Six items for an admin overflowed a 375px phone (PR #97 review). jsdom
+  // can't measure, so this pins the fix: wrap to a second row, never mid-label.
+  it('wraps onto a second row instead of overflowing a phone screen', async () => {
+    render(await UserMenu());
+    expect(screen.getByRole('navigation')).toHaveClass('flex-wrap', 'justify-end', 'whitespace-nowrap');
   });
 
   it('links admins to access requests', async () => {
