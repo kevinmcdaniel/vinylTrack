@@ -93,3 +93,19 @@ export type AlbumWithCopies = Album & { copies: Copy[] };
 export type ArtistDetail = Artist & {
   albums: (Album & { collection: CollectionRef })[];
 };
+
+/** GET /api/admin/summary — back-office action items as counts (#90). */
+export type AdminSummary = { pendingUsers: number; unlinkedOwners: number };
+
+/** One workload in GET /api/admin/health. A failing one is `down`, never an error. */
+export type WorkloadHealth = {
+  status: 'up' | 'down' | 'not configured';
+  detail?: string;
+  version?: string;
+  mode?: string;
+  latencyMs?: number;
+  uptimeSeconds?: number;
+};
+
+/** GET /api/admin/health (#90). */
+export type AdminHealth = { be: WorkloadHealth; db: WorkloadHealth; mailer: WorkloadHealth };

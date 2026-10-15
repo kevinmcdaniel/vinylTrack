@@ -1,0 +1,32 @@
+meta {
+  name: health (admin)
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/admin/health
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{adminEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("reports be and db up", function() {
+    expect(res.body.data.be.status).to.equal("up");
+    expect(res.body.data.be.version).to.be.a("string").and.not.empty;
+    expect(res.body.data.db.status).to.equal("up");
+  });
+  // Up when a mailer runs (dev compose, CI's api job); the check is that it answers per workload.
+  test("reports the mailer", function() {
+    expect(res.body.data.mailer.status).to.be.oneOf(["up", "down", "not configured"]);
+  });
+}

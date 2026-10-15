@@ -9,6 +9,7 @@ import { copyRoute } from './copies.js';
 import { wantRoute } from './wants.js';
 import { authRoute } from './auth.js';
 import { userRoute } from './users.js';
+import { adminRoute } from './admin.js';
 
 export const indexRoute = Router();
 
@@ -22,3 +23,4 @@ indexRoute.use('/copy', copyRoute);
 indexRoute.use('/want', wantRoute);
 indexRoute.use('/auth', authRoute);
 indexRoute.use('/user', userRoute);
+indexRoute.use('/admin', adminRoute);

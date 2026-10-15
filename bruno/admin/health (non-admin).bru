@@ -1,0 +1,20 @@
+meta {
+  name: health (non-admin)
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/admin/health
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 403
+  res.body.data: isNull
+}

@@ -37,3 +37,34 @@ export async function sendMagicLink(to: string, url: string): Promise<MailerResu
     return 'failed';
   }
 }
+
+export type MailerHealth =
+  | { status: 'up' | 'down'; detail?: string; version?: string; mode?: string }
+  | { status: 'not configured' };
+
+// Short, unlike a send: the admin page waits on it (#90).
+export const MAILER_HEALTH_TIMEOUT_MS = 3_000;
+
+const logHealth = (detail: string | number) => console.warn('admin', 'health', 'mailer', detail);
+
+// Never throws. A 503 still carries the mailer's version and mode, so a
+// revoked Gmail grant reads as "v0.9.0, down" rather than "unreachable".
+export async function checkMailerHealth(): Promise<MailerHealth> {
+  const mailer = getConfig().mailer;
+  if (!mailer) return { status: 'not configured' };
+  try {
+    const res = await fetch(`${mailer.url}/health`, { signal: AbortSignal.timeout(MAILER_HEALTH_TIMEOUT_MS) });
+    const data = (await res.json().catch(() => null))?.data;
+    const reported = {
+      ...(typeof data?.version === 'string' && { version: data.version }),
+      ...(typeof data?.mode === 'string' && { mode: data.mode }),
+    };
+    if (res.ok) return { status: 'up', ...reported };
+    logHealth(res.status);
+    return { status: 'down', detail: typeof data?.status === 'string' ? data.status : String(res.status), ...reported };
+  } catch (error) {
+    const name = error instanceof Error ? error.name : 'error';
+    logHealth(name);
+    return { status: 'down', detail: name };
+  }
+}

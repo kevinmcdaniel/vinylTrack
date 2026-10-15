@@ -16,6 +16,9 @@
 //   location/    | scoped to accessible      | requireCollectionAccess-  | requireCollectionAccess
 //   want_item    | collections (list), or    | ForCreate                 | (404 if not accessible)
 //                | 404 if :id not accessible |                           |
+//   user/admin   | requireAdmin (whole       | (sign-in only, #73)       | requireAdmin (approve/
+//                | router: /api/user,        |                           | deny; not your own row)
+//                | /api/admin/*, #90)        |                           |
 //
 // location joined that row in #53: it carries a collectionId now, so the old
 // ownerId special case (and the unowned-is-communal rule with it) is gone.
