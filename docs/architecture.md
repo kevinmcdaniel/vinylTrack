@@ -52,6 +52,8 @@ Landed in [issue #2](https://github.com/kevinmcdaniel/vinylTrack/issues/2) and r
 - `fe/src/lib/` — `types.ts` (BE response shapes), `filters.ts` (pure helpers), plus the files below
 - `fe/src/ui/` — shared components
 - `fe/src/app/docs/` — this docs viewer (reads markdown from repo-root `docs/`; admins only)
+- `fe/src/app/(app)/help/` — user help (reads `docs/user/` only; any approved user)
+- `fe/src/app/(app)/admin/` — the admin back office: action items, workload health, runbook links ([#90](https://github.com/kevinmcdaniel/vinylTrack/issues/90))
 - `fe/src/lib/config.ts` — the FE's config reader, checked at boot by `fe/src/instrumentation.ts`
 - `fe/src/auth.ts` — Auth.js (JWT sessions; Google, an emailed magic link, plus a dev-only seeded-user sign-in). Every sign-in is decided by the BE (`POST /api/auth/sign-in`)
 - `fe/src/lib/session.ts` — where pages check access (signed in? approved? admin?), right next to the data they fetch
@@ -62,7 +64,8 @@ Landed in [issue #2](https://github.com/kevinmcdaniel/vinylTrack/issues/2) and r
 1. A visitor signs in with Google, or asks for a sign-in link by email (or, in dev, signs in as a seeded user). A Cloudflare Turnstile check rides along; the **BE** validates it. The emailed link is good for 15 minutes, once.
 2. The BE finds or creates the `user`. The very first user ever becomes the admin; everyone after that starts **pending**.
 3. A pending user sees "waiting for approval". An admin approves (optionally linking an existing `owner`) or denies at `/admin/requests`; a declined user can ask again.
-4. Every FE→BE call carries a token signed with a secret only the FE and BE share. The BE re-reads the user's status on every request, so approving or denying takes effect at once.
+4. Admins work from `/admin` ([#90](https://github.com/kevinmcdaniel/vinylTrack/issues/90)): pending requests and owners with no linked account as counts (`GET /api/admin/summary`, which also feeds the header's **Admin** badge), and fe/be/db/mailer health with versions (`GET /api/admin/health`, which reports a failing workload as `down` rather than erroring). A down mailer links its re-authorize runbook, since it blocks releases.
+5. Every FE→BE call carries a token signed with a secret only the FE and BE share. The BE re-reads the user's status on every request, so approving or denying takes effect at once.
 
 The FE never touches the database. Sessions are JWTs, and the only things Auth.js stores — magic-link tokens, hashed — go through the BE.
 
