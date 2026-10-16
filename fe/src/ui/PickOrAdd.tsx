@@ -56,7 +56,19 @@ export default function PickOrAdd({ name, label, options: initial, defaultValue,
         <summary className="cursor-pointer text-sm text-primary underline">{addLabel}</summary>
         <div className="mt-2 flex gap-2">
           <label htmlFor={draftId} className="sr-only">New {noun} name</label>
-          <input id={draftId} value={draft} onChange={(e) => setDraft(e.target.value)} className={`${input} min-w-0 flex-1`} />
+          <input
+            id={draftId}
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            // Enter must never submit the copy form half-filled (PR #112 review);
+            // this box only takes a new name, so Enter adds it.
+            onKeyDown={(e) => {
+              if (e.key !== 'Enter') return;
+              e.preventDefault();
+              if (draft.trim() && !pending) add();
+            }}
+            className={`${input} min-w-0 flex-1`}
+          />
           <button type="button" onClick={add} disabled={pending || !draft.trim()} className="rounded-md bg-primary px-3 py-1 text-sm font-medium text-primary-text">
             Add
           </button>

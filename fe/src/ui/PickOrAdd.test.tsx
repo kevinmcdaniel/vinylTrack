@@ -33,4 +33,16 @@ describe('PickOrAdd', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(/couldn.t add/i);
     expect(screen.getByRole('combobox', { name: 'Owner' })).toHaveValue('o-1');
   });
+
+  // PR #112 review, same flaw: Enter in the new-name box submitted the whole
+  // copy form half-filled. Here Enter means "add this", so it adds instead.
+  it('adds on Enter in the new-name box, never submitting the copy form', async () => {
+    const submit = vi.fn((e: React.FormEvent) => e.preventDefault());
+    const create = vi.fn(async (name: string) => ({ item: { id: 'o-9', label: name } }));
+    render(<form onSubmit={submit}><PickOrAdd name="ownerId" label="Owner" options={options} addLabel="Add an owner" create={create} /><button type="submit">Save</button></form>);
+    await userEvent.click(screen.getByText('Add an owner'));
+    await userEvent.type(screen.getByRole('textbox', { name: 'New owner name' }), 'Cousin Pat{Enter}');
+    expect(submit).not.toHaveBeenCalled();
+    expect(create).toHaveBeenCalledWith('Cousin Pat');
+  });
 });
