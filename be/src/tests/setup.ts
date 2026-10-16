@@ -17,6 +17,7 @@ export async function createTestAdmin(suffix = 'admin') {
 export async function cleanupTestData() {
   await prisma.want_item.deleteMany({ where: { artist: { name: { startsWith: T } } } });
   await prisma.want_item.deleteMany({ where: { album: { title: { startsWith: T } } } });
+  await prisma.want_item.deleteMany({ where: { collection: { name: { startsWith: T } } } });
   await prisma.copy.deleteMany({
     where: {
       OR: [

@@ -145,6 +145,39 @@ describe('DELETE /api/artist/:id', () => {
     expect(res.status).toBe(404);
     expect(res.body.data).toBeNull();
   });
+
+  // #36: dependents used to surface as a 500 (unmapped FK violation).
+  describe('with dependents', () => {
+    let collectionId: string;
+
+    beforeAll(async () => {
+      const collOwner = await prisma.user.create({ data: { email: `${T}artist-del-owner@example.com`, status: 'active' } });
+      const coll = await prisma.collection.create({ data: { name: `${T}ArtistDelColl`, kind: 'physical', ownerId: collOwner.id } });
+      collectionId = coll.id;
+    });
+
+    it('returns 409 while an album credits the artist, and keeps it', async () => {
+      const artist = await prisma.artist.create({ data: { name: `${T}Credited` } });
+      await prisma.album.create({
+        data: { collectionId, title: `${T}CreditsArtist`, artists: { create: [{ artistId: artist.id }] } },
+      });
+      const res = await request(app).delete(`/api/artist/${artist.id}`).set(authHeader(admin.email));
+      expect(res.status).toBe(409);
+      expect(res.body.data).toEqual({});
+      expect(res.body.message).toMatch(/album/i);
+      expect(await prisma.artist.findUnique({ where: { id: artist.id } })).not.toBeNull();
+    });
+
+    it('returns 409 while a want item references the artist, and keeps it', async () => {
+      const artist = await prisma.artist.create({ data: { name: `${T}Wanted` } });
+      await prisma.want_item.create({ data: { collectionId, artistId: artist.id, priority: 'nice-to-have' } });
+      const res = await request(app).delete(`/api/artist/${artist.id}`).set(authHeader(admin.email));
+      expect(res.status).toBe(409);
+      expect(res.body.data).toEqual({});
+      expect(res.body.message).toMatch(/want/i);
+      expect(await prisma.artist.findUnique({ where: { id: artist.id } })).not.toBeNull();
+    });
+  });
 });
 
 // ── GET /api/artist/:id — album scoping (#33) ─────────────────────────────

@@ -265,6 +265,43 @@ describe('DELETE /api/album/:id', () => {
     expect(res.status).toBe(404);
     expect(res.body.data).toBeNull();
   });
+
+  // #36: dependents used to surface as a 500 (unmapped FK violation).
+  it('deletes an album with linked artists, dropping only the join rows', async () => {
+    const album = await prisma.album.create({
+      data: { collectionId, title: `${T}CreditedToDelete`, artists: { create: [{ artistId }] } },
+    });
+    const res = await request(app).delete(`/api/album/${album.id}`).set(authHeader(owner.email));
+    expect(res.status).toBe(200);
+    expect(await prisma.album_artist.count({ where: { albumId: album.id } })).toBe(0);
+    expect(await prisma.artist.findUnique({ where: { id: artistId } })).not.toBeNull();
+  });
+
+  it('returns 409 while a copy references the album, and keeps it', async () => {
+    const album = await prisma.album.create({
+      data: { collectionId, title: `${T}OwnedToDelete`, artists: { create: [{ artistId }] } },
+    });
+    const location = await prisma.location.create({ data: { collectionId, name: `${T}DeleteShelf`, kind: 'physical' } });
+    await prisma.copy.create({ data: { albumId: album.id, locationId: location.id } });
+
+    const res = await request(app).delete(`/api/album/${album.id}`).set(authHeader(owner.email));
+    expect(res.status).toBe(409);
+    expect(res.body.data).toEqual({});
+    expect(res.body.message).toMatch(/cop/i);
+    expect(await prisma.album.findUnique({ where: { id: album.id } })).not.toBeNull();
+    expect(await prisma.album_artist.count({ where: { albumId: album.id } })).toBe(1);
+  });
+
+  it('returns 409 while a want item references the album, and keeps it', async () => {
+    const album = await prisma.album.create({ data: { collectionId, title: `${T}WantedToDelete` } });
+    await prisma.want_item.create({ data: { collectionId, albumId: album.id, priority: 'must-have' } });
+
+    const res = await request(app).delete(`/api/album/${album.id}`).set(authHeader(owner.email));
+    expect(res.status).toBe(409);
+    expect(res.body.data).toEqual({});
+    expect(res.body.message).toMatch(/want/i);
+    expect(await prisma.album.findUnique({ where: { id: album.id } })).not.toBeNull();
+  });
 });
 
 // ── GET /api/album — title search + collection on detail (#33) ────────────

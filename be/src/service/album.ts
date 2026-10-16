@@ -1,4 +1,5 @@
 import { prisma } from '../database.js';
+import { ConflictError } from '../common/errorHandler.js';
 import type { Prisma } from '../generated/client/client.js';
 
 const withArtists = { artists: { include: { artist: true } } } as const;
@@ -131,6 +132,22 @@ export const updateAlbumService = async (
   return flattenArtists(album);
 };
 
+// #36: album_artist rows are pure join rows and go with the album. Copies and
+// want items are refused rather than cascaded — a copy row is acquisition
+// history, and a want item's optional albumId would otherwise be silently
+// nulled (Prisma's default for an optional relation), leaving a want for nothing.
 export const deleteAlbumService = async (id: string) => {
-  return prisma.album.delete({ where: { id } });
+  return prisma.$transaction(async (tx) => {
+    const [copies, wants] = await Promise.all([
+      tx.copy.count({ where: { albumId: id } }),
+      tx.want_item.count({ where: { albumId: id } }),
+    ]);
+    const blockers = [
+      copies && `${copies} ${copies === 1 ? 'copy' : 'copies'}`,
+      wants && `${wants} want ${wants === 1 ? 'item' : 'items'}`,
+    ].filter(Boolean);
+    if (blockers.length) throw new ConflictError(`Album is still referenced by ${blockers.join(' and ')}.`);
+    await tx.album_artist.deleteMany({ where: { albumId: id } });
+    return tx.album.delete({ where: { id } });
+  });
 };
