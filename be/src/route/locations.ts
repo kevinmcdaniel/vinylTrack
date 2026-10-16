@@ -1,7 +1,7 @@
 import express, { type Request } from 'express';
 import { listLocations, getLocation, createLocation, updateLocation, deleteLocation } from '../controller/location.js';
 import { requireActiveUser } from '../common/authorize.js';
-import { requireCollectionAccess, requireCollectionAccessForCreate } from '../common/policy.js';
+import { collectionIdInBody, requireCollectionAccess, requireCollectionAccessForCreate } from '../common/policy.js';
 import { routeParam } from '../common/utils.js';
 import { prisma } from '../database.js';
 
@@ -15,15 +15,12 @@ const resolveByLocationId = async (req: Request) => {
   return location?.collectionId ?? null;
 };
 
-const resolveByCollectionIdInBody = (req: Request): string | undefined =>
-  req.body.collectionId as string | undefined;
-
 export const locationRoute = express.Router();
 
 locationRoute.use(requireActiveUser);
 
 locationRoute.get('/', listLocations);
 locationRoute.get('/:id', requireCollectionAccess(resolveByLocationId), getLocation);
-locationRoute.post('/', requireCollectionAccessForCreate(resolveByCollectionIdInBody), createLocation);
+locationRoute.post('/', requireCollectionAccessForCreate(collectionIdInBody), createLocation);
 locationRoute.patch('/:id', requireCollectionAccess(resolveByLocationId), updateLocation);
 locationRoute.delete('/:id', requireCollectionAccess(resolveByLocationId), deleteLocation);

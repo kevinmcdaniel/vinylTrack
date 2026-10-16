@@ -13,11 +13,13 @@ const resolveByCopyId = async (req: Request) => {
   return copy?.album.collectionId ?? null;
 };
 
-const resolveByAlbumIdInBody = async (req: Request): Promise<string | undefined> => {
+// `undefined` = no albumId sent (controller 406s); `null` = no such album, which
+// the guard treats as inaccessible so it can't be told apart from one (#45).
+const resolveByAlbumIdInBody = async (req: Request): Promise<string | null | undefined> => {
   const albumId = req.body.albumId as string | undefined;
   if (!albumId) return undefined;
   const album = await prisma.album.findUnique({ where: { id: albumId }, select: { collectionId: true } });
-  return album?.collectionId;
+  return album?.collectionId ?? null;
 };
 
 export const copyRoute = express.Router();
