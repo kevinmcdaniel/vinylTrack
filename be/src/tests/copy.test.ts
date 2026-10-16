@@ -48,6 +48,15 @@ afterAll(async () => { await cleanupTestData(); });
 
 // ── POST /api/copy ────────────────────────────────────────────────────────
 
+// #56: the API has required an owner since #54; now the column does too.
+describe('copy.ownerId column', () => {
+  it('the DB itself rejects a copy with no owner', async () => {
+    await expect(
+      prisma.$executeRaw`INSERT INTO "copy" ("id", "albumId", "locationId") VALUES (gen_random_uuid()::text, ${albumId}, ${locationId})`,
+    ).rejects.toThrow(/null value in column "ownerId"/);
+  });
+});
+
 describe('POST /api/copy', () => {
   it('creates a copy with albumId + locationId only', async () => {
     const res = await request(app)

@@ -40,7 +40,8 @@ export const updateArtistService = async (
 
 // #36: refused while anything references the artist. Same reasoning as
 // deleteAlbumService — an album credit or a want item is data someone else
-// depends on, and want_item.artistId would otherwise be silently nulled.
+// depends on. The FK restricts both (want_item since #56); the counts are here
+// for the message.
 export const deleteArtistService = async (id: string) => {
   return prisma.$transaction(async (tx) => {
     const [albums, wants] = await Promise.all([

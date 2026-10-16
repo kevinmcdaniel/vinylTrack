@@ -47,7 +47,7 @@ async function main() {
   });
 
   // Locations are children of a collection (#53) and carry no owner of their
-  // own — `location.ownerId` is deprecated and deliberately left unset here.
+  // own; whose a record is lives on the copy.
   const basement = await prisma.location.create({
     data: { name: 'Basement', kind: 'physical', collectionId: vinyl.id },
   });

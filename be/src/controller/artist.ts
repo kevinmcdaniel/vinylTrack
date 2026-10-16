@@ -68,8 +68,9 @@ export const deleteArtist = async (req: Request, res: Response, next: NextFuncti
     await deleteArtistService(id);
     res.json({ message: 'Artist deleted', data: null, status: 200 });
   } catch (error) {
-    // Backstop for an album credit inserted between the service's count and its delete.
-    if (isPrismaError(error, 'P2003')) return next(new ConflictError('Artist is still referenced by an album.'));
+    // Backstop for an album credit or want item inserted between the service's
+    // count and its delete; the FK refuses both (want_item since #56).
+    if (isPrismaError(error, 'P2003')) return next(new ConflictError('Artist is still referenced by an album or want item.'));
     next(error);
   }
 };

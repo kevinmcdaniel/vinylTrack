@@ -134,8 +134,8 @@ export const updateAlbumService = async (
 
 // #36: album_artist rows are pure join rows and go with the album. Copies and
 // want items are refused rather than cascaded — a copy row is acquisition
-// history, and a want item's optional albumId would otherwise be silently
-// nulled (Prisma's default for an optional relation), leaving a want for nothing.
+// history, and a want for a deleted album is a want for nothing. The FK
+// restricts both (want_item since #56); the counts are here for the message.
 export const deleteAlbumService = async (id: string) => {
   return prisma.$transaction(async (tx) => {
     const [copies, wants] = await Promise.all([
