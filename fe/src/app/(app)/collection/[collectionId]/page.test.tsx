@@ -39,4 +39,9 @@ describe('/collection/[id]', () => {
     const out = renderToStaticMarkup(await CollectionPage({ params: Promise.resolve({ collectionId: 'c1' }), searchParams: Promise.resolve({}) }));
     expect(out).toContain('href="/collection/c1/locations"');
   });
+
+  it('links to adding an album here', async () => {
+    const out = renderToStaticMarkup(await CollectionPage({ params: Promise.resolve({ collectionId: 'c1' }), searchParams: Promise.resolve({}) }));
+    expect(out).toContain('href="/collection/c1/album/new"');
+  });
 });
