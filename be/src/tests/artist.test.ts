@@ -177,6 +177,14 @@ describe('DELETE /api/artist/:id', () => {
       expect(res.body.message).toMatch(/want/i);
       expect(await prisma.artist.findUnique({ where: { id: artist.id } })).not.toBeNull();
     });
+
+    // #56: the DB refuses too, instead of silently nulling want_item.artistId.
+    it('the DB itself refuses to delete an artist a want item references', async () => {
+      const artist = await prisma.artist.create({ data: { name: `${T}WantedAtDb` } });
+      const want = await prisma.want_item.create({ data: { collectionId, artistId: artist.id, priority: 'nice-to-have' } });
+      await expect(prisma.artist.delete({ where: { id: artist.id } })).rejects.toMatchObject({ code: 'P2003' });
+      expect((await prisma.want_item.findUnique({ where: { id: want.id } }))?.artistId).toBe(artist.id);
+    });
   });
 });
 

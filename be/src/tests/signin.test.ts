@@ -16,6 +16,24 @@ import { T, cleanupTestData } from './setup.js';
 // ── bootstrap, against a genuinely empty user table ──────────────────────
 // A throwaway schema with the real migrations applied, so "first user ever"
 // can be tested without touching the shared dev/CI data.
+
+// One statement per line-ending `;`, except inside a `$$ … $$` body (#56's
+// DO-block guard), whose own statements end lines too.
+const splitStatements = (sql: string): string[] => {
+  const out: string[] = [];
+  let current = '';
+  let inDollar = false;
+  for (const line of sql.split('\n')) {
+    current += `${line}\n`;
+    if ((line.match(/\$\$/g) ?? []).length % 2 === 1) inDollar = !inDollar;
+    if (!inDollar && /;\s*$/.test(line)) {
+      out.push(current);
+      current = '';
+    }
+  }
+  return [...out, current].filter((s) => s.trim());
+};
+
 describe('signInUser bootstrap (empty schema)', () => {
   const schema = `bootstrap_${Date.now()}`;
   let db: PrismaClient;
@@ -27,7 +45,7 @@ describe('signInUser bootstrap (empty schema)', () => {
       const sql = readFileSync(path.join(dir, m, 'migration.sql'), 'utf8');
       await prisma.$transaction([
         prisma.$executeRawUnsafe(`SET LOCAL search_path TO "${schema}"`),
-        ...sql.split(/;\s*$/m).filter((s) => s.trim()).map((s) => prisma.$executeRawUnsafe(s)),
+        ...splitStatements(sql).map((s) => prisma.$executeRawUnsafe(s)),
       ]);
     }
     db = new PrismaClient({ adapter: new PrismaPg({ connectionString: getDatabaseConfig().databaseUrl }, { schema }) });

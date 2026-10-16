@@ -14,6 +14,8 @@ let outsider: { id: string; email: string };
 let admin: { email: string };
 let collectionId: string;
 let otherCollectionId: string;
+// Copies need an owner (NOT NULL since #56); these tests don't care whose.
+let copyOwnerId: string;
 
 beforeAll(async () => {
   await cleanupTestData();
@@ -28,6 +30,7 @@ beforeAll(async () => {
     data: { name: `${T}LocOtherColl`, kind: 'physical', ownerId: outsider.id },
   });
   otherCollectionId = other.id;
+  copyOwnerId = (await prisma.owner.create({ data: { name: `${T}LocCopyOwner` } })).id;
 });
 afterAll(async () => { await cleanupTestData(); });
 
@@ -149,7 +152,7 @@ describe('GET /api/location/:id', () => {
   it('returns 200 with location and copies stored directly there', async () => {
     const location = await prisma.location.create({ data: { name: `${T}DirectLoc`, kind: 'physical', collectionId } });
     const album = await prisma.album.create({ data: { collectionId, title: `${T}LocAlbum` } });
-    await prisma.copy.create({ data: { albumId: album.id, locationId: location.id } });
+    await prisma.copy.create({ data: { albumId: album.id, locationId: location.id, ownerId: copyOwnerId } });
 
     const res = await request(app).get(`/api/location/${location.id}`).set(authHeader(owner.email));
     expect(res.status).toBe(200);
@@ -162,7 +165,7 @@ describe('GET /api/location/:id', () => {
       data: { name: `${T}RollupShelf`, kind: 'physical', collectionId, parentLocationId: basement.id },
     });
     const album = await prisma.album.create({ data: { collectionId, title: `${T}RollupAlbum` } });
-    await prisma.copy.create({ data: { albumId: album.id, locationId: shelf.id } });
+    await prisma.copy.create({ data: { albumId: album.id, locationId: shelf.id, ownerId: copyOwnerId } });
 
     const res = await request(app).get(`/api/location/${basement.id}`).set(authHeader(owner.email));
     expect(res.status).toBe(200);

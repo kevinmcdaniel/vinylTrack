@@ -12,6 +12,8 @@ let collectionId: string;
 let otherCollectionId: string;
 let artistId: string;
 let otherArtistId: string;
+// Copies need an owner (NOT NULL since #56); these tests don't care whose.
+let copyOwnerId: string;
 
 beforeAll(async () => {
   await cleanupTestData();
@@ -28,6 +30,7 @@ beforeAll(async () => {
   const otherArtist = await prisma.artist.create({ data: { name: `${T}OtherArtist` } });
   artistId = artist.id;
   otherArtistId = otherArtist.id;
+  copyOwnerId = (await prisma.owner.create({ data: { name: `${T}AlbumCopyOwner` } })).id;
 });
 afterAll(async () => { await cleanupTestData(); });
 
@@ -189,7 +192,7 @@ describe('GET /api/album/:id', () => {
     const shelf = await prisma.location.create({
       data: { name: `${T}CopyShelf`, kind: 'physical', collectionId, parentLocationId: room.id },
     });
-    await prisma.copy.create({ data: { albumId: album.id, locationId: shelf.id } });
+    await prisma.copy.create({ data: { albumId: album.id, locationId: shelf.id, ownerId: copyOwnerId } });
 
     const res = await request(app).get(`/api/album/${album.id}`).set(authHeader(owner.email));
     expect(res.status).toBe(200);
@@ -291,7 +294,7 @@ describe('DELETE /api/album/:id', () => {
       data: { collectionId, title: `${T}OwnedToDelete`, artists: { create: [{ artistId }] } },
     });
     const location = await prisma.location.create({ data: { collectionId, name: `${T}DeleteShelf`, kind: 'physical' } });
-    await prisma.copy.create({ data: { albumId: album.id, locationId: location.id } });
+    await prisma.copy.create({ data: { albumId: album.id, locationId: location.id, ownerId: copyOwnerId } });
 
     const res = await request(app).delete(`/api/album/${album.id}`).set(authHeader(owner.email));
     expect(res.status).toBe(409);
@@ -310,6 +313,15 @@ describe('DELETE /api/album/:id', () => {
     expect(res.body.data).toEqual({});
     expect(res.body.message).toMatch(/want/i);
     expect(await prisma.album.findUnique({ where: { id: album.id } })).not.toBeNull();
+  });
+
+  // #56: the DB refuses too, so a want inserted between the service's count and
+  // its delete fails the delete instead of being silently nulled.
+  it('the DB itself refuses to delete an album a want item references', async () => {
+    const album = await prisma.album.create({ data: { collectionId, title: `${T}WantedAtDb` } });
+    const want = await prisma.want_item.create({ data: { collectionId, albumId: album.id, priority: 'must-have' } });
+    await expect(prisma.album.delete({ where: { id: album.id } })).rejects.toMatchObject({ code: 'P2003' });
+    expect((await prisma.want_item.findUnique({ where: { id: want.id } }))?.albumId).toBe(album.id);
   });
 });
 
@@ -502,8 +514,8 @@ describe('GET /api/album?includeCopies=', () => {
     // Created out of order on purpose: insertion order must not be the answer.
     const zed = await prisma.location.create({ data: { name: `${T}Zed Shelf`, kind: 'physical', collectionId } });
     const attic = await prisma.location.create({ data: { name: `${T}Attic`, kind: 'physical', collectionId } });
-    await prisma.copy.create({ data: { albumId: album.id, locationId: zed.id } });
-    await prisma.copy.create({ data: { albumId: album.id, locationId: attic.id } });
+    await prisma.copy.create({ data: { albumId: album.id, locationId: zed.id, ownerId: copyOwnerId } });
+    await prisma.copy.create({ data: { albumId: album.id, locationId: attic.id, ownerId: copyOwnerId } });
 
     const res = await request(app)
       .get(`/api/album?collectionId=${collectionId}&includeCopies=true`)
@@ -526,14 +538,4 @@ describe('GET /api/album/:id — copy owner (#13, #53)', () => {
     expect(res.body.data.copies[0].owner).not.toHaveProperty('email');
   });
 
-  // The column stays nullable until the follow-up migration (#53), so the
-  // payload has to keep answering honestly for a copy nobody has claimed.
-  it('leaves owner null for a copy with no owner recorded', async () => {
-    const album = await prisma.album.create({ data: { collectionId, title: `${T}DetailNoOwner` } });
-    const shelf = await prisma.location.create({ data: { name: `${T}DetailCommunal`, kind: 'physical', collectionId } });
-    await prisma.copy.create({ data: { albumId: album.id, locationId: shelf.id } });
-
-    const res = await request(app).get(`/api/album/${album.id}`).set(authHeader(owner.email));
-    expect(res.body.data.copies[0].owner).toBeNull();
-  });
 });
