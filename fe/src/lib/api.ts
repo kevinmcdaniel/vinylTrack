@@ -2,6 +2,7 @@ import 'server-only';
 import { getConfig } from './config';
 import { signInternalToken } from './internalToken';
 import { requireActiveUser } from './session';
+import { ApiError } from './apiError';
 
 /**
  * Server-side API client.
@@ -11,17 +12,7 @@ import { requireActiveUser } from './session';
  * Components keeps the dev identity header off the client entirely.
  */
 
-export class ApiError extends Error {
-  readonly status: number;
-  constructor(status: number, message: string) {
-    super(message);
-    this.name = 'ApiError';
-    this.status = status;
-  }
-  get notFound(): boolean {
-    return this.status === 404;
-  }
-}
+export { ApiError } from './apiError';
 
 const baseUrl = () => getConfig().apiBaseUrl;
 
@@ -50,16 +41,27 @@ export async function apiGet<T>(path: string, params?: Record<string, QueryValue
   return unwrap<T>(res, path);
 }
 
-/** POST a JSON body as the signed-in, active user (#73): writes go through here. */
-export async function apiPost<T>(path: string, body: unknown): Promise<T> {
+// Every write goes through here as the signed-in, active user (#73). DELETE
+// carries no body, so it sends no content-type either.
+async function send<T>(method: 'POST' | 'PATCH' | 'DELETE', path: string, body?: unknown): Promise<T> {
+  const headers = await authHeaders();
   const res = await fetch(`${baseUrl()}${path}`, {
-    method: 'POST',
-    headers: { ...(await authHeaders()), 'content-type': 'application/json' },
-    body: JSON.stringify(body),
+    method,
+    headers: body === undefined ? headers : { ...headers, 'content-type': 'application/json' },
+    ...(body === undefined ? {} : { body: JSON.stringify(body) }),
     cache: 'no-store',
   });
   return unwrap<T>(res, path);
 }
+
+/** POST a JSON body. */
+export const apiPost = <T>(path: string, body: unknown): Promise<T> => send<T>('POST', path, body);
+
+/** PATCH a JSON body (#102). */
+export const apiPatch = <T>(path: string, body: unknown): Promise<T> => send<T>('PATCH', path, body);
+
+/** DELETE; the BE answers `data: null` on success (#102). */
+export const apiDelete = <T = null>(path: string): Promise<T> => send<T>('DELETE', path);
 
 async function unwrap<T>(res: Response, path: string): Promise<T> {
   const body = await res.json().catch(() => null);

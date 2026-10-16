@@ -11,7 +11,7 @@ const location = (over: Partial<Location> = {}): Location => ({
 });
 
 const copy = (over: Partial<Copy> = {}): Copy => ({
-  id: 'c', albumId: 'a', locationId: 'l', location: location(), ownerId: null, owner: null,
+  id: 'c', albumId: 'a', locationId: 'l', location: location(), ownerId: 'o1', owner: { id: 'o1', name: 'Kevin' },
   sourceId: null, source: null, dateAcquired: null, price: null, condition: null, notes: null, ...over,
 });
 
@@ -127,11 +127,4 @@ describe('CopyRow', () => {
     expect(screen.queryByText('VG+')).not.toBeInTheDocument();
   });
 
-  // Nullable until the follow-up migration (#53) — a copy nobody has claimed
-  // still has to render.
-  it('says nothing about ownership for a copy with no owner recorded', () => {
-    render(<CopyRow collectionKind="physical" copy={copy({ owner: null })} />);
-    expect(screen.getByText('Basement → Shelf 3')).toBeInTheDocument();
-    expect(screen.queryByText(/·/)).not.toBeInTheDocument();
-  });
 });

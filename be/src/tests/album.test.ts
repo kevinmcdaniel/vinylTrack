@@ -537,5 +537,4 @@ describe('GET /api/album/:id — copy owner (#13, #53)', () => {
     expect(res.body.data.copies[0].owner.id).toBe(detailOwner.id);
     expect(res.body.data.copies[0].owner).not.toHaveProperty('email');
   });
-
 });
