@@ -44,6 +44,15 @@ describe('POST /api/location', () => {
     expect(res.body.data.collectionId).toBe(collectionId);
   });
 
+  // #45 review: an empty <select> submits "", which is "not given", not "no access".
+  it.each([[''], [null]])('returns 406 when collectionId is %j', async (value) => {
+    const res = await request(app)
+      .post('/api/location')
+      .set(authHeader(owner.email))
+      .send({ name: `${T}BlankColl`, kind: 'physical', collectionId: value });
+    expect(res.status).toBe(406);
+  });
+
   it('creates a nested location with parentLocationId', async () => {
     const parent = await prisma.location.create({ data: { name: `${T}ParentRoom`, kind: 'physical', collectionId } });
     const res = await request(app)

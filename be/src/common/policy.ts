@@ -63,6 +63,13 @@ export const requireCollectionAccess = (resolveCollectionId: (req: Request) => P
 
 // For POST (create) routes — the caller supplied the collectionId themselves,
 // so a 403 (not a 404) is the honest answer when they don't belong to it.
+// Resolver for create routes whose body names the collection directly. A blank
+// value ("" from an empty <select>, or null) means "not given", so it becomes
+// `undefined` and reaches the controller's 406; `null` stays reserved for a
+// lookup that found nothing.
+export const collectionIdInBody = (req: Request): string | undefined =>
+  (req.body.collectionId as string | null | undefined) || undefined;
+
 // A missing collectionId (resolver returns `undefined`: nothing to look up) is
 // left to the controller's own 406 validation. A resolver that looked a row up
 // and found nothing returns `null`, which fails closed with the same 403 as an

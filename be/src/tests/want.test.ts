@@ -50,6 +50,15 @@ describe('POST /api/want', () => {
     expect(res.body.data.albumId).toBe(albumId);
   });
 
+  // #45 review: an empty <select> submits "", which is "not given", not "no access".
+  it.each([[''], [null]])('returns 406 when collectionId is %j', async (value) => {
+    const res = await request(app)
+      .post('/api/want')
+      .set(authHeader(owner.email))
+      .send({ collectionId: value, artistId, priority: 'must-have' });
+    expect(res.status).toBe(406);
+  });
+
   it('returns 403 for an outsider posting into a collection they do not belong to', async () => {
     const res = await request(app)
       .post('/api/want')

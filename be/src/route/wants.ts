@@ -7,7 +7,7 @@ import {
   markWantItemFound,
 } from '../controller/want.js';
 import { requireActiveUser } from '../common/authorize.js';
-import { requireCollectionAccess, requireCollectionAccessForCreate } from '../common/policy.js';
+import { collectionIdInBody, requireCollectionAccess, requireCollectionAccessForCreate } from '../common/policy.js';
 import { routeParam } from '../common/utils.js';
 import { prisma } from '../database.js';
 
@@ -21,7 +21,7 @@ export const wantRoute = express.Router();
 wantRoute.use(requireActiveUser);
 
 wantRoute.get('/', listWantItems);
-wantRoute.post('/', requireCollectionAccessForCreate((req) => req.body.collectionId), createWantItem);
+wantRoute.post('/', requireCollectionAccessForCreate(collectionIdInBody), createWantItem);
 wantRoute.patch('/:id', requireCollectionAccess(resolveByWantId), updateWantItem);
 wantRoute.delete('/:id', requireCollectionAccess(resolveByWantId), deleteWantItem);
 wantRoute.post('/:id/found', requireCollectionAccess(resolveByWantId), markWantItemFound);

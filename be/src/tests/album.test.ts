@@ -77,6 +77,15 @@ describe('POST /api/album', () => {
     expect(res.status).toBe(406);
   });
 
+  // #45 review: an empty <select> submits "", which is "not given", not "no access".
+  it.each([[''], [null]])('returns 406 when collectionId is %j', async (value) => {
+    const res = await request(app)
+      .post('/api/album')
+      .set(authHeader(owner.email))
+      .send({ collectionId: value, title: `${T}BlankColl` });
+    expect(res.status).toBe(406);
+  });
+
   it('returns 409 for a nonexistent collectionId', async () => {
     const res = await request(app)
       .post('/api/album')
