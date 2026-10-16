@@ -20,6 +20,10 @@
 //                | router: /api/user,        |                           | deny; not your own row)
 //                | /api/admin/*, #90)        |                           |
 //
+// owner.userId is the exception on owner create/update: sending it at all is
+// admin-only (403, #102 task 0), since linking an owner to an account is the
+// admin's call on /admin/requests. Renaming stays open.
+//
 // location joined that row in #53: it carries a collectionId now, so the old
 // ownerId special case (and the unowned-is-communal rule with it) is gone.
 

@@ -1,0 +1,32 @@
+meta {
+  name: create owner (non-admin links an account)
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/owner
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "name": "_BRUNO_ Claimed",
+    "userId": "{{kevinUserId}}"
+  }
+}
+
+assert {
+  res.status: eq 403
+  res.body.status: eq 403
+  res.body.data: isNull
+}
+
+docs {
+  Linking an owner to an account is admin-only (#102 task 0), even to the caller's own account: that link is the admin's call on /admin/requests. 403 comes before the one-owner-per-account 409, so this proves the guard, not the uniqueness rule.
+}

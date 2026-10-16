@@ -11,7 +11,7 @@ import { T, cleanupTestData, authHeader, createTestAdmin } from './setup.js';
 
 let user: { id: string; email: string };
 let other: { id: string; email: string };
-let admin: { email: string };
+let admin: { id: string; email: string };
 
 beforeAll(async () => {
   await cleanupTestData();
@@ -34,24 +34,24 @@ describe('POST /api/owner', () => {
     expect(res.body.data.userId).toBeNull();
   });
 
-  it('creates an owner linked to a user account', async () => {
+  it('lets an admin create an owner linked to a user account', async () => {
     const res = await request(app)
       .post('/api/owner')
-      .set(authHeader(user.email))
+      .set(authHeader(admin.email))
       .send({ name: `${T}Linked`, userId: other.id });
     expect(res.status).toBe(201);
     expect(res.body.data.userId).toBe(other.id);
   });
 
   it('returns 406 when name is missing', async () => {
-    const res = await request(app).post('/api/owner').set(authHeader(user.email)).send({ userId: user.id });
+    const res = await request(app).post('/api/owner').set(authHeader(user.email)).send({});
     expect(res.status).toBe(406);
   });
 
   it('returns 409 for a nonexistent userId', async () => {
     const res = await request(app)
       .post('/api/owner')
-      .set(authHeader(user.email))
+      .set(authHeader(admin.email))
       .send({ name: `${T}Ghost`, userId: '00000000-0000-0000-0000-000000000000' });
     expect(res.status).toBe(409);
   });
@@ -63,9 +63,23 @@ describe('POST /api/owner', () => {
     await prisma.owner.create({ data: { name: `${T}First`, userId: taken.id } });
     const res = await request(app)
       .post('/api/owner')
-      .set(authHeader(user.email))
+      .set(authHeader(admin.email))
       .send({ name: `${T}Second`, userId: taken.id });
     expect(res.status).toBe(409);
+  });
+
+  // #102 task 0: linking an owner to an account is the admin's call (the
+  // approve flow on /admin/requests), never a member's — not even to themselves.
+  it.each([
+    ['another account', () => other.id],
+    ['their own account', () => user.id],
+  ])('returns 403 when a non-admin links a new owner to %s', async (_label, userId) => {
+    const res = await request(app)
+      .post('/api/owner')
+      .set(authHeader(user.email))
+      .send({ name: `${T}Claimed`, userId: userId() });
+    expect(res.status).toBe(403);
+    expect(await prisma.owner.count({ where: { name: `${T}Claimed` } })).toBe(0);
   });
 });
 
@@ -125,12 +139,12 @@ describe('PATCH /api/owner/:id', () => {
     expect(res.body.data.name).toBe(`${T}NewName`);
   });
 
-  it('links an existing owner to an account later on', async () => {
+  it('lets an admin link an existing owner to an account later on', async () => {
     const late = await prisma.user.create({ data: { email: `${T}owner-late@example.com`, status: 'active' } });
     const owner = await prisma.owner.create({ data: { name: `${T}KidGrewUp` } });
     const res = await request(app)
       .patch(`/api/owner/${owner.id}`)
-      .set(authHeader(user.email))
+      .set(authHeader(admin.email))
       .send({ userId: late.id });
     expect(res.status).toBe(200);
     expect(res.body.data.userId).toBe(late.id);
@@ -142,9 +156,25 @@ describe('PATCH /api/owner/:id', () => {
     const owner = await prisma.owner.create({ data: { name: `${T}WantsSameUser` } });
     const res = await request(app)
       .patch(`/api/owner/${owner.id}`)
-      .set(authHeader(user.email))
+      .set(authHeader(admin.email))
       .send({ userId: taken.id });
     expect(res.status).toBe(409);
+  });
+
+  // #102 task 0: re-pointing or clearing an owner's account is admin-only too,
+  // or a member could take over someone else's attribution or detach it.
+  it.each([
+    ['link it to their own account', () => user.id],
+    ['clear its account', () => null],
+  ])('returns 403 when a non-admin tries to %s', async (_label, userId) => {
+    const owner = await prisma.owner.create({ data: { name: `${T}NotYoursToLink`, userId: other.id } });
+    const res = await request(app)
+      .patch(`/api/owner/${owner.id}`)
+      .set(authHeader(user.email))
+      .send({ name: `${T}Renamed`, userId: userId() });
+    expect(res.status).toBe(403);
+    const after = await prisma.owner.findUnique({ where: { id: owner.id } });
+    expect(after).toMatchObject({ name: `${T}NotYoursToLink`, userId: other.id });
   });
 
   it('returns 404 for a nonexistent id', async () => {
