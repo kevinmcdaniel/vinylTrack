@@ -90,6 +90,18 @@ describe('POST /api/location', () => {
     expect(res.status).toBe(406);
   });
 
+  // #102: a parent from another collection would leak its name through
+  // `parent` and straddle the collection boundary copies respect (#53).
+  it('returns 406 for a parent in another collection, and creates nothing', async () => {
+    const foreign = await prisma.location.create({ data: { name: `${T}ForeignParent`, kind: 'physical', collectionId: otherCollectionId } });
+    const res = await request(app)
+      .post('/api/location')
+      .set(authHeader(owner.email))
+      .send({ name: `${T}CrossChild`, kind: 'physical', collectionId, parentLocationId: foreign.id });
+    expect(res.status).toBe(406);
+    expect(await prisma.location.count({ where: { name: `${T}CrossChild` } })).toBe(0);
+  });
+
   it('returns 403 when creating a location in a collection the caller has no access to', async () => {
     const res = await request(app)
       .post('/api/location')
@@ -225,6 +237,50 @@ describe('PATCH /api/location/:id', () => {
     expect(res.status).toBe(200);
   });
 
+  describe('parent', () => {
+    let room: { id: string };
+    let shelf: { id: string };
+    let bin: { id: string };
+    beforeAll(async () => {
+      room = await prisma.location.create({ data: { name: `${T}PRoom`, kind: 'physical', collectionId } });
+      shelf = await prisma.location.create({ data: { name: `${T}PShelf`, kind: 'physical', collectionId, parentLocationId: room.id } });
+      bin = await prisma.location.create({ data: { name: `${T}PBin`, kind: 'physical', collectionId, parentLocationId: shelf.id } });
+    });
+    const patch = (id: string, parentLocationId: string | null) =>
+      request(app).patch(`/api/location/${id}`).set(authHeader(owner.email)).send({ parentLocationId });
+
+    // #102: the parent chain must never loop.
+    it.each([
+      ['itself', () => [room.id, room.id]],
+      ['its own child', () => [room.id, shelf.id]],
+      ['its own grandchild', () => [room.id, bin.id]],
+    ])('returns 406 for a parent that is %s, and leaves it unchanged', async (_label, ids) => {
+      const [id, parent] = ids();
+      const res = await patch(id!, parent!);
+      expect(res.status).toBe(406);
+      expect((await prisma.location.findUnique({ where: { id: id! } }))?.parentLocationId).toBeNull();
+    });
+
+    it('returns 406 for a parent in another collection', async () => {
+      const foreign = await prisma.location.create({ data: { name: `${T}PForeign`, kind: 'physical', collectionId: otherCollectionId } });
+      const res = await patch(bin.id, foreign.id);
+      expect(res.status).toBe(406);
+      expect((await prisma.location.findUnique({ where: { id: bin.id } }))?.parentLocationId).toBe(shelf.id);
+    });
+
+    it('moves a location to another parent in the same collection', async () => {
+      const res = await patch(bin.id, room.id);
+      expect(res.status).toBe(200);
+      expect(res.body.data.parentLocationId).toBe(room.id);
+    });
+
+    it('moves a location back to the top level with null', async () => {
+      const res = await patch(bin.id, null);
+      expect(res.status).toBe(200);
+      expect(res.body.data.parentLocationId).toBeNull();
+    });
+  });
+
   it('returns 404 for a nonexistent id', async () => {
     const res = await request(app)
       .patch('/api/location/00000000-0000-0000-0000-000000000000')
@@ -253,6 +309,17 @@ describe('DELETE /api/location/:id', () => {
     });
     const res = await request(app).delete(`/api/location/${location.id}`).set(authHeader(owner.email));
     expect(res.status).toBe(404);
+  });
+
+  // #102: deleting a parent used to succeed and silently move its children to
+  // the top level (Prisma's SetNull default for an optional relation).
+  it('returns 409 while a location has locations inside it, and moves nothing', async () => {
+    const parent = await prisma.location.create({ data: { name: `${T}DelParent`, kind: 'physical', collectionId } });
+    const child = await prisma.location.create({ data: { name: `${T}DelChild`, kind: 'physical', collectionId, parentLocationId: parent.id } });
+    const res = await request(app).delete(`/api/location/${parent.id}`).set(authHeader(owner.email));
+    expect(res.status).toBe(409);
+    expect(await prisma.location.findUnique({ where: { id: parent.id } })).not.toBeNull();
+    expect((await prisma.location.findUnique({ where: { id: child.id } }))?.parentLocationId).toBe(parent.id);
   });
 
   it('returns 404 for a nonexistent id', async () => {

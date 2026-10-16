@@ -111,7 +111,9 @@ model location {
   collectionId      String
   collection        collection @relation(fields: [collectionId], references: [id])
   parentLocationId  String?
-  parent            location?  @relation("locationParent", fields: [parentLocationId], references: [id])
+  // Restrict, not Prisma's SetNull default (#102): deleting a room must not
+  // silently move its shelves to the top level.
+  parent            location?  @relation("locationParent", fields: [parentLocationId], references: [id], onDelete: Restrict)
   children          location[] @relation("locationParent")
   notes             String?
   copies            copy[]

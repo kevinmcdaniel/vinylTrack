@@ -8,6 +8,7 @@ import {
   createLocationService,
   updateLocationService,
   deleteLocationService,
+  assertValidParent,
 } from '../service/location.js';
 
 const isPrismaError = (error: unknown, code: string): boolean =>
@@ -41,6 +42,7 @@ export const createLocation = async (req: Request, res: Response, next: NextFunc
     if (!name) throw new ValidationError('name is required.');
     if (!kind) throw new ValidationError('kind is required.');
     if (!collectionId) throw new ValidationError('collectionId is required.');
+    await assertValidParent(parentLocationId, collectionId);
     const record = await createLocationService({ name, kind, collectionId, parentLocationId, notes });
     res.status(201).json({ message: 'Location created', data: record, status: 201 });
   } catch (error) {
@@ -59,6 +61,7 @@ export const updateLocation = async (req: Request, res: Response, next: NextFunc
     // collectionId is deliberately not updatable: moving a location between
     // collections would drag its copies across the boundary with it (#53).
     const { name, kind, parentLocationId, notes } = req.body;
+    await assertValidParent(parentLocationId, existing.collectionId, id);
     const record = await updateLocationService(id, { name, kind, parentLocationId, notes });
     res.json({ message: 'Location updated', data: record, status: 200 });
   } catch (error) {
