@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { ValidationError, NotFoundError } from '../common/errorHandler.js';
+import { ValidationError, ConflictError, NotFoundError } from '../common/errorHandler.js';
 import { routeParam } from '../common/utils.js';
 import { accessibleCollectionIds } from '../common/policy.js';
 import {
@@ -9,6 +9,9 @@ import {
   updateArtistService,
   deleteArtistService,
 } from '../service/artist.js';
+
+const isPrismaError = (error: unknown, code: string): boolean =>
+  typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === code;
 
 export const listArtists = async (_req: Request, res: Response, next: NextFunction) => {
   try {
@@ -65,6 +68,8 @@ export const deleteArtist = async (req: Request, res: Response, next: NextFuncti
     await deleteArtistService(id);
     res.json({ message: 'Artist deleted', data: null, status: 200 });
   } catch (error) {
+    // Backstop for an album credit inserted between the service's count and its delete.
+    if (isPrismaError(error, 'P2003')) return next(new ConflictError('Artist is still referenced by an album.'));
     next(error);
   }
 };

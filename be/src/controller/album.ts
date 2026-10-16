@@ -75,6 +75,8 @@ export const deleteAlbum = async (req: Request, res: Response, next: NextFunctio
     await deleteAlbumService(id);
     res.json({ message: 'Album deleted', data: null, status: 200 });
   } catch (error) {
+    // Backstop for a copy inserted between the service's count and its delete.
+    if (isPrismaError(error, 'P2003')) return next(new ConflictError('Album is still referenced by a copy.'));
     next(error);
   }
 };

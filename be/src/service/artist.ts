@@ -1,4 +1,5 @@
 import { prisma } from '../database.js';
+import { ConflictError } from '../common/errorHandler.js';
 
 export const listArtistsService = async () => {
   return prisma.artist.findMany({ orderBy: { name: 'asc' } });
@@ -37,6 +38,20 @@ export const updateArtistService = async (
   return prisma.artist.update({ where: { id }, data });
 };
 
+// #36: refused while anything references the artist. Same reasoning as
+// deleteAlbumService — an album credit or a want item is data someone else
+// depends on, and want_item.artistId would otherwise be silently nulled.
 export const deleteArtistService = async (id: string) => {
-  return prisma.artist.delete({ where: { id } });
+  return prisma.$transaction(async (tx) => {
+    const [albums, wants] = await Promise.all([
+      tx.album_artist.count({ where: { artistId: id } }),
+      tx.want_item.count({ where: { artistId: id } }),
+    ]);
+    const blockers = [
+      albums && `${albums} ${albums === 1 ? 'album' : 'albums'}`,
+      wants && `${wants} want ${wants === 1 ? 'item' : 'items'}`,
+    ].filter(Boolean);
+    if (blockers.length) throw new ConflictError(`Artist is still referenced by ${blockers.join(' and ')}.`);
+    return tx.artist.delete({ where: { id } });
+  });
 };

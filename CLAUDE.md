@@ -83,6 +83,8 @@ See `be/src/route/*.ts` for how each route wires these in, and the doc comment a
 
 **Copy placement.** `album` → `collection` and `location` → `collection` are the same chain, so a copy may not straddle two: `assertLocationInCollection` in `be/src/service/copy.ts` rejects a mismatched `locationId` with a 406 on create, on a move, and on the want-list's mark-as-found. That flow also attributes the new copy to the caller's own owner row when no `ownerId` is given — you usually buy your own records.
 
+**Deleting with dependents (#36).** Nothing cascades except pure join rows. `DELETE /api/album/:id` drops its `album_artist` rows but 409s while a `copy` or `want_item` references it; `DELETE /api/artist/:id` 409s while an `album_artist` or `want_item` does; location and owner 409 on the FK violation. The message names the blocker. Don't rely on the DB here: `want_item.albumId`/`artistId` are optional relations, so Prisma's default would silently null them instead of failing.
+
 ### Frontend structure
 - `fe/src/app/` — Next.js App Router; the browse UI (#7) lives under the `(app)` group
 - `fe/src/lib/` — `api.ts` (server-only API client), `types.ts` (BE response shapes), `filters.ts` (pure helpers)

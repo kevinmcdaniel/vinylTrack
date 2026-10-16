@@ -1,0 +1,30 @@
+meta {
+  name: delete album (still has a copy)
+  type: http
+  seq: 2
+}
+
+delete {
+  url: {{baseUrl}}/api/album/{{albumId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 409
+  res.body.status: eq 409
+}
+
+tests {
+  test("names the copy as the blocker", function() {
+    expect(res.body.message).to.match(/cop/i);
+  });
+}
+
+docs {
+  #36: an album with copies is refused, not cascaded — a copy row is acquisition history. The album still has its artist links here too; those go with the album in "delete album" once the copy is gone.
+}
