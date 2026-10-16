@@ -75,8 +75,14 @@ fi
 
 cd "$ROOT/be"
 npx prisma generate >&2
-migrated="$(npx prisma migrate deploy 2>&1)"
+# Capture to tell "applied something" apart; a bare assignment under set -e
+# would exit before the output (the reason) is printed.
+if ! migrated="$(npx prisma migrate deploy 2>&1)"; then
+  echo "$migrated" >&2
+  exit 1
+fi
 echo "$migrated" >&2
+# Prisma's own wording: if it ever changes, every start reseeds (safe, but wipes).
 grep -q "No pending migrations" <<< "$migrated" || seed="${seed:-migrations applied}"
 # An earlier run that died between createdb and the seed leaves no users.
 users="$(su postgres -c "psql -d vinyltrack -tAc 'SELECT count(*) FROM \"user\"'" 2> /dev/null || echo 0)"
