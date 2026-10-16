@@ -88,12 +88,36 @@ describe('POST /api/copy', () => {
     expect(res.status).toBe(406);
   });
 
-  it('returns 409 for a nonexistent albumId', async () => {
+  it('returns 409 for a nonexistent albumId as admin (admins bypass the access check)', async () => {
     const res = await request(app)
       .post('/api/copy')
       .set(authHeader(admin.email))
       .send({ albumId: '00000000-0000-0000-0000-000000000000', locationId, ownerId });
     expect(res.status).toBe(409);
+  });
+
+  // #45: a nonexistent album used to skip the guard and 409 at the FK, while a
+  // real-but-inaccessible one 403'd — an existence oracle. Fail closed instead.
+  it('answers an outsider the same for a nonexistent album as for an inaccessible one', async () => {
+    const real = await request(app)
+      .post('/api/copy')
+      .set(authHeader(outsider.email))
+      .send({ albumId, locationId, ownerId });
+    const missing = await request(app)
+      .post('/api/copy')
+      .set(authHeader(outsider.email))
+      .send({ albumId: '00000000-0000-0000-0000-000000000000', locationId, ownerId });
+    expect(missing.status).toBe(403);
+    expect(missing.status).toBe(real.status);
+    expect(missing.body.message).toBe(real.body.message);
+  });
+
+  it('returns 403 for a nonexistent albumId as a non-admin member', async () => {
+    const res = await request(app)
+      .post('/api/copy')
+      .set(authHeader(owner.email))
+      .send({ albumId: '00000000-0000-0000-0000-000000000000', locationId, ownerId });
+    expect(res.status).toBe(403);
   });
 
   // #53: whose copy this is no longer comes from the location, so it has to be

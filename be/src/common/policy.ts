@@ -63,16 +63,20 @@ export const requireCollectionAccess = (resolveCollectionId: (req: Request) => P
 
 // For POST (create) routes — the caller supplied the collectionId themselves,
 // so a 403 (not a 404) is the honest answer when they don't belong to it.
-// A missing collectionId is left to the controller's own 406 validation.
+// A missing collectionId (resolver returns `undefined`: nothing to look up) is
+// left to the controller's own 406 validation. A resolver that looked a row up
+// and found nothing returns `null`, which fails closed with the same 403 as an
+// inaccessible collection — otherwise "doesn't exist" and "not yours" give
+// different answers (#45).
 export const requireCollectionAccessForCreate = (
-  resolveCollectionId: (req: Request) => string | undefined | Promise<string | undefined>,
+  resolveCollectionId: (req: Request) => string | null | undefined | Promise<string | null | undefined>,
 ) =>
   async (req: Request, _res: Response, next: NextFunction) => {
     try {
       if (req.user?.isAdmin) return next();
       const collectionId = await resolveCollectionId(req);
-      if (!collectionId) return next();
-      if (!req.user || !(await isAccessibleCollection(req.user.id, collectionId))) {
+      if (collectionId === undefined) return next();
+      if (!collectionId || !req.user || !(await isAccessibleCollection(req.user.id, collectionId))) {
         return next(new ForbiddenError('You do not have access to this collection.'));
       }
       next();

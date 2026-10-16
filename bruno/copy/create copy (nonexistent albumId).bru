@@ -23,15 +23,15 @@ body:json {
 }
 
 assert {
-  res.status: eq 409
-  res.body.status: eq 409
+  res.status: eq 403
+  res.body.status: eq 403
+  res.body.data: isNull
 }
 
 docs {
-  409 even for a non-admin, unlike the album and want equivalents. A copy has no
-  collectionId of its own, so `requireCollectionAccessForCreate` resolves access
-  *through* the album — and when the album does not exist there is no collection
-  to check, so the guard falls through (`if (!collectionId) return next()`) and
-  the request reaches the database, where the foreign key fails. Verified
-  against a running API as both a non-admin owner and an admin.
+  403, same as "create copy (outsider)" against a real album (#45). A copy has
+  no collectionId of its own, so `requireCollectionAccessForCreate` resolves
+  access through the album; a nonexistent album resolves to `null` and fails
+  closed, so "no such album" and "not your album" can't be told apart. Admins
+  bypass the check and still get the FK's 409.
 }
