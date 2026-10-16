@@ -53,7 +53,7 @@ describe('/owners', () => {
     signedInAs();
     const out = await html();
     expect(out).toContain('Add owner');
-    expect(out).toMatch(/Rename/);
+    expect(out).toMatch(/>Edit</);
     expect(out).not.toMatch(/>Delete</);
   });
 
