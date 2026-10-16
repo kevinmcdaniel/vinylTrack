@@ -140,6 +140,8 @@ The backend uses `@prisma/adapter-pg` (not the default Prisma driver). After any
 | `caveman-help` | the reference card for the above |
 | `prisma-migrate` | schema changes and migrations |
 
+`.github/workflows/claude-review.yml` runs `caveman-review` automatically on every PR open and push (`anthropics/claude-code-action@v1`, needs the `CLAUDE_CODE_OAUTH_TOKEN` secret). It posts comment reviews only, resolves its own threads a push fixed, and skips drafts and fork PRs.
+
 The voice rule that matters most: caveman the *prose*, never the facts. File paths, identifiers, routes, shell commands, counts, and issue refs are copied exactly. Both `caveman` and `caveman-pr` also carry an Auto-Clarity rule — drop the grunts entirely for breaking changes, security fixes, data migrations, and anything where a misread is costly.
 
 **No AI attribution, anywhere.** Commits carry no `Co-Authored-By:`/`Claude-Session:` trailer, and PR bodies, PR review comments and issue comments carry no "Generated with/by Claude Code" line — `caveman-commit`, `caveman-pr` and `caveman-review` all say so. **This applies in cloud sessions too**, which read this file and the committed `.claude/settings.json` but not your personal settings. Claude Code adds that text by default, so it is turned off in settings (`attribution.commit: ""`, `attribution.pr: ""`, `attribution.sessionUrl: false`) rather than stripped by hand. Those settings cover commits and PR bodies only: a review or comment tool that appends its own footer is not covered, so strip it before posting. If a trailer shows up anyway, the session predates the setting — a session reads settings at start, so it won't pick up a mid-session change.
