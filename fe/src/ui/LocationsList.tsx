@@ -1,5 +1,4 @@
-import { locationPath } from '@/lib/filters';
-import { parentChoices } from '@/lib/locations';
+import { fullPath, parentChoices } from '@/lib/locations';
 import type { Collection, Location } from '@/lib/types';
 import FormError from './FormError';
 
@@ -16,7 +15,12 @@ const input = 'min-w-0 rounded-md border border-border bg-surface px-2 py-1 text
 const primaryButton = 'rounded-md bg-primary px-3 py-1 text-sm font-medium text-primary-text';
 const quietButton = 'text-sm text-primary underline';
 
-function Fields({ location, locations, defaultKind }: { location?: Location; locations: Location[]; defaultKind: string }) {
+function Fields({ location, locations, byId, defaultKind }: {
+  location?: Location;
+  locations: Location[];
+  byId: Map<string, Location>;
+  defaultKind: string;
+}) {
   const suffix = location?.id ?? 'new';
   const kind = location?.kind ?? defaultKind;
   return (
@@ -37,9 +41,10 @@ function Fields({ location, locations, defaultKind }: { location?: Location; loc
           Inside
           <select id={`parent-${suffix}`} name="parentLocationId" defaultValue={location?.parentLocationId ?? ''} className={input}>
             <option value="">Nothing (top level)</option>
-            {parentChoices(locations, location?.id).map((l) => (
-              <option key={l.id} value={l.id}>{locationPath(l)}</option>
-            ))}
+            {parentChoices(locations, location?.id)
+              .map((l) => ({ id: l.id, path: fullPath(l, byId) }))
+              .sort((a, b) => a.path.localeCompare(b.path))
+              .map((l) => <option key={l.id} value={l.id}>{l.path}</option>)}
           </select>
         </label>
       </div>
@@ -49,7 +54,7 @@ function Fields({ location, locations, defaultKind }: { location?: Location; loc
 
 /**
  * Add, edit and delete one collection's locations (#102). Plain forms posting
- * to Server Actions; each row's edit form sits behind a <details>.
+ * to Server Actions; each row's edit and delete sit behind one <details>.
  */
 export default function LocationsList({ collection, locations, error, actions }: {
   collection: Pick<Collection, 'id' | 'kind'>;
@@ -57,7 +62,10 @@ export default function LocationsList({ collection, locations, error, actions }:
   error?: string;
   actions: { create: Action; update: Action; remove: Action };
 }) {
-  const sorted = [...locations].sort((a, b) => locationPath(a).localeCompare(locationPath(b)));
+  const byId = new Map(locations.map((l) => [l.id, l]));
+  const rows = locations
+    .map((location) => ({ location, path: fullPath(location, byId) }))
+    .sort((a, b) => a.path.localeCompare(b.path));
   return (
     <div className="flex flex-col gap-4">
       <FormError code={error} messages={MESSAGES} />
@@ -66,42 +74,38 @@ export default function LocationsList({ collection, locations, error, actions }:
         <summary className={`${quietButton} cursor-pointer`}>Add location</summary>
         <form action={actions.create} className="mt-2 flex flex-col gap-3">
           <input type="hidden" name="collectionId" value={collection.id} />
-          <Fields locations={locations} defaultKind={collection.kind === 'digital' ? 'digital' : 'physical'} />
+          <Fields locations={locations} byId={byId} defaultKind={collection.kind === 'digital' ? 'digital' : 'physical'} />
           <button type="submit" className={`${primaryButton} self-start`}>Add location</button>
         </form>
       </details>
 
-      {sorted.length === 0 ? (
+      {rows.length === 0 ? (
         <p className="text-sm text-text-muted">No locations yet. Add the first one above.</p>
       ) : (
         <ul className="flex flex-col divide-y divide-border rounded-xl border border-border bg-surface">
-          {sorted.map((location) => {
-            const path = locationPath(location);
-            return (
-              <li key={location.id} className="flex flex-col gap-2 px-3 py-2">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-sm text-text">{path}</span>
-                  <span className="text-xs text-text-muted">{location.kind}</span>
-                </div>
-                <div className="flex items-start gap-4">
-                  <details className="flex-1">
-                    <summary className={`${quietButton} cursor-pointer`}>Edit</summary>
-                    <form action={actions.update} className="mt-2 flex flex-col gap-3">
-                      <input type="hidden" name="collectionId" value={collection.id} />
-                      <input type="hidden" name="id" value={location.id} />
-                      <Fields location={location} locations={locations} defaultKind={location.kind} />
-                      <button type="submit" className={`${primaryButton} self-start`}>Save</button>
-                    </form>
-                  </details>
-                  <form action={actions.remove}>
-                    <input type="hidden" name="collectionId" value={collection.id} />
-                    <input type="hidden" name="id" value={location.id} />
-                    <button type="submit" className={quietButton} aria-label={`Delete ${path}`}>Delete</button>
-                  </form>
-                </div>
-              </li>
-            );
-          })}
+          {rows.map(({ location, path }) => (
+            <li key={location.id} className="flex flex-col gap-2 px-3 py-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm text-text">{path}</span>
+                <span className="text-xs text-text-muted">{location.kind}</span>
+              </div>
+              {/* Delete lives inside Edit, a deliberate second tap away (PR #110 review). */}
+              <details>
+                <summary className={`${quietButton} cursor-pointer`}>Edit</summary>
+                <form action={actions.update} className="mt-2 flex flex-col gap-3">
+                  <input type="hidden" name="collectionId" value={collection.id} />
+                  <input type="hidden" name="id" value={location.id} />
+                  <Fields location={location} locations={locations} byId={byId} defaultKind={location.kind} />
+                  <button type="submit" className={`${primaryButton} self-start`}>Save</button>
+                </form>
+                <form action={actions.remove} className="mt-3">
+                  <input type="hidden" name="collectionId" value={collection.id} />
+                  <input type="hidden" name="id" value={location.id} />
+                  <button type="submit" className={quietButton} aria-label={`Delete ${path}`}>Delete</button>
+                </form>
+              </details>
+            </li>
+          ))}
         </ul>
       )}
     </div>

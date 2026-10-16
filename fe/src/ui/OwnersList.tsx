@@ -16,8 +16,8 @@ const quietButton = 'text-sm text-primary underline';
 
 /**
  * Add, rename and (admins only) delete owners (#102). Plain forms posting to
- * Server Actions, so it works before any JS loads; rename sits behind a
- * <details> to keep each row to one line.
+ * Server Actions, so it works before any JS loads; rename and delete sit
+ * behind one <details> per row.
  */
 export default function OwnersList({ owners, canDelete, error, actions }: {
   owners: OwnerRow[];
@@ -45,23 +45,22 @@ export default function OwnersList({ owners, canDelete, error, actions }: {
                 <span className="text-sm text-text">{owner.name}</span>
                 <span className="text-xs text-text-muted">{owner.userId ? 'Linked to an account' : 'No account'}</span>
               </div>
-              <div className="flex items-start gap-4">
-                <details className="flex-1">
-                  <summary className={`${quietButton} cursor-pointer`}>Rename</summary>
-                  <form action={actions.rename} className="mt-2 flex gap-2">
-                    <input type="hidden" name="id" value={owner.id} />
-                    <label className="sr-only" htmlFor={`rename-${owner.id}`}>New name for {owner.name}</label>
-                    <input id={`rename-${owner.id}`} name="name" required defaultValue={owner.name} className={input} />
-                    <button type="submit" className={primaryButton}>Save</button>
-                  </form>
-                </details>
+              {/* Delete lives inside Edit, a deliberate second tap away (PR #110 review). */}
+              <details>
+                <summary className={`${quietButton} cursor-pointer`}>Edit</summary>
+                <form action={actions.rename} className="mt-2 flex gap-2">
+                  <input type="hidden" name="id" value={owner.id} />
+                  <label className="sr-only" htmlFor={`rename-${owner.id}`}>New name for {owner.name}</label>
+                  <input id={`rename-${owner.id}`} name="name" required defaultValue={owner.name} className={input} />
+                  <button type="submit" className={primaryButton}>Save</button>
+                </form>
                 {canDelete && (
-                  <form action={actions.remove}>
+                  <form action={actions.remove} className="mt-3">
                     <input type="hidden" name="id" value={owner.id} />
                     <button type="submit" className={quietButton} aria-label={`Delete ${owner.name}`}>Delete</button>
                   </form>
                 )}
-              </div>
+              </details>
             </li>
           ))}
         </ul>

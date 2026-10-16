@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parentChoices } from './locations';
+import { fullPath, parentChoices } from './locations';
 import type { Location } from './types';
 
 const loc = (id: string, name: string, parent?: Location): Location => ({
@@ -23,5 +23,22 @@ describe('parentChoices', () => {
   it('leaves out the location itself and everything inside it', () => {
     expect(parentChoices(all, 'b').map((l) => l.name)).toEqual(['Attic']);
     expect(parentChoices(all, 's').map((l) => l.name)).toEqual(['Attic', 'Basement']);
+  });
+});
+
+// PR #110 review: a one-level path ("Shelf 3 → Bin") loses the room, and two
+// rooms' "Shelf 3"s look the same in the picker.
+describe('fullPath', () => {
+  const byId = new Map(all.map((l) => [l.id, l]));
+  it('walks every level up to the top', () => {
+    expect(fullPath(bin, byId)).toBe('Basement → Shelf 3 → Bin');
+    expect(fullPath(basement, byId)).toBe('Basement');
+  });
+
+  it('stops at a loop already in the data instead of spinning', () => {
+    const a = loc('la', 'A');
+    const b = loc('lb', 'B', a);
+    a.parentLocationId = 'lb';
+    expect(fullPath(b, new Map([[a.id, a], [b.id, b]]))).toBe('A → B');
   });
 });
