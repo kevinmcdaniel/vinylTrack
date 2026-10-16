@@ -54,6 +54,9 @@ export type Location = {
  */
 export type Owner = { id: string; name: string };
 
+/** GET /api/owner: the full row. `userId` says whether an account is linked; no email ever ships. */
+export type OwnerRow = Owner & { userId: string | null };
+
 export type Source = { id: string; type: string; name: string };
 
 export type Copy = {

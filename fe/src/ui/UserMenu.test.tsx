@@ -35,6 +35,13 @@ describe('UserMenu', () => {
     expect(screen.getByRole('link', { name: 'Help' })).toHaveAttribute('href', '/help');
   });
 
+  // #102: owners are global and any member can add one, so everyone gets the link.
+  it.each([[false], [true]])('links to /owners (admin: %s)', async (isAdmin) => {
+    user.current = { ...user.current, isAdmin };
+    render(await UserMenu());
+    expect(screen.getByRole('link', { name: 'Owners' })).toHaveAttribute('href', '/owners');
+  });
+
   it('lets anyone pick a theme, showing this device\'s choice', async () => {
     render(await UserMenu());
     expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveValue('warm');
