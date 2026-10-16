@@ -17,7 +17,7 @@ import { T, cleanupTestData } from './setup.js';
 // A throwaway schema with the real migrations applied, so "first user ever"
 // can be tested without touching the shared dev/CI data.
 
-// One statement per line-ending `;`, except inside a `$$ … $$` body (#56's
+// Split into one statement per line-ending `;`, except inside a `$$ … $$` body (#56's
 // DO-block guard), whose own statements end lines too.
 const splitStatements = (sql: string): string[] => {
   const out: string[] = [];
