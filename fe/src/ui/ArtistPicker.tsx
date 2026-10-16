@@ -62,6 +62,10 @@ export default function ArtistPicker({ artists: initial, selected: initialSelect
         type="search"
         value={query}
         onChange={(e) => setQuery(e.target.value)}
+        // Enter (a phone's "Go") must never submit the album form half-filled
+        // (PR #112 review). Nor does it add: mid-filter text like "mil" would
+        // become a junk artist. Adding is the explicit button only.
+        onKeyDown={(e) => { if (e.key === 'Enter') e.preventDefault(); }}
         placeholder="Find or add an artist"
         className={input}
       />
