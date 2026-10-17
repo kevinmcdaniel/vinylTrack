@@ -23,7 +23,7 @@ const formatAcquired = (copy: Copy): string | null => {
 export default function CopyRow({ copy, collectionKind }: { copy: Copy; collectionKind: string }) {
   const physical = showsPhysicalDetail(collectionKind);
   const acquired = physical ? formatAcquired(copy) : null;
-  const ownerName = copy.owner?.name;
+  const ownerName = copy.owner.name;
   return (
     <li className="rounded-lg border border-black/10 p-3 dark:border-white/15">
       <LocationPath location={copy.location} />

@@ -2,7 +2,7 @@
 // Server-only code: run in Node, not jsdom (jose rejects jsdom's cross-realm Uint8Array).
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { decodeJwt, jwtVerify } from 'jose';
-import { apiGet, apiPost, ApiError } from './api';
+import { apiDelete, apiGet, apiPatch, apiPost, ApiError } from './api';
 import { stubAppEnv, TEST_INTERNAL_SECRET } from '@/tests/env';
 
 // The session DAL (#73): apiGet only ever runs for an active, signed-in user.
@@ -105,5 +105,52 @@ describe('apiPost', () => {
   it('throws an ApiError carrying the status and the BE message', async () => {
     vi.stubGlobal('fetch', vi.fn(() => json({ data: {}, message: 'name is required.', status: 406 }, 406)));
     await expect(apiPost('/collection', {})).rejects.toMatchObject({ status: 406, message: 'name is required.' });
+  });
+});
+
+// Writes for #102: same envelope, token and ApiError handling as apiPost.
+describe('apiPatch', () => {
+  beforeEach(() => stubAppEnv());
+  afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+
+  it('sends PATCH with a JSON body and the signed token, and returns data', async () => {
+    const fetchMock = vi.fn((_url: string | URL | Request, _init?: RequestInit) => json({ data: { id: 'o-1', name: 'Ruth' }, status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(apiPatch('/owner/o-1', { name: 'Ruth' })).resolves.toEqual({ id: 'o-1', name: 'Ruth' });
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('http://vinyl.be:3000/api/owner/o-1');
+    expect(init!.method).toBe('PATCH');
+    expect(JSON.parse(init!.body as string)).toEqual({ name: 'Ruth' });
+    const headers = init!.headers as Record<string, string>;
+    expect(headers['content-type']).toBe('application/json');
+    expect(decodeJwt(headers.Authorization!.replace(/^Bearer /, '')).sub).toBe('user-1');
+  });
+
+  it('throws an ApiError carrying the status and the BE message', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => json({ data: {}, message: 'That user already has an owner.', status: 409 }, 409)));
+    await expect(apiPatch('/owner/o-1', { userId: 'u' })).rejects.toMatchObject({ status: 409, message: 'That user already has an owner.' });
+  });
+});
+
+describe('apiDelete', () => {
+  beforeEach(() => stubAppEnv());
+  afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); });
+
+  it('sends DELETE with the signed token and no body, and returns the null payload', async () => {
+    const fetchMock = vi.fn((_url: string | URL | Request, _init?: RequestInit) => json({ message: 'Owner deleted', data: null, status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(apiDelete('/owner/o-1')).resolves.toBeNull();
+    const [url, init] = fetchMock.mock.calls[0]!;
+    expect(url).toBe('http://vinyl.be:3000/api/owner/o-1');
+    expect(init!.method).toBe('DELETE');
+    expect(init!.body).toBeUndefined();
+    const headers = init!.headers as Record<string, string>;
+    expect(headers).not.toHaveProperty('content-type');
+    expect(decodeJwt(headers.Authorization!.replace(/^Bearer /, '')).sub).toBe('user-1');
+  });
+
+  it('throws an ApiError on a 409, so the action can show "still in use"', async () => {
+    vi.stubGlobal('fetch', vi.fn(() => json({ data: {}, message: 'owner is still referenced by a copy.', status: 409 }, 409)));
+    await expect(apiDelete('/owner/o-1')).rejects.toMatchObject({ status: 409 });
   });
 });

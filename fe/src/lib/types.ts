@@ -63,11 +63,10 @@ export type Copy = {
   location: Location;
   /**
    * The copy's own owner, so lending a record does not appear to change hands
-   * (#53). Nullable until the follow-up migration makes the column NOT NULL —
-   * an unclaimed copy still has to render.
+   * (#53). Always set: the column is NOT NULL since #56.
    */
-  ownerId: string | null;
-  owner: Owner | null;
+  ownerId: string;
+  owner: Owner;
   sourceId: string | null;
   source: Source | null;
   dateAcquired: string | null;
