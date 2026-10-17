@@ -1,0 +1,24 @@
+meta {
+  name: delete location (still has a child)
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/api/location/{{locationId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 409
+  res.body.status: eq 409
+}
+
+docs {
+  #102: deleting a location that has one inside it is refused. It used to succeed and silently move the child to the top level (location.parent was Prisma's SetNull default; now onDelete: Restrict). "delete nested location" removes the child next, then "delete location" succeeds.
+}

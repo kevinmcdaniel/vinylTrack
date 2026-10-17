@@ -1,0 +1,30 @@
+meta {
+  name: update location (parent loops)
+  type: http
+  seq: 15
+}
+
+patch {
+  url: {{baseUrl}}/api/location/{{locationId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "parentLocationId": "{{childLocationId}}"
+  }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}
+
+docs {
+  #102: putting a location inside one of its own locations would loop the parent chain (and used to hang GET /api/location/:id's rollup). Refused with 406, nothing changed.
+}
