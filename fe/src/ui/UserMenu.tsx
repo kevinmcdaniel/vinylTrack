@@ -24,6 +24,7 @@ export default async function UserMenu() {
   return (
     <nav className="flex flex-wrap items-center justify-end gap-x-3 gap-y-1 whitespace-nowrap text-xs">
       <Link href="/collection/new" className="underline">New collection</Link>
+      <Link href="/owners" className="underline">Owners</Link>
       <Link href="/help" className="underline">Help</Link>
       {user.isAdmin && (
         <Link href="/admin" className="underline">
