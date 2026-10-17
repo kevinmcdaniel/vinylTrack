@@ -55,7 +55,10 @@ export default async function CollectionPage({ params, searchParams }: Props) {
         <p className="text-xs uppercase tracking-wide opacity-55">
           {albums.length} {albums.length === 1 ? 'release' : 'releases'}
         </p>
-        <Link href={`/collection/${encodeURIComponent(collectionId)}/locations`} className="text-sm text-primary underline">Locations</Link>
+        <div className="flex gap-3">
+          <Link href={`/collection/${encodeURIComponent(collectionId)}/album/new`} className="text-sm text-primary underline">Add album</Link>
+          <Link href={`/collection/${encodeURIComponent(collectionId)}/locations`} className="text-sm text-primary underline">Locations</Link>
+        </div>
       </div>
 
       {albums.length === 0 ? (

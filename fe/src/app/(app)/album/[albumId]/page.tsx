@@ -25,9 +25,12 @@ export default async function AlbumPage({ params }: { params: Promise<{ albumId:
   return (
     <div className="flex flex-col gap-5">
       <div>
-        <Link href={`/collection/${album.collectionId}`} className="text-sm underline opacity-70">
-          ← {album.collection.name}
-        </Link>
+        <div className="flex items-baseline justify-between gap-3">
+          <Link href={`/collection/${album.collectionId}`} className="text-sm underline opacity-70">
+            ← {album.collection.name}
+          </Link>
+          <Link href={`/album/${encodeURIComponent(album.id)}/edit`} className="text-sm text-primary underline">Edit</Link>
+        </div>
         <h1 className="mt-2 text-2xl font-semibold leading-tight">{album.title}</h1>
         {album.artists.length > 0 && (
           <p className="mt-1 text-sm">
