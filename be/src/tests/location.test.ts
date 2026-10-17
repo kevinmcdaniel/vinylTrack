@@ -102,6 +102,15 @@ describe('POST /api/location', () => {
     expect(await prisma.location.count({ where: { name: `${T}CrossChild` } })).toBe(0);
   });
 
+  // "" is a malformed id, not "top level" (that is `null` or leaving it out).
+  it('returns 406 when parentLocationId is ""', async () => {
+    const res = await request(app)
+      .post('/api/location')
+      .set(authHeader(owner.email))
+      .send({ name: `${T}BlankParent`, kind: 'physical', collectionId, parentLocationId: '' });
+    expect(res.status).toBe(406);
+  });
+
   it('returns 403 when creating a location in a collection the caller has no access to', async () => {
     const res = await request(app)
       .post('/api/location')

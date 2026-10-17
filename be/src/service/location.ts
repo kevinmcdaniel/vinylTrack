@@ -30,6 +30,7 @@ export const assertValidParent = async (
   collectionId: string,
   selfId?: string,
 ) => {
+  if (parentLocationId === '') throw new ValidationError('parentLocationId must not be empty.');
   if (!parentLocationId) return;
   const parent = await prisma.location.findUnique({
     where: { id: parentLocationId },
