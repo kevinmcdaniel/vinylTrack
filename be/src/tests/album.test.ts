@@ -538,3 +538,32 @@ describe('GET /api/album/:id — copy owner (#13, #53)', () => {
     expect(res.body.data.copies[0].owner).not.toHaveProperty('email');
   });
 });
+
+// ── field types ──────────────────────────────────────────────────────────
+
+// A wrong-typed value used to reach Prisma and come back 500. It is the
+// caller's mistake, so it is a 406 naming the field.
+describe('album year validation', () => {
+  it.each([['1999'], [1999.5], [-5], [10000], [true]])('POST returns 406 for year %j', async (year) => {
+    const res = await request(app)
+      .post('/api/album')
+      .set(authHeader(owner.email))
+      .send({ collectionId, title: `${T}BadYear`, year });
+    expect(res.status).toBe(406);
+    expect(res.body.message).toMatch(/year/);
+  });
+
+  it('PATCH returns 406 for a string year and leaves the album alone', async () => {
+    const album = await prisma.album.create({ data: { collectionId, title: `${T}KeepYear`, year: 1970 } });
+    const res = await request(app).patch(`/api/album/${album.id}`).set(authHeader(owner.email)).send({ year: 'soon' });
+    expect(res.status).toBe(406);
+    expect((await prisma.album.findUnique({ where: { id: album.id } }))?.year).toBe(1970);
+  });
+
+  it('PATCH year null still clears it', async () => {
+    const album = await prisma.album.create({ data: { collectionId, title: `${T}ClearYear`, year: 1970 } });
+    const res = await request(app).patch(`/api/album/${album.id}`).set(authHeader(owner.email)).send({ year: null });
+    expect(res.status).toBe(200);
+    expect(res.body.data.year).toBeNull();
+  });
+});

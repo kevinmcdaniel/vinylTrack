@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ValidationError, ConflictError, NotFoundError } from '../common/errorHandler.js';
 import { routeParam } from '../common/utils.js';
+import { parseDate, parsePrice } from '../common/fields.js';
 import { accessibleCollectionIds } from '../common/policy.js';
 import {
   listCopiesService,
@@ -49,8 +50,8 @@ export const createCopy = async (req: Request, res: Response, next: NextFunction
       locationId,
       ownerId,
       sourceId,
-      dateAcquired,
-      price,
+      dateAcquired: parseDate(dateAcquired, 'dateAcquired'),
+      price: parsePrice(price),
       condition,
       notes,
     });
@@ -73,8 +74,8 @@ export const updateCopy = async (req: Request, res: Response, next: NextFunction
       locationId,
       ownerId,
       sourceId,
-      dateAcquired,
-      price,
+      dateAcquired: parseDate(dateAcquired, 'dateAcquired'),
+      price: parsePrice(price),
       condition,
       notes,
     });

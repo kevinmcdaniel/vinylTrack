@@ -51,8 +51,8 @@ export const createCopyService = async (data: {
   locationId: string;
   ownerId: string;
   sourceId?: string;
-  dateAcquired?: string;
-  price?: number;
+  dateAcquired?: Date | null;
+  price?: string | null;
   condition?: string;
   notes?: string;
 }) => {
@@ -70,8 +70,8 @@ export const updateCopyService = async (
     locationId?: string;
     ownerId?: string;
     sourceId?: string;
-    dateAcquired?: string;
-    price?: number;
+    dateAcquired?: Date | null;
+    price?: string | null;
     condition?: string;
     notes?: string;
   },

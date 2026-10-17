@@ -297,3 +297,35 @@ describe('POST /api/want/:id/found', () => {
     expect(res.body.data).toBeNull();
   });
 });
+
+// ── field types ──────────────────────────────────────────────────────────
+
+// Mark-as-found creates a copy (and maybe an album), so the same field rules
+// apply, and a refusal must leave the want in place.
+describe('POST /api/want/:id/found field validation', () => {
+  it.each([
+    [{ dateAcquired: '2024-02-31' }, /dateAcquired/],
+    [{ price: 'free' }, /price/],
+  ])('returns 406 for %j and keeps the want', async (fields, message) => {
+    const location = await prisma.location.create({ data: { name: `${T}FoundBadLoc`, kind: 'physical', collectionId } });
+    const want = await prisma.want_item.create({ data: { collectionId, albumId, priority: 'must-have' } });
+    const res = await request(app)
+      .post(`/api/want/${want.id}/found`)
+      .set(authHeader(owner.email))
+      .send({ locationId: location.id, ...fields });
+    expect(res.status).toBe(406);
+    expect(res.body.message).toMatch(message);
+    expect(await prisma.want_item.findUnique({ where: { id: want.id } })).not.toBeNull();
+  });
+
+  it('returns 406 for a string year on a new album', async () => {
+    const location = await prisma.location.create({ data: { name: `${T}FoundBadYearLoc`, kind: 'physical', collectionId } });
+    const want = await prisma.want_item.create({ data: { collectionId, artistId, priority: 'must-have' } });
+    const res = await request(app)
+      .post(`/api/want/${want.id}/found`)
+      .set(authHeader(owner.email))
+      .send({ locationId: location.id, album: { title: `${T}FoundBadYear`, year: '1999' } });
+    expect(res.status).toBe(406);
+    expect(res.body.message).toMatch(/year/);
+  });
+});

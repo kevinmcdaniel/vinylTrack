@@ -1,6 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ValidationError, ConflictError, NotFoundError } from '../common/errorHandler.js';
 import { routeParam } from '../common/utils.js';
+import { parseYear } from '../common/fields.js';
 import { accessibleCollectionIds } from '../common/policy.js';
 import {
   listAlbumsService,
@@ -45,7 +46,7 @@ export const createAlbum = async (req: Request, res: Response, next: NextFunctio
     const { collectionId, title, format, year, genre, notes, coverImageUrl, artistIds } = req.body;
     if (!collectionId) throw new ValidationError('collectionId is required.');
     if (!title) throw new ValidationError('title is required.');
-    const record = await createAlbumService({ collectionId, title, format, year, genre, notes, coverImageUrl, artistIds });
+    const record = await createAlbumService({ collectionId, title, format, year: parseYear(year), genre, notes, coverImageUrl, artistIds });
     res.status(201).json({ message: 'Album created', data: record, status: 201 });
   } catch (error) {
     if (isPrismaError(error, 'P2003')) return next(new ConflictError('collectionId or one of artistIds does not exist.'));
@@ -59,7 +60,7 @@ export const updateAlbum = async (req: Request, res: Response, next: NextFunctio
     const existing = await getAlbumService(id);
     if (!existing) throw new NotFoundError(`Album id:${id} not found.`);
     const { title, format, year, genre, notes, coverImageUrl, artistIds } = req.body;
-    const record = await updateAlbumService(id, { title, format, year, genre, notes, coverImageUrl, artistIds });
+    const record = await updateAlbumService(id, { title, format, year: parseYear(year), genre, notes, coverImageUrl, artistIds });
     res.json({ message: 'Album updated', data: record, status: 200 });
   } catch (error) {
     if (isPrismaError(error, 'P2003')) return next(new ConflictError('one of artistIds does not exist.'));
