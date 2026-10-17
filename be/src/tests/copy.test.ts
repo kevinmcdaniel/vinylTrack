@@ -290,3 +290,60 @@ describe('DELETE /api/copy/:id', () => {
     expect(res.body.data).toBeNull();
   });
 });
+
+// ── field types ──────────────────────────────────────────────────────────
+
+// dateAcquired and price used to go straight to Prisma: a date-only string or
+// a non-number price came back 500.
+describe('copy dateAcquired / price validation', () => {
+  const post = (body: Record<string, unknown>) =>
+    request(app).post('/api/copy').set(authHeader(owner.email)).send({ albumId, locationId, ownerId, ...body });
+
+  it('accepts a date-only dateAcquired as midnight UTC', async () => {
+    const res = await post({ dateAcquired: '2024-05-01' });
+    expect(res.status).toBe(201);
+    expect(res.body.data.dateAcquired).toBe('2024-05-01T00:00:00.000Z');
+  });
+
+  it('accepts a full ISO dateAcquired', async () => {
+    const res = await post({ dateAcquired: '2024-05-01T00:00:00.000Z' });
+    expect(res.status).toBe(201);
+    expect(res.body.data.dateAcquired).toBe('2024-05-01T00:00:00.000Z');
+  });
+
+  it.each([['2024-02-31'], ['2024-13-01'], ['yesterday'], ['05/01/2024'], [20240501]])(
+    'returns 406 for dateAcquired %j',
+    async (dateAcquired) => {
+      const res = await post({ dateAcquired });
+      expect(res.status).toBe(406);
+      expect(res.body.message).toMatch(/dateAcquired/);
+    },
+  );
+
+  it('accepts a decimal-string price', async () => {
+    const res = await post({ price: '12.50' });
+    expect(res.status).toBe(201);
+    expect(Number(res.body.data.price)).toBe(12.5);
+  });
+
+  it.each([['abc'], [-1], ['0x10'], [12.345], [100000000], [false]])('returns 406 for price %j', async (price) => {
+    const res = await post({ price });
+    expect(res.status).toBe(406);
+    expect(res.body.message).toMatch(/price/);
+  });
+
+  it('PATCH returns 406 for a bad dateAcquired, and null still clears both', async () => {
+    const copy = await prisma.copy.create({
+      data: { albumId, locationId, ownerId, price: 5, dateAcquired: new Date('2020-01-01T00:00:00.000Z') },
+    });
+    const bad = await request(app).patch(`/api/copy/${copy.id}`).set(authHeader(owner.email)).send({ dateAcquired: 'nope' });
+    expect(bad.status).toBe(406);
+    const cleared = await request(app)
+      .patch(`/api/copy/${copy.id}`)
+      .set(authHeader(owner.email))
+      .send({ dateAcquired: null, price: null });
+    expect(cleared.status).toBe(200);
+    expect(cleared.body.data.dateAcquired).toBeNull();
+    expect(cleared.body.data.price).toBeNull();
+  });
+});

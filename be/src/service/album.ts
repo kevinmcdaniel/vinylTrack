@@ -92,7 +92,7 @@ export const createAlbumService = async (data: {
   collectionId: string;
   title: string;
   format?: string;
-  year?: number;
+  year?: number | null;
   genre?: string;
   notes?: string;
   coverImageUrl?: string;
@@ -114,7 +114,7 @@ export const updateAlbumService = async (
   data: {
     title?: string;
     format?: string;
-    year?: number;
+    year?: number | null;
     genre?: string;
     notes?: string;
     coverImageUrl?: string;

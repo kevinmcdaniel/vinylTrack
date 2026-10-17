@@ -64,15 +64,15 @@ export const markWantItemFoundService = async (
     locationId: string;
     ownerId?: string;
     sourceId?: string;
-    dateAcquired?: string;
-    price?: number;
+    dateAcquired?: Date | null;
+    price?: string | null;
     condition?: string;
     notes?: string;
     albumId?: string;
     album?: {
       title: string;
       format?: string;
-      year?: number;
+      year?: number | null;
       genre?: string;
       notes?: string;
       coverImageUrl?: string;
