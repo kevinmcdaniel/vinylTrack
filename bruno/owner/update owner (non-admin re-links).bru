@@ -1,0 +1,31 @@
+meta {
+  name: update owner (non-admin re-links)
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{baseUrl}}/api/owner/{{brunoOwnerId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{sharedEmail}}
+}
+
+body:json {
+  {
+    "userId": "{{kevinUserId}}"
+  }
+}
+
+assert {
+  res.status: eq 403
+  res.body.status: eq 403
+  res.body.data: isNull
+}
+
+docs {
+  A member may rename an owner ("update owner") but not re-point, link or unlink its account (#102 task 0).
+}

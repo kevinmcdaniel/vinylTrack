@@ -1,5 +1,5 @@
 import type { NextFunction, Request, Response } from 'express';
-import { ValidationError, ConflictError, NotFoundError } from '../common/errorHandler.js';
+import { ValidationError, ConflictError, ForbiddenError, NotFoundError } from '../common/errorHandler.js';
 import { routeParam } from '../common/utils.js';
 import {
   listOwnersService,
@@ -9,6 +9,15 @@ import {
   deleteOwnerService,
   userHasOwner,
 } from '../service/owner.js';
+
+// Linking an owner to an account (#102 task 0) is the admin's call — the
+// approve flow on /admin/requests — so a non-admin may not send `userId` at
+// all, `null` (unlink) included. Renaming stays open to every active user.
+const assertMayLink = (req: Request) => {
+  if ('userId' in req.body && !req.user?.isAdmin) {
+    throw new ForbiddenError('Only an admin can link an owner to an account.');
+  }
+};
 
 const isPrismaError = (error: unknown, code: string): boolean =>
   typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === code;
@@ -35,6 +44,7 @@ export const getOwner = async (req: Request, res: Response, next: NextFunction) 
 
 export const createOwner = async (req: Request, res: Response, next: NextFunction) => {
   try {
+    assertMayLink(req);
     const { name, userId } = req.body;
     if (!name) throw new ValidationError('name is required.');
     if (userId && (await userHasOwner(userId))) {
@@ -53,6 +63,7 @@ export const updateOwner = async (req: Request, res: Response, next: NextFunctio
     const id = routeParam(req.params.id);
     const existing = await getOwnerService(id);
     if (!existing) throw new NotFoundError(`Owner id:${id} not found.`);
+    assertMayLink(req);
     const { name, userId } = req.body;
     if (userId && (await userHasOwner(userId, id))) {
       throw new ConflictError('That user already has an owner.');
