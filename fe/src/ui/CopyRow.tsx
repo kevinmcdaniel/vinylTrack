@@ -1,5 +1,6 @@
+import Link from 'next/link';
 import LocationPath from './LocationPath';
-import { showsPhysicalDetail } from '@/lib/filters';
+import { locationPath, showsPhysicalDetail } from '@/lib/filters';
 import type { Copy } from '@/lib/types';
 
 const formatAcquired = (copy: Copy): string | null => {
@@ -42,6 +43,13 @@ export default function CopyRow({ copy, collectionKind }: { copy: Copy; collecti
       )}
       {acquired && <div className="mt-1 text-xs opacity-60">{acquired}</div>}
       {copy.notes && <div className="mt-1 text-sm opacity-80">{copy.notes}</div>}
+      <Link
+        href={`/copy/${encodeURIComponent(copy.id)}/edit`}
+        aria-label={`Edit ${ownerName}'s copy in ${locationPath(copy.location)}`}
+        className="mt-1 inline-block text-sm text-primary underline"
+      >
+        Edit
+      </Link>
     </li>
   );
 }

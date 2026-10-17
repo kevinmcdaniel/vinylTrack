@@ -49,10 +49,13 @@ export default async function AlbumPage({ params }: { params: Promise<{ albumId:
       </div>
 
       <section className="flex flex-col gap-2">
-        <h2 className="text-xs font-semibold uppercase tracking-wide opacity-55">
-          {album.copies.length} {album.copies.length === 1 ? 'copy' : 'copies'}
-          {physical ? '' : ' · stored digitally'}
-        </h2>
+        <div className="flex items-baseline justify-between gap-3">
+          <h2 className="text-xs font-semibold uppercase tracking-wide opacity-55">
+            {album.copies.length} {album.copies.length === 1 ? 'copy' : 'copies'}
+            {physical ? '' : ' · stored digitally'}
+          </h2>
+          <Link href={`/album/${encodeURIComponent(album.id)}/copy/new`} className="text-sm text-primary underline">Add copy</Link>
+        </div>
         {album.copies.length === 0 ? (
           <EmptyState>Nobody owns a copy of this yet.</EmptyState>
         ) : (

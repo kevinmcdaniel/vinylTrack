@@ -17,7 +17,12 @@ const reply = (status: number, data: unknown = null) =>
 const me = { id: 'u-1', email: 'kevin@example.com', name: 'Kevin', avatar: null, status: 'active', isAdmin: false };
 const album = {
   id: 'a-1', collectionId: 'c1', title: 'Kind of Blue', format: 'LP', year: 1959, genre: 'Jazz', notes: null, coverImageUrl: null,
-  artists: [], collection: { id: 'c1', name: 'Vinyl', kind: 'physical' }, copies: [],
+  artists: [], collection: { id: 'c1', name: 'Vinyl', kind: 'physical' },
+  copies: [{
+    id: 'cp-1', albumId: 'a-1', locationId: 'l-1',
+    location: { id: 'l-1', name: 'Shelf 3', kind: 'physical', collectionId: 'c1', parentLocationId: null, parent: null },
+    ownerId: 'o-1', owner: { id: 'o-1', name: 'Kevin' }, sourceId: null, source: null, dateAcquired: null, price: null, condition: null, notes: null,
+  }],
 };
 
 describe('/album/[id]', () => {
@@ -36,5 +41,11 @@ describe('/album/[id]', () => {
   it('links to editing this album', async () => {
     const out = renderToStaticMarkup(await AlbumPage({ params: Promise.resolve({ albumId: 'a-1' }) }));
     expect(out).toContain('href="/album/a-1/edit"');
+  });
+
+  it('links to adding a copy, and to editing each one', async () => {
+    const out = renderToStaticMarkup(await AlbumPage({ params: Promise.resolve({ albumId: 'a-1' }) }));
+    expect(out).toContain('href="/album/a-1/copy/new"');
+    expect(out).toContain('href="/copy/cp-1/edit"');
   });
 });
