@@ -1,0 +1,34 @@
+meta {
+  name: create want (unknown priority)
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/api/want
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "collectionId": "{{vinylCollectionId}}",
+    "artistId": "{{artistId}}",
+    "priority": "medium"
+  }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}
+
+tests {
+  test("the list groups by must-have / nice-to-have only (#8)", function() {
+    expect(res.body.message).to.match(/priority/);
+  });
+}

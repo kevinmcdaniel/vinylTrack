@@ -1,0 +1,53 @@
+meta {
+  name: list wants with matches (seed)
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/api/want?collectionId={{vinylCollectionId}}&includeMatches=true
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  const wantFor = (title) => (res.body.data || []).find(w => w.album && w.album.title === title);
+
+  test("must-have wants come first (#8)", function() {
+    expect(res.body.data[0].priority).to.equal("must-have");
+  });
+  test("an album want carries its artists", function() {
+    const kob = wantFor("Kind of Blue");
+    expect(kob, "the database is not seeded — run: docker compose run --rm seed").to.not.be.undefined;
+    expect(kob.album.artists.map(a => a.name)).to.include("Miles Davis");
+  });
+  test("album hit: the record itself and the other pressing, with whose and where (#13)", function() {
+    const kob = wantFor("Kind of Blue");
+    expect(kob.matches.map(m => m.album.title)).to.deep.equal(["Kind of Blue", "Kind Of Blue"]);
+    const owners = kob.matches.flatMap(m => m.copies.map(c => c.owner.name));
+    expect(owners).to.include.members(["Alex", "Grandma Ruth"]);
+  });
+  test("album miss: nobody has it", function() {
+    expect(wantFor("Sketches of Spain").matches).to.deep.equal([]);
+  });
+  test("artist miss: nothing by them in the collection", function() {
+    const trane = (res.body.data || []).find(w => w.artist && w.artist.name === "John Coltrane");
+    expect(trane.matches).to.deep.equal([]);
+  });
+  test("never ships an email or account id", function() {
+    for (const w of res.body.data) {
+      for (const m of w.matches) {
+        for (const c of m.copies) expect(Object.keys(c.owner).sort()).to.deep.equal(["id", "name"]);
+      }
+    }
+  });
+}

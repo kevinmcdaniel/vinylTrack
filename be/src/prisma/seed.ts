@@ -96,12 +96,36 @@ async function main() {
   // Owned by the family member with no account — proves an owner needs no user.
   await prisma.copy.create({ data: { albumId: plusCalls.id, locationId: icloud.id, ownerId: ruth.id } });
 
+  // Another pressing of the same record, owned by Ruth: the want list's
+  // duplicate check (#8, #13) matches it by title (case aside) + shared artist.
+  // Titled "Kind Of Blue" so lookups for the original by exact title stay unique.
+  const kindOfBlueReissue = await prisma.album.create({
+    data: { collectionId: vinyl.id, title: 'Kind Of Blue', format: 'LP', year: 1997, genre: 'Jazz' },
+  });
+  await prisma.album_artist.create({ data: { albumId: kindOfBlueReissue.id, artistId: milesDavis.id } });
+  await prisma.copy.create({
+    data: { albumId: kindOfBlueReissue.id, locationId: basement.id, ownerId: ruth.id, condition: 'NM' },
+  });
+
+  // Known to the catalog, owned by nobody: an album-level want with no match.
+  const sketches = await prisma.album.create({
+    data: { collectionId: vinyl.id, title: 'Sketches of Spain', format: 'LP', year: 1960, genre: 'Jazz' },
+  });
+  await prisma.album_artist.create({ data: { albumId: sketches.id, artistId: milesDavis.id } });
+  const coltrane = await prisma.artist.create({ data: { name: 'John Coltrane', sortName: 'Coltrane, John' } });
+
+  // One want per duplicate-check path: album hit, album miss, artist hit, artist miss.
+  await prisma.want_item.create({
+    data: { collectionId: vinyl.id, albumId: kindOfBlue.id, priority: 'must-have', notes: 'a mono pressing' },
+  });
+  await prisma.want_item.create({ data: { collectionId: vinyl.id, albumId: sketches.id, priority: 'must-have' } });
   await prisma.want_item.create({
     data: { collectionId: vinyl.id, artistId: milesDavis.id, priority: 'nice-to-have', notes: 'anything else by him' },
   });
+  await prisma.want_item.create({ data: { collectionId: vinyl.id, artistId: coltrane.id, priority: 'nice-to-have' } });
 
   console.log(
-    'seed: done — 4 users, 3 owners, 2 collections, 4 locations, 2 artists, 2 albums, 3 copies, 1 want item',
+    'seed: done — 4 users, 3 owners, 2 collections, 4 locations, 3 artists, 4 albums, 4 copies, 4 want items',
   );
 }
 

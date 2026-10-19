@@ -1,0 +1,26 @@
+meta {
+  name: update want (unknown priority)
+  type: http
+  seq: 14
+}
+
+patch {
+  url: {{baseUrl}}/api/want/{{artistWantId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "priority": "urgent"
+  }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}

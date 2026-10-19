@@ -12,14 +12,24 @@ import {
   markWantItemFoundService,
 } from '../service/want.js';
 
+// The want list groups by exactly these two (#8); any other value would fall
+// out of both groups, so it is refused rather than stored.
+const PRIORITIES = ['must-have', 'nice-to-have'];
+const assertPriority = (priority: unknown) => {
+  if (!PRIORITIES.includes(priority as string)) {
+    throw new ValidationError(`priority must be one of: ${PRIORITIES.join(', ')}.`);
+  }
+};
+
 const isPrismaError = (error: unknown, code: string): boolean =>
   typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === code;
 
 export const listWantItems = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { collectionId } = req.query as Record<string, string>;
+    const { collectionId, includeMatches } = req.query as Record<string, string>;
     const scope = req.user!.isAdmin ? undefined : await accessibleCollectionIds(req.user!.id);
-    const records = await listWantItemsService({ collectionId }, scope);
+    // Same rule as includeCopies: anything but an explicit `true` is the cheap default.
+    const records = await listWantItemsService({ collectionId, includeMatches: includeMatches === 'true' }, scope);
     res.json({ message: 'List of want items', data: records, status: 200 });
   } catch (error) {
     next(error);
@@ -31,6 +41,7 @@ export const createWantItem = async (req: Request, res: Response, next: NextFunc
     const { collectionId, artistId, albumId, priority, notes } = req.body;
     if (!collectionId) throw new ValidationError('collectionId is required.');
     if (!priority) throw new ValidationError('priority is required.');
+    assertPriority(priority);
     if (!artistId && !albumId) throw new ValidationError('exactly one of artistId or albumId is required.');
     if (artistId && albumId) throw new ValidationError('only one of artistId or albumId may be set, not both.');
     const record = await createWantItemService({ collectionId, artistId, albumId, priority, notes });
@@ -47,6 +58,7 @@ export const updateWantItem = async (req: Request, res: Response, next: NextFunc
     const existing = await getWantItemService(id);
     if (!existing) throw new NotFoundError(`Want item id:${id} not found.`);
     const { priority, notes } = req.body;
+    if (priority !== undefined) assertPriority(priority);
     const record = await updateWantItemService(id, { priority, notes });
     res.json({ message: 'Want item updated', data: record, status: 200 });
   } catch (error) {
