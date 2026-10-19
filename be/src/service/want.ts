@@ -43,10 +43,13 @@ const findMatches = (
   if (want.album) {
     const title = normalizeTitle(want.album.title);
     const artistIds = new Set(want.album.artists.map((a) => a.id));
+    // An all-punctuation title normalizes to "": only its own row can match.
     hits = inCollection.filter(
       (a) =>
         a.id === want.albumId ||
-        (normalizeTitle(a.title) === title && a.artists.some(({ artist }) => artistIds.has(artist.id))),
+        (title !== '' &&
+          normalizeTitle(a.title) === title &&
+          a.artists.some(({ artist }) => artistIds.has(artist.id))),
     );
     // The wanted row itself first, then other editions.
     hits.sort((a, b) => Number(b.id === want.albumId) - Number(a.id === want.albumId));
@@ -88,8 +91,19 @@ export const listWantItemsService = async (
   ).map(flattenWant);
   if (!includeMatches || wants.length === 0) return wants;
 
+  // Every match is the wanted album itself or shares an artist with the want,
+  // so only those albums are candidates — bounded by the want list, not by
+  // the size of the collection.
+  const wantedAlbumIds = wants.flatMap((w) => (w.albumId ? [w.albumId] : []));
+  const wantedArtistIds = [
+    ...new Set(wants.flatMap((w) => (w.album ? w.album.artists.map((a) => a.id) : w.artistId ? [w.artistId] : []))),
+  ];
   const candidates: MatchAlbum[] = await prisma.album.findMany({
-    where: { collectionId: { in: [...new Set(wants.map((w) => w.collectionId))] }, copies: { some: {} } },
+    where: {
+      collectionId: { in: [...new Set(wants.map((w) => w.collectionId))] },
+      copies: { some: {} },
+      OR: [{ id: { in: wantedAlbumIds } }, { artists: { some: { artistId: { in: wantedArtistIds } } } }],
+    },
     select: {
       id: true,
       collectionId: true,

@@ -458,6 +458,28 @@ describe('GET /api/want — shape, order, includeMatches', () => {
     expect(albumIds).toHaveLength(3);
   });
 
+  // A punctuation-only title normalizes to "", which must not equal every other one.
+  it('an all-punctuation title only matches its own album', async () => {
+    const symbols = await prisma.album.create({
+      data: { collectionId: collId, title: '!!!', artists: { create: [{ artistId: miles }] } },
+    });
+    const other = await prisma.album.create({
+      data: { collectionId: collId, title: '???', artists: { create: [{ artistId: miles }] } },
+    });
+    await prisma.copy.create({ data: { albumId: other.id, locationId: shelf, ownerId: alex } });
+    const want = await prisma.want_item.create({ data: { collectionId: collId, albumId: symbols.id, priority: 'nice-to-have' } });
+    try {
+      const res = await list('&includeMatches=true');
+      expect(row(res.body, want.id).matches).toEqual([]);
+    } finally {
+      // These titles can't carry the T prefix that cleanupTestData() keys on.
+      await prisma.want_item.delete({ where: { id: want.id } });
+      await prisma.copy.deleteMany({ where: { albumId: other.id } });
+      await prisma.album_artist.deleteMany({ where: { albumId: { in: [symbols.id, other.id] } } });
+      await prisma.album.deleteMany({ where: { id: { in: [symbols.id, other.id] } } });
+    }
+  });
+
   it('never matches across collections or by title alone', async () => {
     const res = await list('&includeMatches=true');
     const albumIds = row(res.body, ids.wantAlbum).matches!.map((m) => m.album.id);
