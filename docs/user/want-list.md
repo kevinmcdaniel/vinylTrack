@@ -38,7 +38,7 @@ Tap **Found it** when you've bought one.
 - Say where it's going and whose it is (you, unless you pick someone else), and add the condition, date and price if you like. You can add a new place or person right there.
 - For an *Anything by* want, also say which album it is: one already in the collection, or a new title.
 
-Tap **Save — it's found**. The want comes off the list and you land on the album page, which says where the new copy went. There's no undo, so check before you save.
+Tap **Save — it’s found**. The want comes off the list and you land on the album page, which says where the new copy went. There's no undo, so check before you save.
 
 ## In a basement with no signal
 

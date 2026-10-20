@@ -18,8 +18,9 @@ export async function markFound(formData: FormData) {
   const form = `/want/${enc(id)}/found`;
   const body: Record<string, unknown> = { locationId: field(formData, 'locationId'), ownerId: field(formData, 'ownerId') };
   for (const name of ['condition', 'notes'] as const) if (field(formData, name)) body[name] = field(formData, name);
-  if (dayOf(formData)) body.dateAcquired = dayOf(formData);
-  if (priceOf(formData) !== null) body.price = priceOf(formData);
+  const [day, price] = [dayOf(formData), priceOf(formData)];
+  if (day) body.dateAcquired = day;
+  if (price !== null) body.price = price;
 
   if (field(formData, 'needsAlbum')) {
     const [albumId, title] = [field(formData, 'albumId'), field(formData, 'newTitle')];

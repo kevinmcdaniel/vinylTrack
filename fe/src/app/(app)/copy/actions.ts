@@ -21,8 +21,9 @@ export async function createCopy(formData: FormData) {
   const albumId = field(formData, 'albumId');
   const body: Record<string, unknown> = { albumId, locationId: field(formData, 'locationId'), ownerId: field(formData, 'ownerId') };
   for (const name of TEXT) if (field(formData, name)) body[name] = field(formData, name);
-  if (dayOf(formData)) body.dateAcquired = dayOf(formData);
-  if (priceOf(formData) !== null) body.price = priceOf(formData);
+  const [day, price] = [dayOf(formData), priceOf(formData)];
+  if (day) body.dateAcquired = day;
+  if (price !== null) body.price = price;
   const code = await attempt(() => apiPost('/copy', body));
   redirect(code ? `/album/${enc(albumId)}/copy/new?error=${code}` : `/album/${enc(albumId)}`);
 }
