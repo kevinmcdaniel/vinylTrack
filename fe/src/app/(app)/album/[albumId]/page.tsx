@@ -54,7 +54,15 @@ export default async function AlbumPage({ params }: { params: Promise<{ albumId:
             {album.copies.length} {album.copies.length === 1 ? 'copy' : 'copies'}
             {physical ? '' : ' · stored digitally'}
           </h2>
-          <Link href={`/album/${encodeURIComponent(album.id)}/copy/new`} className="text-sm text-primary underline">Add copy</Link>
+          <span className="flex gap-3">
+            <Link href={`/album/${encodeURIComponent(album.id)}/copy/new`} className="text-sm text-primary underline">Add copy</Link>
+            <Link
+              href={`/wants/new?collectionId=${encodeURIComponent(album.collectionId)}&albumId=${encodeURIComponent(album.id)}`}
+              className="text-sm text-primary underline"
+            >
+              Add to want list
+            </Link>
+          </span>
         </div>
         {album.copies.length === 0 ? (
           <EmptyState>Nobody owns a copy of this yet.</EmptyState>

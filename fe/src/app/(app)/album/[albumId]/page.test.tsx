@@ -48,4 +48,10 @@ describe('/album/[id]', () => {
     expect(out).toContain('href="/album/a-1/copy/new"');
     expect(out).toContain('href="/copy/cp-1/edit"');
   });
+
+  // #8: wanting a record you're looking at shouldn't mean finding it again in a picker.
+  it('links to wanting this album, preselected', async () => {
+    const out = renderToStaticMarkup(await AlbumPage({ params: Promise.resolve({ albumId: 'a-1' }) }));
+    expect(out).toContain('href="/wants/new?collectionId=c1&amp;albumId=a-1"');
+  });
 });
