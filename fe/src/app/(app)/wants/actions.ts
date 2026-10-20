@@ -30,7 +30,7 @@ const backTo = (formData: FormData) => {
   url.searchParams.delete('error');
   return url.pathname + url.search;
 };
-const withError = (url: string, code: ActionErrorCode) => `${url}${url.includes('?') ? '&' : '?'}error=${code}`;
+const withError = (url: string, code: ActionErrorCode | 'both') => `${url}${url.includes('?') ? '&' : '?'}error=${code}`;
 
 /**
  * Add to the want list (#8): an album or "anything by" an artist. An album or
@@ -49,22 +49,28 @@ export async function createWant(formData: FormData) {
   const newTitle = field(formData, 'newTitle');
   const artistId = field(formData, 'artistId');
   const newArtist = field(formData, 'newArtist');
-  const picked = kind === 'album' ? albumId || newTitle : kind === 'artist' ? artistId || newArtist : '';
-  if (!picked) redirect(withError(form, 'invalid'));
+  const [picked, typed] = kind === 'album' ? [albumId, newTitle] : kind === 'artist' ? [artistId, newArtist] : ['', ''];
+  if (!picked && !typed) redirect(withError(form, 'invalid'));
+  // Picked one *and* typed a new name: say so rather than silently drop either (PR #118 review).
+  if (picked && typed) redirect(withError(form, 'both'));
 
+  // What this call created, so a refused want keeps it picked: a retry then
+  // reuses it instead of creating a second one (PR #118 review).
+  let created = '';
   const code = await attempt(async () => {
     if (kind === 'album') {
-      want.albumId = albumId || (await apiPost<{ id: string }>('/album', {
+      want.albumId = albumId || (created = (await apiPost<{ id: string }>('/album', {
         collectionId,
         title: newTitle,
         artistIds: formData.getAll('artistIds').filter((v): v is string => typeof v === 'string' && v !== ''),
-      })).id;
+      })).id);
     } else {
-      want.artistId = artistId || (await apiPost<{ id: string }>('/artist', { name: newArtist })).id;
+      want.artistId = artistId || (created = (await apiPost<{ id: string }>('/artist', { name: newArtist })).id);
     }
     await apiPost('/want', want);
   });
-  redirect(code ? withError(form, code) : `/wants?collectionId=${enc(collectionId)}`);
+  const retry = created ? `${form}&${kind === 'album' ? 'albumId' : 'artistId'}=${enc(created)}` : form;
+  redirect(code ? withError(retry, code) : `/wants?collectionId=${enc(collectionId)}`);
 }
 
 /** Priority and notes, from the list row's Edit (#8). A blank note clears it. */

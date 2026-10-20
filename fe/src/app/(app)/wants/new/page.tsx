@@ -14,11 +14,13 @@ const MESSAGES = {
   'forbidden': 'You can’t add to that collection.',
   'in-use': 'One of those artists no longer exists. Pick again.',
   'not-found': 'That album or artist no longer exists. Pick again.',
+  'both': 'Pick one from the list or type a new name, not both.',
 };
 
 /**
  * Add a want (#8). The collection is picked by link, since the album list
- * belongs to it; `?albumId=` preselects one (an album page's "Add to want list").
+ * belongs to it; `?albumId=` preselects one (an album page's "Add to want list"), and
+ * `?artistId=` an artist, on the artist half (a retry after a refused want).
  */
 export default async function NewWantPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   await requireActiveUser();
@@ -60,6 +62,7 @@ export default async function NewWantPage({ searchParams }: { searchParams: Prom
         albums={albums}
         artists={artists}
         albumId={typeof params.albumId === 'string' ? params.albumId : undefined}
+        artistId={typeof params.artistId === 'string' ? params.artistId : undefined}
         action={createWant}
         createArtist={createArtist}
         error={typeof params.error === 'string' ? params.error : undefined}

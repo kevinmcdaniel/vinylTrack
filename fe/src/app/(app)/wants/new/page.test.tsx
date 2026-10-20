@@ -77,6 +77,14 @@ describe('/wants/new', () => {
     expect(await html({ collectionId: 'c1', albumId: 'kob' })).toMatch(/<option value="kob" selected="">/);
   });
 
+  // After a refused want, the artist just created stays picked (PR #118 review).
+  it('preselects an artist passed in the URL, on the artist half', async () => {
+    signedIn();
+    const out = await html({ collectionId: 'c1', artistId: 'miles' });
+    expect(out).toMatch(/name="kind" checked="" value="artist"/);
+    expect(out).toMatch(/name="artistId"[^>]*>(?:(?!<\/select>).)*<option value="miles" selected="">/);
+  });
+
   it('ignores a collection the caller cannot see', async () => {
     const fetch = signedIn();
     await html({ collectionId: 'nope' });
@@ -93,6 +101,7 @@ describe('/wants/new', () => {
   it.each([
     ['invalid', /Pick an album or an artist, or name a new one/],
     ['forbidden', /can’t add to that collection/],
+    ['both', /not both/],
   ])('explains ?error=%s', async (error, message) => {
     signedIn();
     expect(await html({ error })).toMatch(message);

@@ -76,6 +76,29 @@ describe('createWant', () => {
     expect(apiPost).not.toHaveBeenCalled();
   });
 
+  // PR #118 review: a typed name must never be silently dropped for a picked one.
+  it.each([
+    [{ kind: 'album', albumId: 'kob', newTitle: 'Something Else' }],
+    [{ kind: 'artist', artistId: 'trane', newArtist: 'Bill Evans' }],
+  ])('refuses %j (picked and typed) without calling the BE', async (fields) => {
+    await expect(createWant(form({ collectionId: 'c1', priority: 'must-have', ...fields })))
+      .rejects.toThrow('REDIRECT /wants/new?collectionId=c1&error=both');
+    expect(apiPost).not.toHaveBeenCalled();
+  });
+
+  // PR #118 review: a retry after a failed want must reuse what was just created.
+  it('keeps a just-created album picked when the want itself is refused', async () => {
+    apiPost.mockResolvedValueOnce({ id: 'new album' }).mockRejectedValueOnce(new ApiError(406, 'x'));
+    await expect(createWant(form({ collectionId: 'c1', kind: 'album', newTitle: 'New', priority: 'must-have' })))
+      .rejects.toThrow('REDIRECT /wants/new?collectionId=c1&albumId=new%20album&error=invalid');
+  });
+
+  it('keeps a just-created artist picked when the want itself is refused', async () => {
+    apiPost.mockResolvedValueOnce({ id: 'ar-9' }).mockRejectedValueOnce(new ApiError(403, 'x'));
+    await expect(createWant(form({ collectionId: 'c1', kind: 'artist', newArtist: 'Bill Evans', priority: 'must-have' })))
+      .rejects.toThrow('REDIRECT /wants/new?collectionId=c1&artistId=ar-9&error=forbidden');
+  });
+
   it.each([
     [406, 'invalid'],
     [403, 'forbidden'],

@@ -15,11 +15,12 @@ const primaryButton = 'rounded-md bg-primary px-4 py-2 text-sm font-medium text-
  * the list or a new name. Both halves are real fields; CSS in globals.css
  * shows the one the Album/Artist choice names, with no JS.
  */
-export default function WantForm({ collectionId, albums, artists, albumId, action, createArtist, error, messages }: {
+export default function WantForm({ collectionId, albums, artists, albumId, artistId, action, createArtist, error, messages }: {
   collectionId: string;
   albums: Album[];
   artists: Pick<Artist, 'id' | 'name'>[];
   albumId?: string;
+  artistId?: string;
   action: Action;
   createArtist: CreateArtist;
   error?: string;
@@ -33,10 +34,10 @@ export default function WantForm({ collectionId, albums, artists, albumId, actio
       <fieldset className="flex gap-4 text-sm text-text">
         <legend className="mb-1">I want</legend>
         <label className="flex items-center gap-1.5">
-          <input type="radio" name="kind" value="album" defaultChecked /> An album
+          <input type="radio" name="kind" value="album" defaultChecked={!artistId} /> An album
         </label>
         <label className="flex items-center gap-1.5">
-          <input type="radio" name="kind" value="artist" /> Anything by an artist
+          <input type="radio" name="kind" value="artist" defaultChecked={!!artistId} /> Anything by an artist
         </label>
       </fieldset>
 
@@ -62,7 +63,7 @@ export default function WantForm({ collectionId, albums, artists, albumId, actio
       <div className="want-artist flex flex-col gap-3">
         <label className={label}>
           Artist
-          <select name="artistId" defaultValue="" className={input}>
+          <select name="artistId" defaultValue={artistId ?? ''} className={input}>
             <option value="">A new artist…</option>
             {sortedArtists.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
           </select>
