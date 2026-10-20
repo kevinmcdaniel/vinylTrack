@@ -65,5 +65,7 @@ describe('proxy', () => {
   it.each([
     ['/sign-in'], ['/sign-in/check-email'], ['/api/auth/signin'], ['/api/auth/callback/google'],
     ['/api/health'], ['/_next/static/chunks/app.js'], ['/_next/image?url=x'], ['/favicon.ico'],
+    // #9: the install files and the service worker load before (and without) a session.
+    ['/manifest.webmanifest'], ['/sw.js'], ['/icons/icon-192.png'], ['/icon.png'], ['/apple-icon.png'],
   ])('skips %s', (url) => expect(runsOn(url)).toBe(false));
 });
