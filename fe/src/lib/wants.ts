@@ -32,23 +32,24 @@ export const groupWants = (wants: WantItem[]) => ({
 /**
  * "Alex has one — Basement → Shelf 3": one line per owner per album, in the
  * BE's order (the wanted album first). Another pressing, or any album for an
- * artist want, is named, since it isn't the record on the list.
+ * artist want, is named, since it isn't the record on the list. The caller's
+ * own owner row (`myOwnerId`) reads "You have …".
  */
-export const matchLines = (want: WantItem): string[] =>
+export const matchLines = (want: WantItem, myOwnerId?: string): string[] =>
   (want.matches ?? []).flatMap((match) => {
-    const byOwner = new Map<string, { name: string; count: number; places: string[] }>();
+    const byOwner = new Map<string, { mine: boolean; name: string; count: number; places: string[] }>();
     for (const copy of match.copies) {
-      const entry = byOwner.get(copy.owner.id) ?? { name: copy.owner.name, count: 0, places: [] };
+      const entry = byOwner.get(copy.owner.id) ?? { mine: copy.owner.id === myOwnerId, name: copy.owner.name, count: 0, places: [] };
       const place = locationPath(copy.location);
       entry.count += 1;
       if (!entry.places.includes(place)) entry.places.push(place);
       byOwner.set(copy.owner.id, entry);
     }
     const isWanted = match.album.id === want.albumId;
-    return [...byOwner.values()].map(({ name, count, places }) => {
+    return [...byOwner.values()].map(({ mine, name, count, places }) => {
       const what = isWanted
         ? count === 1 ? 'one' : String(count)
         : count === 1 ? `“${match.album.title}”` : `${count} of “${match.album.title}”`;
-      return `${name} has ${what} — ${places.join(', ')}`;
+      return `${mine ? 'You have' : `${name} has`} ${what} — ${places.join(', ')}`;
     });
   });

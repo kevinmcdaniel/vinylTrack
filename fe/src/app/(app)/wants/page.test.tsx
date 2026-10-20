@@ -26,7 +26,10 @@ const kobWant = {
   priority: 'must-have', notes: 'a mono pressing',
   matches: [{
     album: { id: 'kob', title: 'Kind of Blue', artists: [{ id: 'miles', name: 'Miles Davis' }] },
-    copies: [{ id: 'cp', owner: { id: 'alex', name: 'Alex' }, location: { id: 's', name: 'Shelf 3', parent: { id: 'b', name: 'Basement' } } }],
+    copies: [
+      { id: 'cp', owner: { id: 'alex', name: 'Alex' }, location: { id: 's', name: 'Shelf 3', parent: { id: 'b', name: 'Basement' } } },
+      { id: 'cp2', owner: { id: 'o-kevin', name: 'Kevin' }, location: { id: 'd', name: 'Den', parent: null } },
+    ],
   }],
 };
 const sketchesWant = {
@@ -45,6 +48,7 @@ const signedIn = (wants: unknown[] = [kobWant, sketchesWant, callerWant]) => {
     const url = new URL(String(input));
     if (url.pathname.endsWith('/auth/me')) return reply(200, me);
     if (url.pathname.endsWith('/collection')) return reply(200, [vinyl, calls]);
+    if (url.pathname.endsWith('/owner')) return reply(200, [{ id: 'alex', name: 'Alex', userId: null }, { id: 'o-kevin', name: 'Kevin', userId: 'u-1' }]);
     if (url.pathname.endsWith('/want')) {
       const only = url.searchParams.get('collectionId');
       return reply(200, only ? wants.filter((w) => (w as { collectionId: string }).collectionId === only) : wants);
@@ -87,6 +91,21 @@ describe('/wants', () => {
   it('says who already has it and where', async () => {
     signedIn();
     expect(await html()).toContain('Alex has one — Basement → Shelf 3');
+  });
+
+  // Task 3: your own copy is yours, not "Kevin has one".
+  it('says "You have" for the caller\'s own copies', async () => {
+    signedIn();
+    const out = await html();
+    expect(out).toContain('You have one — Den');
+    expect(out).not.toContain('Kevin has one');
+  });
+
+  it('links each row to marking it found', async () => {
+    signedIn();
+    const out = await html();
+    expect(out).toContain('href="/want/w1/found"');
+    expect(out).toContain('href="/want/w3/found"');
   });
 
   // #8 review: never imply more was searched than the collection shared with you.

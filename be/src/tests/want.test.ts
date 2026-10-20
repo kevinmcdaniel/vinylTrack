@@ -480,6 +480,23 @@ describe('GET /api/want — shape, order, includeMatches', () => {
     }
   });
 
+  // The found-it page (#8 task 3) reads one want, with its matches.
+  it('GET /api/want/:id returns the want, its artists and its matches', async () => {
+    const res = await request(app).get(`/api/want/${ids.wantAlbum}`).set(authHeader(owner.email));
+    expect(res.status).toBe(200);
+    expect(res.body.data.id).toBe(ids.wantAlbum);
+    expect(res.body.data.album.artists.map((a: { name: string }) => a.name)).toEqual([`${T}Miles`]);
+    expect(res.body.data.matches.map((m: Match) => m.album.id)).toEqual([wantedAlbum, ids.edition]);
+  });
+
+  it('GET /api/want/:id is 404 for a want in a collection the caller cannot see, and for none', async () => {
+    const hidden = await request(app).get(`/api/want/${ids.wantAlbum}`).set(authHeader(outsider.email));
+    expect(hidden.status).toBe(404);
+    const missing = await request(app).get('/api/want/00000000-0000-0000-0000-000000000000').set(authHeader(owner.email));
+    expect(missing.status).toBe(404);
+    expect(missing.body.data).toBeNull();
+  });
+
   it('never matches across collections or by title alone', async () => {
     const res = await list('&includeMatches=true');
     const albumIds = row(res.body, ids.wantAlbum).matches!.map((m) => m.album.id);

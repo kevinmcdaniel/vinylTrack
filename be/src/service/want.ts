@@ -62,34 +62,10 @@ const findMatches = (
   }));
 };
 
-// accessibleCollectionIds: undefined = no restriction (admin caller);
-// otherwise scoped to this set, intersected with an explicit collectionId
-// filter if the caller also supplied one.
-//
-// includeMatches (#8, #13) answers "does anyone already have this, and where"
-// for every row in one extra query: candidates are albums with at least one
-// copy, in the wants' own collections only, so it can never widen the scope.
-export const listWantItemsService = async (
-  filters: { collectionId?: string; includeMatches?: boolean },
-  accessibleCollectionIds: string[] | undefined,
-) => {
-  const { collectionId, includeMatches } = filters;
-  const scopedCollectionIds = accessibleCollectionIds
-    ? collectionId
-      ? accessibleCollectionIds.filter((id) => id === collectionId)
-      : accessibleCollectionIds
-    : collectionId
-      ? [collectionId]
-      : undefined;
-  const wants = (
-    await prisma.want_item.findMany({
-      where: { ...(scopedCollectionIds ? { collectionId: { in: scopedCollectionIds } } : {}) },
-      include: withRelations,
-      // must-have sorts before nice-to-have; id makes the order stable.
-      orderBy: [{ priority: 'asc' }, { id: 'asc' }],
-    })
-  ).map(flattenWant);
-  if (!includeMatches || wants.length === 0) return wants;
+type FlatWant = ReturnType<typeof flattenWant>;
+
+const withMatches = async (wants: FlatWant[]) => {
+  if (wants.length === 0) return [];
 
   // Every match is the wanted album itself or shares an artist with the want,
   // so only those albums are candidates — bounded by the want list, not by
@@ -121,6 +97,42 @@ export const listWantItemsService = async (
     orderBy: [{ title: 'asc' }, { id: 'asc' }],
   });
   return wants.map((want) => ({ ...want, matches: findMatches(want, candidates) }));
+};
+
+// accessibleCollectionIds: undefined = no restriction (admin caller);
+// otherwise scoped to this set, intersected with an explicit collectionId
+// filter if the caller also supplied one.
+//
+// includeMatches (#8, #13) answers "does anyone already have this, and where"
+// for every row in one extra query: candidates are albums with at least one
+// copy, in the wants' own collections only, so it can never widen the scope.
+export const listWantItemsService = async (
+  filters: { collectionId?: string; includeMatches?: boolean },
+  accessibleCollectionIds: string[] | undefined,
+) => {
+  const { collectionId, includeMatches } = filters;
+  const scopedCollectionIds = accessibleCollectionIds
+    ? collectionId
+      ? accessibleCollectionIds.filter((id) => id === collectionId)
+      : accessibleCollectionIds
+    : collectionId
+      ? [collectionId]
+      : undefined;
+  const wants = (
+    await prisma.want_item.findMany({
+      where: { ...(scopedCollectionIds ? { collectionId: { in: scopedCollectionIds } } : {}) },
+      include: withRelations,
+      // must-have sorts before nice-to-have; id makes the order stable.
+      orderBy: [{ priority: 'asc' }, { id: 'asc' }],
+    })
+  ).map(flattenWant);
+  return includeMatches ? withMatches(wants) : wants;
+};
+
+/** One want with its matches (#8): what the found-it page warns with. */
+export const getWantWithMatchesService = async (id: string) => {
+  const want = await getWantItemService(id);
+  return want && (await withMatches([want]))[0]!;
 };
 
 export const getWantItemService = async (id: string) => {

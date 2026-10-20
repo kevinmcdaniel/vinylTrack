@@ -54,4 +54,16 @@ describe('/album/[id]', () => {
     const out = renderToStaticMarkup(await AlbumPage({ params: Promise.resolve({ albumId: 'a-1' }) }));
     expect(out).toContain('href="/wants/new?collectionId=c1&amp;albumId=a-1"');
   });
+
+  // #8 task 3: after Found it, say what just happened, naming the new copy.
+  it('confirms a found want, naming where the new copy went', async () => {
+    const out = renderToStaticMarkup(await AlbumPage({ params: Promise.resolve({ albumId: 'a-1' }), searchParams: Promise.resolve({ found: 'cp-1' }) }));
+    expect(out).toMatch(/role="status"[^>]*>[^<]*Found it/);
+    expect(out).toContain('added Kevin’s copy: Shelf 3');
+  });
+
+  it('says nothing for a found id that is not one of its copies', async () => {
+    const out = renderToStaticMarkup(await AlbumPage({ params: Promise.resolve({ albumId: 'a-1' }), searchParams: Promise.resolve({ found: 'other' }) }));
+    expect(out).not.toContain('Found it');
+  });
 });

@@ -1,15 +1,20 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { apiGet, ApiError } from '@/lib/api';
-import { showsPhysicalDetail } from '@/lib/filters';
+import { locationPath, showsPhysicalDetail } from '@/lib/filters';
 import CopyRow from '@/ui/CopyRow';
 import EmptyState from '@/ui/EmptyState';
 import type { AlbumDetail } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-export default async function AlbumPage({ params }: { params: Promise<{ albumId: string }> }) {
-  const { albumId } = await params;
+type Props = {
+  params: Promise<{ albumId: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
+};
+
+export default async function AlbumPage({ params, searchParams }: Props) {
+  const [{ albumId }, query] = await Promise.all([params, searchParams ?? Promise.resolve<Record<string, string | string[] | undefined>>({})]);
 
   let album: AlbumDetail;
   try {
@@ -21,9 +26,16 @@ export default async function AlbumPage({ params }: { params: Promise<{ albumId:
 
   const meta = [album.format, album.year, album.genre].filter(Boolean).join(' · ');
   const physical = showsPhysicalDetail(album.collection.kind);
+  // After Found it (#8): `?found=<copy id>`, honored only for one of this album's copies.
+  const found = album.copies.find((c) => c.id === query.found);
 
   return (
     <div className="flex flex-col gap-5">
+      {found && (
+        <p role="status" className="rounded-lg bg-success-bg px-3 py-2 text-sm text-accent-green">
+          Found it — added {found.owner.name}’s copy: {locationPath(found.location)}. It’s off the want list.
+        </p>
+      )}
       <div>
         <div className="flex items-baseline justify-between gap-3">
           <Link href={`/collection/${album.collectionId}`} className="text-sm underline opacity-70">

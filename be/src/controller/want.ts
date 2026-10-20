@@ -6,6 +6,7 @@ import { accessibleCollectionIds } from '../common/policy.js';
 import {
   listWantItemsService,
   getWantItemService,
+  getWantWithMatchesService,
   createWantItemService,
   updateWantItemService,
   deleteWantItemService,
@@ -31,6 +32,20 @@ export const listWantItems = async (req: Request, res: Response, next: NextFunct
     // Same rule as includeCopies: anything but an explicit `true` is the cheap default.
     const records = await listWantItemsService({ collectionId, includeMatches: includeMatches === 'true' }, scope);
     res.json({ message: 'List of want items', data: records, status: 200 });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// One want with its matches, for the found-it page (#8). Access is the
+// route's requireCollectionAccess: a want you can't see is a 404 like one
+// that doesn't exist.
+export const getWantItem = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const id = routeParam(req.params.id);
+    const record = await getWantWithMatchesService(id);
+    if (!record) throw new NotFoundError(`Want item id:${id} not found.`);
+    res.json({ message: 'Want item by id', data: record, status: 200 });
   } catch (error) {
     next(error);
   }
