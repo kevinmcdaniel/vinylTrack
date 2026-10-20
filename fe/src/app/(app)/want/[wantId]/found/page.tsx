@@ -5,7 +5,7 @@ import { locationOptions, ownerOptions } from '@/lib/copyOptions';
 import { showsPhysicalDetail } from '@/lib/filters';
 import { requireActiveUser } from '@/lib/session';
 import type { Album, Collection, Location, OwnerRow, WantItem } from '@/lib/types';
-import { matchLines, wantTitle } from '@/lib/wants';
+import { matchLines, wantPhrase, wantTitle } from '@/lib/wants';
 import CopyForm from '@/ui/CopyForm';
 import { createLocationInline, createOwnerInline } from '../../../copy/actions';
 import { markFound } from '../../actions';
@@ -68,7 +68,7 @@ export default async function FoundPage({ params, searchParams }: Props) {
         </div>
       ) : (
         <p className="rounded-lg bg-surface-alt px-3 py-2 text-sm text-text-tertiary">
-          Nobody in {collection.name} has {want.album ? 'this' : title.replace(/^Anything/, 'anything')} yet.
+          Nobody in {collection.name} has {wantPhrase(want)} yet.
         </p>
       )}
       <CopyForm

@@ -5,6 +5,10 @@ import type { WantItem } from './types';
 export const wantTitle = (want: WantItem): string =>
   want.album ? want.album.title : `Anything by ${want.artist?.name ?? 'an unknown artist'}`;
 
+/** Mid-sentence: "Nobody in Vinyl has this yet" / "…has anything by John Coltrane yet". */
+export const wantPhrase = (want: WantItem): string =>
+  want.album ? 'this' : `anything by ${want.artist?.name ?? 'an unknown artist'}`;
+
 /** The album's artists for an album want; an artist want already names its artist in the title. */
 export const wantArtists = (want: WantItem): string | null =>
   want.album ? want.album.artists.map((a) => a.name).join(', ') || null : null;

@@ -39,19 +39,19 @@ describe('/album/[id]', () => {
   afterEach(() => { vi.unstubAllEnvs(); vi.restoreAllMocks(); auth.mockReset(); });
 
   it('links to editing this album', async () => {
-    const out = renderToStaticMarkup(await AlbumPage({ params: Promise.resolve({ albumId: 'a-1' }) }));
+    const out = renderToStaticMarkup(await AlbumPage({ params: Promise.resolve({ albumId: 'a-1' }), searchParams: Promise.resolve({}) }));
     expect(out).toContain('href="/album/a-1/edit"');
   });
 
   it('links to adding a copy, and to editing each one', async () => {
-    const out = renderToStaticMarkup(await AlbumPage({ params: Promise.resolve({ albumId: 'a-1' }) }));
+    const out = renderToStaticMarkup(await AlbumPage({ params: Promise.resolve({ albumId: 'a-1' }), searchParams: Promise.resolve({}) }));
     expect(out).toContain('href="/album/a-1/copy/new"');
     expect(out).toContain('href="/copy/cp-1/edit"');
   });
 
   // #8: wanting a record you're looking at shouldn't mean finding it again in a picker.
   it('links to wanting this album, preselected', async () => {
-    const out = renderToStaticMarkup(await AlbumPage({ params: Promise.resolve({ albumId: 'a-1' }) }));
+    const out = renderToStaticMarkup(await AlbumPage({ params: Promise.resolve({ albumId: 'a-1' }), searchParams: Promise.resolve({}) }));
     expect(out).toContain('href="/wants/new?collectionId=c1&amp;albumId=a-1"');
   });
 

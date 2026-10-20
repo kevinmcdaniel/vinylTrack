@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import type { WantItem, WantMatch } from './types';
-import { groupWants, matchLines, wantArtists, wantTitle } from './wants';
+import { groupWants, matchLines, wantArtists, wantPhrase, wantTitle } from './wants';
 
 const artist = (id: string, name: string, sortName: string | null = null) => ({ id, name, sortName, notes: null });
 const miles = artist('miles', 'Miles Davis', 'Davis, Miles');
@@ -32,6 +32,14 @@ describe('wantTitle / wantArtists', () => {
     const w = want({ artistId: 'trane', artist: trane });
     expect(wantTitle(w)).toBe('Anything by John Coltrane');
     expect(wantArtists(w)).toBeNull();
+  });
+});
+
+// PR #119 review: the found page's "Nobody … has <phrase> yet" owns its own wording.
+describe('wantPhrase', () => {
+  it('reads "this" for an album want and "anything by …" for an artist want', () => {
+    expect(wantPhrase(want({ albumId: 'kob', album: album('kob', 'Kind of Blue') }))).toBe('this');
+    expect(wantPhrase(want({ artistId: 'trane', artist: trane }))).toBe('anything by John Coltrane');
   });
 });
 
