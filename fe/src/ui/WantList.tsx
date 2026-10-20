@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import type { WantItem } from '@/lib/types';
 type Action = (formData: FormData) => Promise<void>;
 type Actions = { update: Action; remove: Action };
@@ -15,6 +16,7 @@ export default function WantList({
   collectionNames,
   showCollection,
   back,
+  myOwnerId,
   actions,
 }: {
   wants: WantItem[];
@@ -22,6 +24,8 @@ export default function WantList({
   showCollection: boolean;
   /** The URL Edit/Delete return to, so a filtered view stays filtered. */
   back: string;
+  /** The caller's own owner row, so their copies read "You have …". */
+  myOwnerId?: string;
   actions: Actions;
 }) {
   if (wants.length === 0) {
@@ -34,8 +38,8 @@ export default function WantList({
   const { mustHave, niceToHave } = groupWants(wants);
   return (
     <div className="flex flex-col gap-6">
-      <Group title="Must-have" wants={mustHave} collectionNames={collectionNames} showCollection={showCollection} back={back} actions={actions} />
-      <Group title="Nice-to-have" wants={niceToHave} collectionNames={collectionNames} showCollection={showCollection} back={back} actions={actions} />
+      <Group title="Must-have" wants={mustHave} collectionNames={collectionNames} showCollection={showCollection} back={back} myOwnerId={myOwnerId} actions={actions} />
+      <Group title="Nice-to-have" wants={niceToHave} collectionNames={collectionNames} showCollection={showCollection} back={back} myOwnerId={myOwnerId} actions={actions} />
     </div>
   );
 }
@@ -46,6 +50,7 @@ function Group({
   collectionNames,
   showCollection,
   back,
+  myOwnerId,
   actions,
 }: {
   title: string;
@@ -53,6 +58,7 @@ function Group({
   collectionNames: Map<string, string>;
   showCollection: boolean;
   back: string;
+  myOwnerId?: string;
   actions: Actions;
 }) {
   if (wants.length === 0) return null;
@@ -63,7 +69,7 @@ function Group({
       </h2>
       <ul className="flex flex-col gap-2">
         {wants.map((want) => {
-          const lines = matchLines(want);
+          const lines = matchLines(want, myOwnerId);
           const collection = collectionNames.get(want.collectionId) ?? 'this collection';
           const artists = wantArtists(want);
           return (
@@ -79,7 +85,10 @@ function Group({
               ) : (
                 <p className="mt-2 rounded-lg bg-surface-alt px-2 py-1.5 text-sm text-text-tertiary">No copies in {collection}</p>
               )}
-              <EditWant want={want} back={back} actions={actions} />
+              <div className="mt-2 flex items-start gap-4">
+                <Link href={`/want/${encodeURIComponent(want.id)}/found`} className="text-sm font-medium text-primary underline">Found it</Link>
+                <EditWant want={want} back={back} actions={actions} />
+              </div>
             </li>
           );
         })}
@@ -92,7 +101,7 @@ function Group({
 function EditWant({ want, back, actions }: { want: WantItem; back: string; actions: Actions }) {
   const name = wantTitle(want);
   return (
-    <details className="mt-2 text-sm">
+    <details className="text-sm">
       <summary className="cursor-pointer text-primary underline">Edit</summary>
       <form action={actions.update} className="mt-2 flex flex-col gap-2">
         <input type="hidden" name="id" value={want.id} />

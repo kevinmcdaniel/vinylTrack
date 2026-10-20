@@ -1,0 +1,27 @@
+meta {
+  name: get want by id
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/api/want/{{artistWantId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("returns the want with its matches, for the found-it page (#8)", function() {
+    expect(res.body.data.id).to.equal(bru.getVar("artistWantId"));
+    expect(res.body.data.matches).to.be.an("array");
+  });
+}

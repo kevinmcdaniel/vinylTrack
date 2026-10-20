@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { apiGet } from '@/lib/api';
 import { requireActiveUser } from '@/lib/session';
-import type { Collection, WantItem } from '@/lib/types';
+import type { Collection, OwnerRow, WantItem } from '@/lib/types';
 import CollectionChips from '@/ui/CollectionChips';
 import FormError from '@/ui/FormError';
 import WantList from '@/ui/WantList';
@@ -21,8 +21,12 @@ const MESSAGES = {
  * can see, narrowed by `?collectionId=` so the filtered view is a link.
  */
 export default async function WantsPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  await requireActiveUser();
-  const [collections, params] = await Promise.all([apiGet<Collection[]>('/collection'), searchParams]);
+  const me = await requireActiveUser();
+  const [collections, owners, params] = await Promise.all([
+    apiGet<Collection[]>('/collection'),
+    apiGet<OwnerRow[]>('/owner'),
+    searchParams,
+  ]);
   // Only a collection the caller can see narrows the list; anything else shows all.
   const current = collections.find((c) => c.id === params.collectionId);
   const query = new URLSearchParams({ includeMatches: 'true', ...(current ? { collectionId: current.id } : {}) });
@@ -52,6 +56,7 @@ export default async function WantsPage({ searchParams }: { searchParams: Promis
         collectionNames={names}
         showCollection={!current && collections.length > 1}
         back={here}
+        myOwnerId={owners.find((o) => o.userId === me.id)?.id}
         actions={{ update: updateWant, remove: deleteWant }}
       />
     </section>

@@ -3,19 +3,11 @@
 import { redirect } from 'next/navigation';
 import { apiDelete, apiPatch, apiPost } from '@/lib/api';
 import { actionErrorCode, type ActionErrorCode } from '@/lib/actionErrors';
+import { dayOf, field, priceOf } from '@/lib/formFields';
 
-const field = (formData: FormData, name: string) => {
-  const v = formData.get(name);
-  return typeof v === 'string' ? v.trim() : '';
-};
 const enc = encodeURIComponent;
-// A date-only string 500s at the BE (Prisma wants a full DateTime), so the
-// picked day goes out as midnight UTC.
-const day = (formData: FormData) => (/^\d{4}-\d{2}-\d{2}$/.test(field(formData, 'dateAcquired')) ? `${field(formData, 'dateAcquired')}T00:00:00.000Z` : null);
-const price = (formData: FormData) => {
-  const n = Number(field(formData, 'price'));
-  return field(formData, 'price') && Number.isFinite(n) && n >= 0 ? n : null;
-};
+const day = (formData: FormData) => dayOf(formData);
+const price = (formData: FormData) => priceOf(formData);
 const TEXT = ['condition', 'notes'] as const;
 
 async function attempt(write: () => Promise<unknown>): Promise<ActionErrorCode | undefined> {

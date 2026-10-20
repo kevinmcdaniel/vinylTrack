@@ -1,6 +1,7 @@
 import express, { type Request } from 'express';
 import {
   listWantItems,
+  getWantItem,
   createWantItem,
   updateWantItem,
   deleteWantItem,
@@ -21,6 +22,7 @@ export const wantRoute = express.Router();
 wantRoute.use(requireActiveUser);
 
 wantRoute.get('/', listWantItems);
+wantRoute.get('/:id', requireCollectionAccess(resolveByWantId), getWantItem);
 wantRoute.post('/', requireCollectionAccessForCreate(collectionIdInBody), createWantItem);
 wantRoute.patch('/:id', requireCollectionAccess(resolveByWantId), updateWantItem);
 wantRoute.delete('/:id', requireCollectionAccess(resolveByWantId), deleteWantItem);

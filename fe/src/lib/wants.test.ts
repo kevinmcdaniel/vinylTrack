@@ -85,4 +85,15 @@ describe('matchLines', () => {
     const anyMiles = want({ artistId: 'miles', artist: miles, matches: [match(reissue, [copy('2', 'Grandma Ruth', 'Basement'), copy('3', 'Grandma Ruth', 'Attic')])] });
     expect(matchLines(anyMiles)).toEqual(['Grandma Ruth has 2 of “Kind Of Blue” — Basement, Attic']);
   });
+
+  // #8 task 3: your own copy reads as yours, not by your owner name.
+  it('says "You" for the caller\'s own owner row', () => {
+    const w = want({
+      albumId: 'kob',
+      album: kob,
+      matches: [match(kob, [copy('1', 'Kevin', 'Shelf 3', 'Basement')]), match(reissue, [copy('2', 'Kevin', 'Attic'), copy('3', 'Kevin', 'Den')])],
+    });
+    expect(matchLines(w, 'kevin')).toEqual(['You have one — Basement → Shelf 3', 'You have 2 of “Kind Of Blue” — Attic, Den']);
+    expect(matchLines(w, 'someone-else')[0]).toBe('Kevin has one — Basement → Shelf 3');
+  });
 });

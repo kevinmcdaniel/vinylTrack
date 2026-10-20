@@ -16,9 +16,13 @@ const CONDITIONS = ['M', 'NM', 'VG+', 'VG', 'G+', 'G', 'F', 'P'];
  * add a new one in place; condition only shows for a physical collection.
  * Blank optional fields clear on edit (the action sends null).
  */
-export default function CopyForm({ copy, albumId, physical, locations, owners, defaultOwnerId, action, createLocation, createOwner, submitLabel, error, messages }: {
+export default function CopyForm({ copy, albumId, hidden, children, physical, locations, owners, defaultOwnerId, action, createLocation, createOwner, submitLabel, error, messages }: {
   copy?: Copy;
-  albumId: string;
+  albumId?: string;
+  /** More hidden fields, e.g. the want id for found-it (#8). */
+  hidden?: Record<string, string>;
+  /** Fields above the pickers, e.g. which album an artist want turned out to be. */
+  children?: React.ReactNode;
   physical: boolean;
   locations: Option[];
   owners: Option[];
@@ -33,8 +37,10 @@ export default function CopyForm({ copy, albumId, physical, locations, owners, d
   return (
     <form action={action} className="flex flex-col gap-4">
       <FormError code={error} messages={messages} />
-      <input type="hidden" name="albumId" value={albumId} />
+      {albumId && <input type="hidden" name="albumId" value={albumId} />}
       {copy && <input type="hidden" name="id" value={copy.id} />}
+      {Object.entries(hidden ?? {}).map(([name, value]) => <input key={name} type="hidden" name={name} value={value} />)}
+      {children}
       <PickOrAdd name="locationId" label="Location" options={locations} defaultValue={copy?.locationId} addLabel="Add a location" create={createLocation} />
       <PickOrAdd name="ownerId" label="Owner" options={owners} defaultValue={copy?.ownerId ?? defaultOwnerId} addLabel="Add an owner" create={createOwner} />
       {physical && (
