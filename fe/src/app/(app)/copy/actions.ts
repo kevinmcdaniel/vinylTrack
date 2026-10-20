@@ -6,8 +6,6 @@ import { actionErrorCode, type ActionErrorCode } from '@/lib/actionErrors';
 import { dayOf, field, priceOf } from '@/lib/formFields';
 
 const enc = encodeURIComponent;
-const day = (formData: FormData) => dayOf(formData);
-const price = (formData: FormData) => priceOf(formData);
 const TEXT = ['condition', 'notes'] as const;
 
 async function attempt(write: () => Promise<unknown>): Promise<ActionErrorCode | undefined> {
@@ -23,8 +21,9 @@ export async function createCopy(formData: FormData) {
   const albumId = field(formData, 'albumId');
   const body: Record<string, unknown> = { albumId, locationId: field(formData, 'locationId'), ownerId: field(formData, 'ownerId') };
   for (const name of TEXT) if (field(formData, name)) body[name] = field(formData, name);
-  if (day(formData)) body.dateAcquired = day(formData);
-  if (price(formData) !== null) body.price = price(formData);
+  const [day, price] = [dayOf(formData), priceOf(formData)];
+  if (day) body.dateAcquired = day;
+  if (price !== null) body.price = price;
   const code = await attempt(() => apiPost('/copy', body));
   redirect(code ? `/album/${enc(albumId)}/copy/new?error=${code}` : `/album/${enc(albumId)}`);
 }
@@ -34,8 +33,8 @@ export async function updateCopy(formData: FormData) {
   const id = field(formData, 'id');
   const body: Record<string, unknown> = { locationId: field(formData, 'locationId'), ownerId: field(formData, 'ownerId') };
   for (const name of TEXT) body[name] = field(formData, name) || null;
-  body.dateAcquired = day(formData);
-  body.price = price(formData);
+  body.dateAcquired = dayOf(formData);
+  body.price = priceOf(formData);
   const code = await attempt(() => apiPatch(`/copy/${enc(id)}`, body));
   redirect(code ? `/copy/${enc(id)}/edit?error=${code}` : `/album/${enc(field(formData, 'albumId'))}`);
 }

@@ -20,6 +20,8 @@ Tap an album to open it. You'll see its artists, format, year and genre, then ev
 
 "Nobody owns a copy of this yet" means it's listed but nobody has one.
 
+**Add copy** records one you have. **Add to want list** puts the album on the [want list](want-list.md).
+
 ## An artist
 
 Tap an artist's name to see everything of theirs you can see, across your collections.

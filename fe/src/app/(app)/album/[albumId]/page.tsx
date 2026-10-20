@@ -8,13 +8,11 @@ import type { AlbumDetail } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-type Props = {
-  params: Promise<{ albumId: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-};
+type Query = Record<string, string | string[] | undefined>;
+type Props = { params: Promise<{ albumId: string }>; searchParams: Promise<Query> };
 
 export default async function AlbumPage({ params, searchParams }: Props) {
-  const [{ albumId }, query] = await Promise.all([params, searchParams ?? Promise.resolve<Record<string, string | string[] | undefined>>({})]);
+  const [{ albumId }, query] = await Promise.all([params, searchParams]);
 
   let album: AlbumDetail;
   try {
