@@ -1,4 +1,8 @@
 import type { WantItem } from '@/lib/types';
+type Action = (formData: FormData) => Promise<void>;
+type Actions = { update: Action; remove: Action };
+
+const input = 'rounded-md border border-border bg-surface px-2 py-1 text-sm text-text';
 import { groupWants, matchLines, wantArtists, wantTitle } from '@/lib/wants';
 
 /**
@@ -10,10 +14,15 @@ export default function WantList({
   wants,
   collectionNames,
   showCollection,
+  back,
+  actions,
 }: {
   wants: WantItem[];
   collectionNames: Map<string, string>;
   showCollection: boolean;
+  /** The URL Edit/Delete return to, so a filtered view stays filtered. */
+  back: string;
+  actions: Actions;
 }) {
   if (wants.length === 0) {
     return (
@@ -25,8 +34,8 @@ export default function WantList({
   const { mustHave, niceToHave } = groupWants(wants);
   return (
     <div className="flex flex-col gap-6">
-      <Group title="Must-have" wants={mustHave} collectionNames={collectionNames} showCollection={showCollection} />
-      <Group title="Nice-to-have" wants={niceToHave} collectionNames={collectionNames} showCollection={showCollection} />
+      <Group title="Must-have" wants={mustHave} collectionNames={collectionNames} showCollection={showCollection} back={back} actions={actions} />
+      <Group title="Nice-to-have" wants={niceToHave} collectionNames={collectionNames} showCollection={showCollection} back={back} actions={actions} />
     </div>
   );
 }
@@ -36,11 +45,15 @@ function Group({
   wants,
   collectionNames,
   showCollection,
+  back,
+  actions,
 }: {
   title: string;
   wants: WantItem[];
   collectionNames: Map<string, string>;
   showCollection: boolean;
+  back: string;
+  actions: Actions;
 }) {
   if (wants.length === 0) return null;
   return (
@@ -66,10 +79,49 @@ function Group({
               ) : (
                 <p className="mt-2 rounded-lg bg-surface-alt px-2 py-1.5 text-sm text-text-tertiary">No copies in {collection}</p>
               )}
+              <EditWant want={want} back={back} actions={actions} />
             </li>
           );
         })}
       </ul>
     </section>
+  );
+}
+
+/** Priority and notes behind a disclosure; Delete a second tap away inside it (#102 rule). */
+function EditWant({ want, back, actions }: { want: WantItem; back: string; actions: Actions }) {
+  const name = wantTitle(want);
+  return (
+    <details className="mt-2 text-sm">
+      <summary className="cursor-pointer text-primary underline">Edit</summary>
+      <form action={actions.update} className="mt-2 flex flex-col gap-2">
+        <input type="hidden" name="id" value={want.id} />
+        <input type="hidden" name="back" value={back} />
+        <fieldset className="flex gap-4 text-text">
+          <legend className="sr-only">Priority for {name}</legend>
+          <label className="flex items-center gap-1.5">
+            <input type="radio" name="priority" value="must-have" defaultChecked={want.priority === 'must-have'} /> Must-have
+          </label>
+          <label className="flex items-center gap-1.5">
+            <input type="radio" name="priority" value="nice-to-have" defaultChecked={want.priority !== 'must-have'} /> Nice-to-have
+          </label>
+        </fieldset>
+        <label className="flex flex-col gap-1 text-text">
+          Notes
+          <textarea name="notes" rows={2} defaultValue={want.notes ?? ''} className={input} />
+        </label>
+        <button type="submit" className="self-start rounded-md bg-primary px-3 py-1.5 font-medium text-primary-text">Save</button>
+      </form>
+      <details className="mt-2">
+        <summary className="cursor-pointer text-danger-text underline">Delete…</summary>
+        <form action={actions.remove} className="mt-2">
+          <input type="hidden" name="id" value={want.id} />
+          <input type="hidden" name="back" value={back} />
+          <button type="submit" aria-label={`Delete ${name}`} className="rounded-md border border-border bg-surface px-3 py-1.5 text-danger-text">
+            Delete from the want list
+          </button>
+        </form>
+      </details>
+    </details>
   );
 }

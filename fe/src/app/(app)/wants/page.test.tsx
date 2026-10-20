@@ -113,6 +113,33 @@ describe('/wants', () => {
     expect(wantCall(fetch).searchParams.get('collectionId')).toBeNull();
   });
 
+  it('links to adding a want, in the collection being shown', async () => {
+    signedIn();
+    expect(await html()).toContain('href="/wants/new"');
+    expect(await html({ collectionId: 'c2' })).toContain('href="/wants/new?collectionId=c2"');
+  });
+
+  // Edit sits behind a disclosure on the row, and Delete inside Edit (#102 rule).
+  it('edits priority and notes in place, and deletes from inside Edit', async () => {
+    signedIn();
+    const out = await html({ collectionId: 'c1' });
+    const row = out.slice(out.indexOf('Kind of Blue'), out.indexOf('Sketches of Spain'));
+    expect(row).toContain('<summary');
+    expect(row).toContain('name="id" value="w1"');
+    expect(row).toMatch(/name="priority" checked="" value="must-have"/);
+    expect(row).toContain('a mono pressing</textarea>');
+    expect(row).toContain('name="back" value="/wants?collectionId=c1"');
+    expect(row).toContain('aria-label="Delete Kind of Blue"');
+  });
+
+  it.each([
+    ['not-found', /already gone/],
+    ['invalid', /priority/],
+  ])('explains ?error=%s', async (error, message) => {
+    signedIn();
+    expect(await html({ error })).toMatch(message);
+  });
+
   it('says so when the list is empty', async () => {
     signedIn([]);
     expect(await html()).toContain('Nothing on the want list');

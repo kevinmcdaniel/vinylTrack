@@ -96,7 +96,6 @@ export type ArtistDetail = Artist & {
   albums: (Album & { collection: CollectionRef })[];
 };
 
-/** GET /api/admin/summary — back-office action items as counts (#90). */
 /** One owned album a want matched (#8, #13): the record itself, another pressing, or one by a wanted artist. */
 export type WantMatch = {
   album: { id: string; title: string; artists: { id: string; name: string }[] };
@@ -120,6 +119,7 @@ export type WantItem = {
   matches?: WantMatch[];
 };
 
+/** GET /api/admin/summary — back-office action items as counts (#90). */
 export type AdminSummary = { pendingUsers: number; unlinkedOwners: number };
 
 /** One workload in GET /api/admin/health. A failing one is `down`, never an error. */

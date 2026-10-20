@@ -2,9 +2,18 @@ import Link from 'next/link';
 import { apiGet } from '@/lib/api';
 import { requireActiveUser } from '@/lib/session';
 import type { Collection, WantItem } from '@/lib/types';
+import CollectionChips from '@/ui/CollectionChips';
+import FormError from '@/ui/FormError';
 import WantList from '@/ui/WantList';
+import { deleteWant, updateWant } from './actions';
 
 export const dynamic = 'force-dynamic';
+
+const MESSAGES = {
+  'invalid': 'Pick must-have or nice-to-have for the priority.',
+  'not-found': 'That want is already gone.',
+  'forbidden': 'You can’t change wants in that collection.',
+};
 
 /**
  * The want list (#8): what to look for in a record store, and whether anyone
@@ -19,33 +28,32 @@ export default async function WantsPage({ searchParams }: { searchParams: Promis
   const query = new URLSearchParams({ includeMatches: 'true', ...(current ? { collectionId: current.id } : {}) });
   const wants = await apiGet<WantItem[]>(`/want?${query}`);
   const names = new Map(collections.map((c) => [c.id, c.name]));
+  // Where Edit/Delete come back to: this same view, filter included.
+  const here = current ? `/wants?collectionId=${encodeURIComponent(current.id)}` : '/wants';
+  const addHref = current ? `/wants/new?collectionId=${encodeURIComponent(current.id)}` : '/wants/new';
 
   return (
     <section className="flex flex-col gap-4">
-      <h1 className="font-display text-lg font-semibold">Want list</h1>
+      <div className="flex items-baseline justify-between gap-3">
+        <h1 className="font-display text-lg font-semibold">Want list</h1>
+        <Link href={addHref} className="text-sm text-primary underline">Add a want</Link>
+      </div>
+      <FormError code={typeof params.error === 'string' ? params.error : undefined} messages={MESSAGES} />
       {collections.length > 1 && (
-        <nav aria-label="Collections" className="flex flex-wrap gap-2 text-sm">
-          <Chip href="/wants" active={!current}>All</Chip>
-          {collections.map((c) => (
-            <Chip key={c.id} href={`/wants?collectionId=${encodeURIComponent(c.id)}`} active={current?.id === c.id}>
-              {c.name}
-            </Chip>
-          ))}
-        </nav>
+        <CollectionChips
+          collections={collections}
+          currentId={current?.id}
+          hrefFor={(id) => (id ? `/wants?collectionId=${encodeURIComponent(id)}` : '/wants')}
+          all
+        />
       )}
-      <WantList wants={wants} collectionNames={names} showCollection={!current && collections.length > 1} />
+      <WantList
+        wants={wants}
+        collectionNames={names}
+        showCollection={!current && collections.length > 1}
+        back={here}
+        actions={{ update: updateWant, remove: deleteWant }}
+      />
     </section>
-  );
-}
-
-function Chip({ href, active, children }: { href: string; active: boolean; children: React.ReactNode }) {
-  return (
-    <Link
-      href={href}
-      aria-current={active ? 'page' : undefined}
-      className={`rounded-full border px-3 py-1 ${active ? 'border-primary-border bg-primary-bg text-primary' : 'border-border bg-surface text-text-secondary'}`}
-    >
-      {children}
-    </Link>
   );
 }
