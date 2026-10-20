@@ -42,6 +42,15 @@ describe('UserMenu', () => {
     expect(screen.getByRole('link', { name: 'Owners' })).toHaveAttribute('href', '/owners');
   });
 
+  // #8: the want list is the screen you open in a store, so it leads the menu.
+  it.each([[false], [true]])('links to /wants first (admin: %s)', async (isAdmin) => {
+    user.current = { ...user.current, isAdmin };
+    render(await UserMenu());
+    const link = screen.getByRole('link', { name: 'Want list' });
+    expect(link).toHaveAttribute('href', '/wants');
+    expect(screen.getAllByRole('link')[0]).toBe(link);
+  });
+
   it('lets anyone pick a theme, showing this device\'s choice', async () => {
     render(await UserMenu());
     expect(screen.getByRole('combobox', { name: 'Theme' })).toHaveValue('warm');

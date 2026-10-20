@@ -97,6 +97,29 @@ export type ArtistDetail = Artist & {
 };
 
 /** GET /api/admin/summary — back-office action items as counts (#90). */
+/** One owned album a want matched (#8, #13): the record itself, another pressing, or one by a wanted artist. */
+export type WantMatch = {
+  album: { id: string; title: string; artists: { id: string; name: string }[] };
+  copies: { id: string; owner: Owner; location: { id: string; name: string; parent: { id: string; name: string } | null } }[];
+};
+
+/**
+ * GET /api/want: an album want (`album` set) or an "anything by" artist want
+ * (`artist` set), never both. `matches` only with `includeMatches=true`, and
+ * only from the want's own collection.
+ */
+export type WantItem = {
+  id: string;
+  collectionId: string;
+  artistId: string | null;
+  albumId: string | null;
+  artist: Artist | null;
+  album: Album | null;
+  priority: 'must-have' | 'nice-to-have' | string;
+  notes: string | null;
+  matches?: WantMatch[];
+};
+
 export type AdminSummary = { pendingUsers: number; unlinkedOwners: number };
 
 /** One workload in GET /api/admin/health. A failing one is `down`, never an error. */
