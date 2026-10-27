@@ -84,6 +84,13 @@ export default function AdminDashboard({ summary, health, feVersion }: {
         )}
       </Section>
 
+      <Section id="admin-accounts" title="Accounts">
+        <p className="text-sm">
+          <Link href="/admin/users" className="text-primary underline">Users</Link>
+          <span className="text-text-muted"> · everyone who has signed in, by email</span>
+        </p>
+      </Section>
+
       <Section id="admin-workloads" title="Workloads">
         {versions.size > 1 && (
           <p role="alert" className="rounded-lg border border-warn-border bg-warn-bg p-3 text-sm text-warn-text">

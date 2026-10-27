@@ -122,6 +122,9 @@ export type WantItem = {
 /** GET /api/admin/summary — back-office action items as counts (#90). */
 export type AdminSummary = { pendingUsers: number; unlinkedOwners: number };
 
+/** An account as admin `GET /api/user` returns it (#124). */
+export type UserRow = { id: string; email: string; name: string | null; avatar: string | null; status: 'pending' | 'active' | 'denied'; isAdmin: boolean; createdAt: string };
+
 /** One workload in GET /api/admin/health. A failing one is `down`, never an error. */
 export type WorkloadHealth = {
   status: 'up' | 'down' | 'not configured';
