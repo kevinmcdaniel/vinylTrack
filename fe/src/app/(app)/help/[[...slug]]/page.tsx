@@ -24,11 +24,11 @@ export default async function HelpPage({ params }: Props) {
   const content = fs.readFileSync(filePath, 'utf-8');
   return (
     <div className="flex flex-col gap-5">
-      {slug.length > 0 && (
-        <Link href="/help" className="text-sm underline opacity-70">
-          ← Help
-        </Link>
-      )}
+      {/* Every page, not just subpages: the header title alone was too easy to miss (#124). */}
+      <nav className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+        <Link href="/" className="text-primary underline">← Back to vinylTrack</Link>
+        {slug.length > 0 && <Link href="/help" className="text-primary underline">← Help</Link>}
+      </nav>
       <DocViewer content={content} basePath="/help" />
     </div>
   );
