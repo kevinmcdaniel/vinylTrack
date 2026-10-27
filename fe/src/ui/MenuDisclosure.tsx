@@ -15,8 +15,12 @@ export default function MenuDisclosure({ summary, label, children }: {
 }) {
   const ref = useRef<HTMLDetailsElement>(null);
   const pathname = usePathname();
+  const shownFor = useRef(pathname);
 
+  // Only on a real change: a menu opened before hydration must stay open.
   useEffect(() => {
+    if (shownFor.current === pathname) return;
+    shownFor.current = pathname;
     if (ref.current) ref.current.open = false;
   }, [pathname]);
 
