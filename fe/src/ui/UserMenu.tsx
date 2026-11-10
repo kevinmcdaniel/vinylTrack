@@ -50,7 +50,7 @@ export default async function UserMenu() {
     <nav className="flex items-center gap-3 whitespace-nowrap text-xs">
       <Link href="/wants" className="underline">Want list</Link>
       <MenuDisclosure
-        label={`Account menu, ${user.name ?? user.email}`}
+        label="Account menu"
         summary={<><span className="max-w-[10rem] truncate">{user.name ?? user.email}</span>{admin && <Badge count={pending} />}</>}
       >
         <div className="flex flex-col gap-0.5 whitespace-normal">

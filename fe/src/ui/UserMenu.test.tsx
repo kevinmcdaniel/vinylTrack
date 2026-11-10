@@ -117,6 +117,8 @@ describe('UserMenu', () => {
     routes({ pendingUsers: 2, unlinkedOwners: 5 });
     render(await UserMenu());
     expect(menu().querySelector('summary')).toHaveTextContent(/Kevin.*2.*2 pending/);
+    // PR #127 review: an aria-label replaced the visible name and hid the count.
+    expect(menu().querySelector('summary')).toHaveAccessibleName('Account menu, Kevin, 2 pending');
     expect(link('Access requests, 2 pending')).toHaveAttribute('href', '/admin/requests');
   });
 

@@ -40,10 +40,9 @@ export default function MenuDisclosure({ summary, label, children }: {
 
   return (
     <details ref={ref} className="relative">
-      <summary
-        aria-label={label}
-        className="flex cursor-pointer list-none items-center gap-1 rounded-md px-1 py-0.5 text-text-secondary [&::-webkit-details-marker]:hidden"
-      >
+      {/* No aria-label: it would replace the visible name and any sr-only text in it. */}
+      <summary className="flex cursor-pointer list-none items-center gap-1 rounded-md px-1 py-0.5 text-text-secondary [&::-webkit-details-marker]:hidden">
+        <span className="sr-only">{label},</span>{' '}
         {summary}
         <span aria-hidden className="text-[10px]">▾</span>
       </summary>
