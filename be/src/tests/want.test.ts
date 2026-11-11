@@ -214,6 +214,32 @@ describe('POST /api/want/:id/found', () => {
     expect(link).not.toBeNull();
   });
 
+  // #123: the location was checked against the want's collection, the album was
+  // not, so a copy and an artist credit could land on an album in a collection
+  // the caller can't see. Missing and elsewhere read the same (#45).
+  it.each([
+    ['in another collection', async () => {
+      const other = await prisma.collection.create({ data: { name: `${T}FoundOtherColl`, kind: 'physical', ownerId: outsider.id } });
+      return (await prisma.album.create({ data: { collectionId: other.id, title: `${T}FoundOtherAlbum` } })).id;
+    }],
+    ['that does not exist', async () => '00000000-0000-0000-0000-000000000000'],
+  ])('returns 406 for an artist want given an album %s, and writes nothing', async (_case, albumIdFor) => {
+    const location = await prisma.location.create({ data: { name: `${T}FoundLocX${_case.length}`, kind: 'physical', collectionId } });
+    const want = await prisma.want_item.create({ data: { collectionId, artistId, priority: 'must-have' } });
+    const foreignAlbumId = await albumIdFor();
+
+    const res = await request(app)
+      .post(`/api/want/${want.id}/found`)
+      .set(authHeader(owner.email))
+      .send({ locationId: location.id, albumId: foreignAlbumId });
+    expect(res.status).toBe(406);
+    expect(res.body.message).toBe('albumId is not an album in this want’s collection.');
+
+    expect(await prisma.copy.count({ where: { locationId: location.id } })).toBe(0);
+    expect(await prisma.album_artist.count({ where: { albumId: foreignAlbumId } })).toBe(0);
+    expect(await prisma.want_item.findUnique({ where: { id: want.id } })).not.toBeNull();
+  });
+
   it('converts an artist-level want by creating a new album inline, then removes the want', async () => {
     const location = await prisma.location.create({ data: { name: `${T}FoundLoc3`, kind: 'physical', collectionId } });
     const want = await prisma.want_item.create({ data: { collectionId, artistId, priority: 'must-have' } });

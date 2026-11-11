@@ -194,6 +194,14 @@ export const markWantItemFoundService = async (
   const { locationId, ownerId, sourceId, dateAcquired, price, condition, notes, albumId, album } = data;
 
   await assertLocationInCollection(locationId, want.collectionId);
+  // An artist want names its album here: it must be one in the want's own
+  // collection. Missing and elsewhere read the same (#45, #123).
+  if (!want.albumId && albumId) {
+    const picked = await prisma.album.findUnique({ where: { id: albumId }, select: { collectionId: true } });
+    if (picked?.collectionId !== want.collectionId) {
+      throw new ValidationError('albumId is not an album in this want’s collection.');
+    }
+  }
 
   const resolvedOwnerId = ownerId ?? (await ownerForUserService(callerUserId))?.id;
   if (!resolvedOwnerId) {
