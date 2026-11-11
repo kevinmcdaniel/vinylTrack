@@ -17,3 +17,14 @@ A collection is either **physical** (records, CDs, tapes) or **digital** (music 
 ## Starting a collection
 
 Tap your name at the top right, then **New collection**. Give it a name, pick physical or digital, add notes if you like, and tap **Create collection**.
+
+## Adding a record you have
+
+On a collection, tap **Add copy**. First say which album it is:
+
+- **Existing album** (the usual one): type part of the title and pick it from the list.
+- **New album**: fill in the title, and the artists, format and year if you know them. If the collection already has an album that looks the same, you'll see it with **Use it instead**. You can still add a new one: a second pressing is fine.
+
+Then say where it's going and whose it is (you, unless you pick someone else), add the condition, date and price if you like, and tap **Add copy**.
+
+An album you don't have yet goes on the [want list](want-list.md) instead.
