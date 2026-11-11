@@ -66,4 +66,16 @@ describe('/album/[id]', () => {
     const out = renderToStaticMarkup(await AlbumPage({ params: Promise.resolve({ albumId: 'a-1' }), searchParams: Promise.resolve({ found: 'other' }) }));
     expect(out).not.toContain('Found it');
   });
+
+  // #123: after Add copy from the collection page, the same kind of notice.
+  it('confirms an added copy, naming where it went', async () => {
+    const out = renderToStaticMarkup(await AlbumPage({ params: Promise.resolve({ albumId: 'a-1' }), searchParams: Promise.resolve({ added: 'cp-1' }) }));
+    expect(out).toMatch(/role="status"[^>]*>[^<]*Added Kevin’s copy: Shelf 3/);
+    expect(out).not.toContain('off the want list');
+  });
+
+  it('says nothing for an added id that is not one of its copies', async () => {
+    const out = renderToStaticMarkup(await AlbumPage({ params: Promise.resolve({ albumId: 'a-1' }), searchParams: Promise.resolve({ added: 'other' }) }));
+    expect(out).not.toContain('Added');
+  });
 });

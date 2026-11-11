@@ -26,12 +26,19 @@ export default async function AlbumPage({ params, searchParams }: Props) {
   const physical = showsPhysicalDetail(album.collection.kind);
   // After Found it (#8): `?found=<copy id>`, honored only for one of this album's copies.
   const found = album.copies.find((c) => c.id === query.found);
+  // After Add copy from the collection page (#123): `?added=<copy id>`, the same rule.
+  const added = album.copies.find((c) => c.id === query.added);
 
   return (
     <div className="flex flex-col gap-5">
       {found && (
         <p role="status" className="rounded-lg bg-success-bg px-3 py-2 text-sm text-accent-green">
           Found it — added {found.owner.name}’s copy: {locationPath(found.location)}. It’s off the want list.
+        </p>
+      )}
+      {added && (
+        <p role="status" className="rounded-lg bg-success-bg px-3 py-2 text-sm text-accent-green">
+          Added {added.owner.name}’s copy: {locationPath(added.location)}.
         </p>
       )}
       <div>
