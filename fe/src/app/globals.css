@@ -18,3 +18,9 @@ body {
 .want-form:has(input[name="kind"][value="album"]:checked) .want-artist {
   display: none;
 }
+
+/* Add copy (#123): the same for the Existing/New album choice. */
+.album-choice:has(input[name="albumMode"][value="new"]:checked) .album-existing,
+.album-choice:has(input[name="albumMode"][value="existing"]:checked) .album-new {
+  display: none;
+}
