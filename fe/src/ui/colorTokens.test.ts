@@ -18,7 +18,6 @@ const LEGACY = [
   'app/(app)/layout.tsx',
   'app/(app)/loading.tsx',
   'app/docs/layout.tsx',
-  'app/page.tsx',
   'ui/AlbumCard.tsx',
   'ui/CollectionSwitcher.tsx',
   'ui/CopyRow.tsx',

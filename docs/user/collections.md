@@ -16,4 +16,4 @@ A collection is either **physical** (records, CDs, tapes) or **digital** (music 
 
 ## Starting a collection
 
-Tap **New collection** at the top. Give it a name, pick physical or digital, add notes if you like, and tap **Create collection**.
+Tap your name at the top right, then **New collection**. Give it a name, pick physical or digital, add notes if you like, and tap **Create collection**.
