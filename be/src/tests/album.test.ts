@@ -567,3 +567,73 @@ describe('album year validation', () => {
     expect(res.body.data.year).toBeNull();
   });
 });
+
+// ── GET /api/album/matches (#123) ────────────────────────────────────────
+// The add-copy duplicate warning: the want-match rule (#13) for an album that
+// doesn't exist yet. Same collection, title equal ignoring case and
+// punctuation, a shared artist. Albums with no copies count: a want's album is
+// exactly the row a new copy should reuse.
+
+describe('GET /api/album/matches', () => {
+  let kept: string;
+  let wanted: string;
+  beforeAll(async () => {
+    const shelf = await prisma.location.create({ data: { name: `${T}MatchShelf`, kind: 'physical', collectionId } });
+    kept = (await prisma.album.create({
+      data: {
+        collectionId, title: `${T}Kind of Blue`, year: 1959,
+        artists: { create: [{ artistId }] },
+        copies: { create: [{ ownerId: copyOwnerId, locationId: shelf.id }] },
+      },
+    })).id;
+    wanted = (await prisma.album.create({
+      data: { collectionId, title: `${T}Blue Train`, artists: { create: [{ artistId }] } },
+    })).id;
+    await prisma.album.create({ data: { collectionId, title: `${T}Kind of Blue`, artists: { create: [{ artistId: otherArtistId }] } } });
+    await prisma.album.create({ data: { collectionId: otherCollectionId, title: `${T}Kind of Blue`, artists: { create: [{ artistId }] } } });
+  });
+  const matches = (who: string, query: Record<string, string>) =>
+    request(app).get('/api/album/matches').query(query).set(authHeader(who));
+
+  it('matches title ignoring case and punctuation, sharing an artist, in that collection only', async () => {
+    const res = await matches(owner.email, { collectionId, title: `${T.toUpperCase()}kind-of BLUE!`, artistIds: `${artistId},${otherArtistId}` });
+    expect(res.status).toBe(200);
+    const ids = res.body.data.map((a: { id: string }) => a.id);
+    expect(ids).toContain(kept);
+    expect(ids).toHaveLength(2);
+    const hit = res.body.data.find((a: { id: string }) => a.id === kept);
+    expect(hit).toMatchObject({ title: `${T}Kind of Blue`, year: 1959, copyCount: 1 });
+    expect(hit.artists.map((a: { id: string }) => a.id)).toEqual([artistId]);
+  });
+
+  it('needs a shared artist when artists are given', async () => {
+    const res = await matches(owner.email, { collectionId, title: `${T}Kind of Blue`, artistIds: artistId });
+    expect(res.body.data.map((a: { id: string }) => a.id)).toEqual([kept]);
+  });
+
+  it('matches on title alone when no artists are given', async () => {
+    const res = await matches(owner.email, { collectionId, title: `${T}Kind of Blue` });
+    expect(res.body.data).toHaveLength(2);
+  });
+
+  it('counts an album with no copies, with copyCount 0', async () => {
+    const res = await matches(owner.email, { collectionId, title: `${T}Blue Train`, artistIds: artistId });
+    expect(res.body.data).toEqual([expect.objectContaining({ id: wanted, copyCount: 0 })]);
+  });
+
+  it('answers an outsider with an empty list, not the albums', async () => {
+    const res = await matches(outsider.email, { collectionId, title: `${T}Kind of Blue` });
+    expect(res.status).toBe(200);
+    expect(res.body.data).toEqual([]);
+  });
+
+  it('returns [] for a title that normalizes to nothing', async () => {
+    const res = await matches(owner.email, { collectionId, title: '?!' });
+    expect(res.body.data).toEqual([]);
+  });
+
+  it.each([[{ title: 'x' }], [{ collectionId: 'c' }]])('returns 406 without collectionId and title (%j)', async (query) => {
+    const res = await matches(owner.email, query as Record<string, string>);
+    expect(res.status).toBe(406);
+  });
+});

@@ -1,0 +1,31 @@
+meta {
+  name: album matches
+  type: http
+  seq: 23
+}
+
+get {
+  url: {{baseUrl}}/api/album/matches?collectionId={{vinylCollectionId}}&title=_bruno_ test-album!&artistIds={{artistId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("finds the album ignoring case and punctuation (#123)", function() {
+    expect(res.body.data.map(a => a.id)).to.include(bru.getVar("albumId"));
+  });
+}
+
+docs {
+  The add-copy duplicate warning. Routed ahead of /api/album/:id, which would
+  otherwise read "matches" as an album id.
+}

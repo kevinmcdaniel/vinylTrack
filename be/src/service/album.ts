@@ -116,6 +116,39 @@ export const createAlbumWith = async (db: Prisma.TransactionClient, data: NewAlb
 
 export const createAlbumService = (data: NewAlbum) => createAlbumWith(prisma, data);
 
+// Two album rows are "the same record" (#13) when they sit in the same
+// collection, their titles match ignoring case and punctuation, and they
+// share an artist. Title alone would match every "Greatest Hits".
+export const normalizeTitle = (title: string) => title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+
+// The add-copy duplicate warning (#123): that rule, for an album not created
+// yet. With no artists named, title alone decides: it only ever warns. Albums
+// with no copies count, since a want's album is the row a new copy should reuse.
+// accessibleCollectionIds: undefined = admin; a collection outside it reads as no matches.
+export const findAlbumMatchesService = async (
+  query: { collectionId: string; title: string; artistIds: string[] },
+  accessibleCollectionIds: string[] | undefined,
+) => {
+  const { collectionId, title, artistIds } = query;
+  if (accessibleCollectionIds && !accessibleCollectionIds.includes(collectionId)) return [];
+  const key = normalizeTitle(title);
+  if (!key) return [];
+  const candidates = await prisma.album.findMany({
+    where: { collectionId, ...(artistIds.length ? { artists: { some: { artistId: { in: artistIds } } } } : {}) },
+    select: {
+      id: true,
+      title: true,
+      year: true,
+      artists: { select: { artist: { select: { id: true, name: true } } } },
+      _count: { select: { copies: true } },
+    },
+    orderBy: [{ title: 'asc' }, { id: 'asc' }],
+  });
+  return candidates
+    .filter((a) => normalizeTitle(a.title) === key)
+    .map(({ artists, _count, ...album }) => ({ ...album, artists: artists.map((a) => a.artist), copyCount: _count.copies }));
+};
+
 export const updateAlbumService = async (
   id: string,
   data: {

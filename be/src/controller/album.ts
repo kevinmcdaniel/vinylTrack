@@ -7,6 +7,7 @@ import {
   listAlbumsService,
   getAlbumService,
   createAlbumService,
+  findAlbumMatchesService,
   updateAlbumService,
   deleteAlbumService,
 } from '../service/album.js';
@@ -25,6 +26,22 @@ export const listAlbums = async (req: Request, res: Response, next: NextFunction
       scope,
     );
     res.json({ message: 'List of albums', data: records, status: 200 });
+  } catch (error) {
+    next(error);
+  }
+};
+
+// Duplicate warning for add-copy (#123): albums in a collection that look like
+// the one about to be created. Scoped like the list.
+export const listAlbumMatches = async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { collectionId, title, artistIds } = req.query as Record<string, string | undefined>;
+    if (!collectionId) throw new ValidationError('collectionId is required.');
+    if (!title) throw new ValidationError('title is required.');
+    const scope = req.user!.isAdmin ? undefined : await accessibleCollectionIds(req.user!.id);
+    const ids = (artistIds ?? '').split(',').map((id) => id.trim()).filter(Boolean);
+    const records = await findAlbumMatchesService({ collectionId, title, artistIds: ids }, scope);
+    res.json({ message: 'Album matches', data: records, status: 200 });
   } catch (error) {
     next(error);
   }

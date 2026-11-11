@@ -4,7 +4,7 @@ import { ValidationError } from '../common/errorHandler.js';
 import { assertAlbumInCollection, assertLocationInCollection } from './copy.js';
 import type { AlbumFields } from '../common/fields.js';
 import { ownerForUserService } from './owner.js';
-import { createAlbumWith } from './album.js';
+import { createAlbumWith, normalizeTitle } from './album.js';
 
 const withRelations = {
   artist: true,
@@ -19,10 +19,7 @@ const flattenWant = (want: Prisma.want_itemGetPayload<{ include: typeof withRela
   return { ...want, album: { ...album, artists: artists.map((a) => a.artist) } };
 };
 
-// Two album rows are "the same record" (#13) when they sit in the same
-// collection, their titles match ignoring case and punctuation, and they
-// share an artist. Title alone would match every "Greatest Hits".
-const normalizeTitle = (title: string) => title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+// The same-record rule (#13) lives in album.ts, shared with add-copy's warning (#123).
 
 type MatchAlbum = {
   id: string;
