@@ -88,7 +88,7 @@ export const getAlbumService = async (id: string) => {
   return flattenArtists(album);
 };
 
-export const createAlbumService = async (data: {
+export type NewAlbum = {
   collectionId: string;
   title: string;
   format?: string;
@@ -97,17 +97,24 @@ export const createAlbumService = async (data: {
   notes?: string;
   coverImageUrl?: string;
   artistIds?: string[];
-}) => {
+};
+
+// One album insert for every path that makes one (#123): plain create, found-it
+// and add-copy, the last two inside their own transaction. Credits each artist once.
+export const createAlbumWith = async (db: Prisma.TransactionClient, data: NewAlbum) => {
   const { artistIds, ...albumData } = data;
-  const album = await prisma.album.create({
+  const unique = [...new Set(artistIds ?? [])];
+  const album = await db.album.create({
     data: {
       ...albumData,
-      ...(artistIds ? { artists: { create: artistIds.map((artistId) => ({ artistId })) } } : {}),
+      ...(unique.length ? { artists: { create: unique.map((artistId) => ({ artistId })) } } : {}),
     },
     include: withArtists,
   });
   return flattenArtists(album);
 };
+
+export const createAlbumService = (data: NewAlbum) => createAlbumWith(prisma, data);
 
 export const updateAlbumService = async (
   id: string,

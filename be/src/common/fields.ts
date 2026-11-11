@@ -54,13 +54,16 @@ export const parsePrice = (value: unknown): string | null | undefined => {
 // Picked field by field and type-checked: a request object spread into
 // Prisma `data` could choose the collection or write relations
 // (`copies: { connect }`). Anything not listed here is a 406.
-const ALBUM_FIELDS = ['title', 'format', 'year', 'genre', 'notes', 'coverImageUrl'] as const;
-export type AlbumFields = { title: string; format?: string; year?: number | null; genre?: string; notes?: string; coverImageUrl?: string };
+const ALBUM_FIELDS = ['title', 'format', 'year', 'genre', 'notes', 'coverImageUrl', 'artistIds'] as const;
+export type AlbumFields = { title: string; format?: string; year?: number | null; genre?: string; notes?: string; coverImageUrl?: string; artistIds?: string[] };
 
 export const parseAlbumFields = (value: unknown, field = 'album'): AlbumFields => {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new ValidationError(`${field} must be an object.`);
   assertOnlyFields(value, ALBUM_FIELDS, (m) => new ValidationError(`${field}: ${m}`));
-  const { title, format, year, genre, notes, coverImageUrl } = value as Record<string, unknown>;
+  const { title, format, year, genre, notes, coverImageUrl, artistIds } = value as Record<string, unknown>;
+  if (artistIds !== undefined && !(Array.isArray(artistIds) && artistIds.every((id) => typeof id === 'string'))) {
+    throw new ValidationError(`${field}.artistIds must be a list of ids.`);
+  }
   if (typeof title !== 'string' || !title.trim()) throw new ValidationError(`${field}.title is required.`);
   const text = (v: unknown, name: string) => {
     if (isUnset(v)) return undefined;
@@ -74,5 +77,6 @@ export const parseAlbumFields = (value: unknown, field = 'album'): AlbumFields =
     genre: text(genre, 'genre'),
     notes: text(notes, 'notes'),
     coverImageUrl: text(coverImageUrl, 'coverImageUrl'),
+    artistIds: artistIds as string[] | undefined,
   };
 };

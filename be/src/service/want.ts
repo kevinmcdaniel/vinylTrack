@@ -4,6 +4,7 @@ import { ValidationError } from '../common/errorHandler.js';
 import { assertAlbumInCollection, assertLocationInCollection } from './copy.js';
 import type { AlbumFields } from '../common/fields.js';
 import { ownerForUserService } from './owner.js';
+import { createAlbumWith } from './album.js';
 
 const withRelations = {
   artist: true,
@@ -208,15 +209,18 @@ export const markWantItemFoundService = async (
       if (albumId) {
         resolvedAlbumId = albumId;
       } else if (album) {
-        const created = await tx.album.create({
-          data: { collectionId: want.collectionId, ...album },
+        // A new album credits the want's own artist alongside any picked.
+        const created = await createAlbumWith(tx, {
+          ...album,
+          collectionId: want.collectionId,
+          artistIds: [...(album.artistIds ?? []), ...(want.artistId ? [want.artistId] : [])],
         });
         resolvedAlbumId = created.id;
       }
-      if (want.artistId && resolvedAlbumId) {
+      if (want.artistId && albumId) {
         await tx.album_artist.upsert({
-          where: { albumId_artistId: { albumId: resolvedAlbumId, artistId: want.artistId } },
-          create: { albumId: resolvedAlbumId, artistId: want.artistId },
+          where: { albumId_artistId: { albumId, artistId: want.artistId } },
+          create: { albumId, artistId: want.artistId },
           update: {},
         });
       }
