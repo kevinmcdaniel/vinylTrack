@@ -56,7 +56,7 @@ export default async function CollectionPage({ params, searchParams }: Props) {
           {albums.length} {albums.length === 1 ? 'release' : 'releases'}
         </p>
         <div className="flex gap-3">
-          <Link href={`/collection/${encodeURIComponent(collectionId)}/album/new`} className="text-sm text-primary underline">Add album</Link>
+          <Link href={`/collection/${encodeURIComponent(collectionId)}/copy/new`} className="text-sm text-primary underline">Add copy</Link>
           <Link href={`/collection/${encodeURIComponent(collectionId)}/locations`} className="text-sm text-primary underline">Locations</Link>
         </div>
       </div>
