@@ -23,6 +23,14 @@ export const assertLocationInCollection = async (locationId: string, collectionI
   }
 };
 
+// The want list's albums obey the same chain (#129 item 1): a want, and the
+// copy found-it makes from it, may only name an album in the want's own
+// collection. Missing and elsewhere read the same (#45).
+export const assertAlbumInCollection = async (albumId: string, collectionId: string, message: string) => {
+  const album = await prisma.album.findUnique({ where: { id: albumId }, select: { collectionId: true } });
+  if (album?.collectionId !== collectionId) throw new ValidationError(message);
+};
+
 // accessibleCollectionIds: undefined = no restriction (admin caller);
 // otherwise results are confined to copies whose album belongs to one of
 // these collections. Copies have no collectionId of their own — scoping

@@ -1,0 +1,41 @@
+meta {
+  name: create want (album from another collection, shared member)
+  type: http
+  seq: 23
+}
+
+post {
+  url: {{baseUrl}}/api/want
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{sharedEmail}}
+}
+
+body:json {
+  {
+    "collectionId": "{{vinylCollectionId}}",
+    "albumId": "{{plusCallsId}}",
+    "priority": "must-have"
+  }
+}
+
+assert {
+  res.status: eq 406
+  res.body.status: eq 406
+}
+
+tests {
+  test("never echoes the album it can't see (#129)", function() {
+    expect(JSON.stringify(res.body)).to.not.include("Plus Program Calls");
+  });
+}
+
+docs {
+  #129 item 1. Alex is shared on Squakville Vinyl only. A want there naming
+  an album in Square Dance Music used to be a 201 that returned the album,
+  and found-it on it then put a copy on that album. Same answer for a
+  missing album (#45).
+}

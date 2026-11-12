@@ -1,4 +1,5 @@
 import { ValidationError } from './errorHandler.js';
+import { assertOnlyFields } from './utils.js';
 
 // Typed body fields that used to reach Prisma as-is, where a wrong type came
 // back 500. Each parser leaves `undefined` (not sent) and `null` (clear it)
@@ -47,4 +48,31 @@ export const parsePrice = (value: unknown): string | null | undefined => {
     throw new ValidationError('price must be a non-negative amount with at most 2 decimal places.');
   }
   return text;
+};
+
+// A new album sent inside another request (found-it today, #129 item 2).
+// Picked field by field and type-checked: a request object spread into
+// Prisma `data` could choose the collection or write relations
+// (`copies: { connect }`). Anything not listed here is a 406.
+const ALBUM_FIELDS = ['title', 'format', 'year', 'genre', 'notes', 'coverImageUrl'] as const;
+export type AlbumFields = { title: string; format?: string; year?: number | null; genre?: string; notes?: string; coverImageUrl?: string };
+
+export const parseAlbumFields = (value: unknown, field = 'album'): AlbumFields => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new ValidationError(`${field} must be an object.`);
+  assertOnlyFields(value, ALBUM_FIELDS, (m) => new ValidationError(`${field}: ${m}`));
+  const { title, format, year, genre, notes, coverImageUrl } = value as Record<string, unknown>;
+  if (typeof title !== 'string' || !title.trim()) throw new ValidationError(`${field}.title is required.`);
+  const text = (v: unknown, name: string) => {
+    if (isUnset(v)) return undefined;
+    if (typeof v !== 'string') throw new ValidationError(`${field}.${name} must be text.`);
+    return v;
+  };
+  return {
+    title: title.trim(),
+    format: text(format, 'format'),
+    year: parseYear(year),
+    genre: text(genre, 'genre'),
+    notes: text(notes, 'notes'),
+    coverImageUrl: text(coverImageUrl, 'coverImageUrl'),
+  };
 };

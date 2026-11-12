@@ -95,6 +95,27 @@ describe('POST /api/want', () => {
       .send({ collectionId: '00000000-0000-0000-0000-000000000000', artistId, priority: 'must-have' });
     expect(res.status).toBe(409);
   });
+
+  // #129 item 1: the want's collectionId was checked, the album it names was
+  // not, so a want could read (and found-it write) an album you can't see.
+  // Missing and elsewhere read the same (#45).
+  it.each([
+    ['in another collection', async () => {
+      const other = await prisma.collection.create({ data: { name: `${T}WantOtherColl`, kind: 'physical', ownerId: outsider.id } });
+      return (await prisma.album.create({ data: { collectionId: other.id, title: `${T}WantOtherAlbum` } })).id;
+    }],
+    ['that does not exist', async () => '00000000-0000-0000-0000-000000000000'],
+  ])('returns 406 for an album %s, and makes no want', async (_case, albumIdFor) => {
+    const foreignAlbumId = await albumIdFor();
+    const res = await request(app)
+      .post('/api/want')
+      .set(authHeader(owner.email))
+      .send({ collectionId, albumId: foreignAlbumId, priority: 'must-have' });
+    expect(res.status).toBe(406);
+    expect(res.body.message).toBe('albumId is not an album in this collection.');
+    expect(res.body.data).toEqual({});
+    expect(await prisma.want_item.count({ where: { albumId: foreignAlbumId } })).toBe(0);
+  });
 });
 
 // ── GET /api/want ─────────────────────────────────────────────────────────
@@ -238,6 +259,69 @@ describe('POST /api/want/:id/found', () => {
     expect(await prisma.copy.count({ where: { locationId: location.id } })).toBe(0);
     expect(await prisma.album_artist.count({ where: { albumId: foreignAlbumId } })).toBe(0);
     expect(await prisma.want_item.findUnique({ where: { id: want.id } })).not.toBeNull();
+  });
+
+  // #129 item 1: a want row naming an album elsewhere (made before want create
+  // checked it) must not let found-it write there either.
+  it('returns 406 for an album want whose album is in another collection, and writes nothing', async () => {
+    const other = await prisma.collection.create({ data: { name: `${T}FoundStrayColl`, kind: 'physical', ownerId: outsider.id } });
+    const stray = await prisma.album.create({ data: { collectionId: other.id, title: `${T}FoundStrayAlbum` } });
+    const location = await prisma.location.create({ data: { name: `${T}FoundLocStray`, kind: 'physical', collectionId } });
+    const want = await prisma.want_item.create({ data: { collectionId, albumId: stray.id, priority: 'must-have' } });
+
+    const res = await request(app)
+      .post(`/api/want/${want.id}/found`)
+      .set(authHeader(owner.email))
+      .send({ locationId: location.id });
+    expect(res.status).toBe(406);
+    expect(await prisma.copy.count({ where: { albumId: stray.id } })).toBe(0);
+    expect(await prisma.want_item.findUnique({ where: { id: want.id } })).not.toBeNull();
+  });
+
+  // #129 item 2: the new album was spread into Prisma's data, after the
+  // want's collectionId, so the body could pick the collection or write
+  // relations (`copies.connect` moved someone else's copy). Fields are picked
+  // by name now; anything else is a 406 and nothing is written.
+  it.each([
+    ['a collectionId', async () => ({ collectionId: (await prisma.collection.create({ data: { name: `${T}FoundMassColl`, kind: 'physical', ownerId: outsider.id } })).id })],
+    ['a relation write', async () => {
+      const victimColl = await prisma.collection.create({ data: { name: `${T}FoundVictimColl`, kind: 'physical', ownerId: outsider.id } });
+      const victimAlbum = await prisma.album.create({ data: { collectionId: victimColl.id, title: `${T}FoundVictimAlbum` } });
+      const victimLoc = await prisma.location.create({ data: { name: `${T}FoundVictimLoc`, kind: 'physical', collectionId: victimColl.id } });
+      const victimOwner = await prisma.owner.create({ data: { name: `${T}FoundVictimOwner` } });
+      const victimCopy = await prisma.copy.create({ data: { albumId: victimAlbum.id, locationId: victimLoc.id, ownerId: victimOwner.id } });
+      return { copies: { connect: [{ id: victimCopy.id }] }, victimCopyId: victimCopy.id, victimAlbumId: victimAlbum.id };
+    }],
+  ])('refuses a new album carrying %s, and writes nothing', async (_case, extraFor) => {
+    const location = await prisma.location.create({ data: { name: `${T}FoundLocMass${_case.length}`, kind: 'physical', collectionId } });
+    const want = await prisma.want_item.create({ data: { collectionId, artistId, priority: 'must-have' } });
+    const { victimCopyId, victimAlbumId, ...extra } = (await extraFor()) as Record<string, unknown>;
+    const title = `${T}FoundMass${_case.length}`;
+
+    const res = await request(app)
+      .post(`/api/want/${want.id}/found`)
+      .set(authHeader(owner.email))
+      .send({ locationId: location.id, album: { title, ...extra } });
+    expect(res.status).toBe(406);
+    expect(await prisma.album.count({ where: { title } })).toBe(0);
+    if (victimCopyId) {
+      expect((await prisma.copy.findUniqueOrThrow({ where: { id: victimCopyId as string } })).albumId).toBe(victimAlbumId);
+    }
+  });
+
+  it.each([
+    ['a non-string title', { title: 42 }],
+    ['an empty title', { title: '  ' }],
+    ['a non-string format', { title: 'x', format: ['LP'] }],
+    ['an album that is not an object', 'Blue'],
+  ])('returns 406 for a new album with %s', async (_case, album) => {
+    const location = await prisma.location.create({ data: { name: `${T}FoundLocBad${String(_case).length}`, kind: 'physical', collectionId } });
+    const want = await prisma.want_item.create({ data: { collectionId, artistId, priority: 'must-have' } });
+    const res = await request(app)
+      .post(`/api/want/${want.id}/found`)
+      .set(authHeader(owner.email))
+      .send({ locationId: location.id, album });
+    expect(res.status).toBe(406);
   });
 
   it('converts an artist-level want by creating a new album inline, then removes the want', async () => {
