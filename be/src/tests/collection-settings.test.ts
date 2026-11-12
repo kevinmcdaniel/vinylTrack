@@ -130,4 +130,23 @@ describe('collection shares', () => {
   it('lets an admin manage shares of a collection they do not own', async () => {
     expect((await request(app).get(sharesUrl()).set(as(admin))).status).toBe(200);
   });
+
+  // PR #138 review: the admin pass skipped the lookup, so a missing id reached
+  // Prisma and came back 500.
+  it('answers an admin 404, not 500, for a collection that does not exist', async () => {
+    const missing = '/api/collection/00000000-0000-0000-0000-000000000000';
+    expect((await request(app).patch(missing).set(as(admin)).send({ name: 'x' })).status).toBe(404);
+    expect((await request(app).get(`${missing}/share`).set(as(admin))).status).toBe(404);
+    expect((await request(app).get(`${missing}/share/candidates`).set(as(admin))).status).toBe(404);
+    expect((await request(app).post(`${missing}/share`).set(as(admin)).send({ userId: outsider.id })).status).toBe(404);
+  });
+
+  // PR #138 review: check-then-insert; the losing request of a race hit the
+  // unique key as a 500.
+  it('answers two simultaneous shares with the same person 201 and 409', async () => {
+    const racer = await prisma.user.create({ data: { email: `${T}set-racer@example.com`, status: 'active' } });
+    const statuses = await Promise.all([1, 2].map(() =>
+      request(app).post(sharesUrl()).set(as(owner)).send({ userId: racer.id }).then((r) => r.status)));
+    expect(statuses.sort()).toEqual([201, 409]);
+  });
 });

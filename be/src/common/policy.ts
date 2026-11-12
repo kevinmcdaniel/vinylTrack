@@ -102,7 +102,6 @@ export const requireCollectionAccessForCreate = (
 export const requireCollectionOwner = (resolveCollectionId: (req: Request) => Promise<string | null>) =>
   async (req: Request, _res: Response, next: NextFunction) => {
     try {
-      if (req.user?.isAdmin) return next();
       const collectionId = await resolveCollectionId(req);
       const collection = collectionId && req.user
         ? await prisma.collection.findUnique({
@@ -110,8 +109,10 @@ export const requireCollectionOwner = (resolveCollectionId: (req: Request) => Pr
           select: { ownerId: true, shares: { where: { userId: req.user.id }, select: { userId: true } } },
         })
         : null;
+      // Looked up before the admin pass, so a missing id is a 404 for everyone
+      // rather than reaching Prisma's update as a 500 (PR #138 review).
       if (!collection) return next(new NotFoundError('Resource not found.'));
-      if (collection.ownerId === req.user!.id) return next();
+      if (req.user!.isAdmin || collection.ownerId === req.user!.id) return next();
       if (collection.shares.length > 0) return next(new ForbiddenError('Only the collection\u2019s owner can change its settings.'));
       next(new NotFoundError('Resource not found.'));
     } catch (error) {

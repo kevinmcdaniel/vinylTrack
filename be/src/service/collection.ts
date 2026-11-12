@@ -70,9 +70,15 @@ export const addShareService = async (collectionId: string, userId: string) => {
   ]);
   if (!user || user.status !== 'active') throw new ValidationError('userId must be an approved user.');
   if (userId === collection.ownerId) throw new ValidationError('The owner already has this collection.');
-  const existing = await prisma.collection_share.findUnique({ where: { collectionId_userId: { collectionId, userId } } });
-  if (existing) throw new ConflictError('Already shared with that user.');
-  await prisma.collection_share.create({ data: { collectionId, userId, role: 'full' } });
+  try {
+    await prisma.collection_share.create({ data: { collectionId, userId, role: 'full' } });
+  } catch (error) {
+    // The (collectionId, userId) key decides, so two racing requests get 201 and 409.
+    if (typeof error === 'object' && error !== null && (error as { code?: string }).code === 'P2002') {
+      throw new ConflictError('Already shared with that user.');
+    }
+    throw error;
+  }
   return listSharesService(collectionId);
 };
 
