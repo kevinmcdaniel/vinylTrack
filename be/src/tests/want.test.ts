@@ -342,6 +342,21 @@ describe('POST /api/want/:id/found', () => {
     expect(link).not.toBeNull();
   });
 
+  // #123: found-it and add-copy share one album + copy path; a new album takes artistIds.
+  it('credits a new album with the given artists as well as the want’s, once each', async () => {
+    const location = await prisma.location.create({ data: { name: `${T}FoundLoc8`, kind: 'physical', collectionId } });
+    const guest = await prisma.artist.create({ data: { name: `${T}FoundGuest` } });
+    const want = await prisma.want_item.create({ data: { collectionId, artistId, priority: 'must-have' } });
+
+    const res = await request(app)
+      .post(`/api/want/${want.id}/found`)
+      .set(authHeader(owner.email))
+      .send({ locationId: location.id, album: { title: `${T}FoundDuet`, artistIds: [guest.id, artistId] } });
+    expect(res.status).toBe(201);
+    const credits = await prisma.album_artist.findMany({ where: { albumId: res.body.data.album.id } });
+    expect(credits.map((c) => c.artistId).sort()).toEqual([artistId, guest.id].sort());
+  });
+
   it('records the buyer when an explicit ownerId is given', async () => {
     const location = await prisma.location.create({ data: { name: `${T}FoundLoc7`, kind: 'physical', collectionId } });
     const gift = await prisma.owner.create({ data: { name: `${T}FoundForGrandma` } });

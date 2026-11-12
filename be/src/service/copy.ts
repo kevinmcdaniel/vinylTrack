@@ -1,5 +1,6 @@
 import { prisma } from '../database.js';
 import { ValidationError } from '../common/errorHandler.js';
+import { createAlbumWith, type NewAlbum } from './album.js';
 
 // The copy's own owner (#53), not the location's: a record lent out keeps its
 // attribution when it moves. Selected down to id+name so no `user` row — and
@@ -54,8 +55,7 @@ export const getCopyService = async (id: string) => {
   return prisma.copy.findUnique({ where: { id }, include: withRelations });
 };
 
-export const createCopyService = async (data: {
-  albumId: string;
+type NewCopy = {
   locationId: string;
   ownerId: string;
   sourceId?: string;
@@ -63,7 +63,19 @@ export const createCopyService = async (data: {
   price?: string | null;
   condition?: string;
   notes?: string;
-}) => {
+};
+
+// An existing album by id, or a new one (#123) created in the same
+// transaction, so a refused copy never leaves an album behind.
+export const createCopyService = async (data: NewCopy & ({ albumId: string } | { album: NewAlbum })) => {
+  if ('album' in data) {
+    const { album, ...copy } = data;
+    await assertLocationInCollection(copy.locationId, album.collectionId);
+    return prisma.$transaction(async (tx) => {
+      const created = await createAlbumWith(tx, album);
+      return tx.copy.create({ data: { ...copy, albumId: created.id }, include: withRelations });
+    });
+  }
   const album = await prisma.album.findUnique({
     where: { id: data.albumId },
     select: { collectionId: true },

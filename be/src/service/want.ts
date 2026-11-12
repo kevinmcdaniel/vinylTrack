@@ -4,6 +4,7 @@ import { ValidationError } from '../common/errorHandler.js';
 import { assertAlbumInCollection, assertLocationInCollection } from './copy.js';
 import type { AlbumFields } from '../common/fields.js';
 import { ownerForUserService } from './owner.js';
+import { createAlbumWith, normalizeTitle } from './album.js';
 
 const withRelations = {
   artist: true,
@@ -18,10 +19,7 @@ const flattenWant = (want: Prisma.want_itemGetPayload<{ include: typeof withRela
   return { ...want, album: { ...album, artists: artists.map((a) => a.artist) } };
 };
 
-// Two album rows are "the same record" (#13) when they sit in the same
-// collection, their titles match ignoring case and punctuation, and they
-// share an artist. Title alone would match every "Greatest Hits".
-const normalizeTitle = (title: string) => title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+// The same-record rule (#13) lives in album.ts, shared with add-copy's warning (#123).
 
 type MatchAlbum = {
   id: string;
@@ -208,15 +206,18 @@ export const markWantItemFoundService = async (
       if (albumId) {
         resolvedAlbumId = albumId;
       } else if (album) {
-        const created = await tx.album.create({
-          data: { collectionId: want.collectionId, ...album },
+        // A new album credits the want's own artist alongside any picked.
+        const created = await createAlbumWith(tx, {
+          ...album,
+          collectionId: want.collectionId,
+          artistIds: [...(album.artistIds ?? []), ...(want.artistId ? [want.artistId] : [])],
         });
         resolvedAlbumId = created.id;
       }
-      if (want.artistId && resolvedAlbumId) {
+      if (want.artistId && albumId) {
         await tx.album_artist.upsert({
-          where: { albumId_artistId: { albumId: resolvedAlbumId, artistId: want.artistId } },
-          create: { albumId: resolvedAlbumId, artistId: want.artistId },
+          where: { albumId_artistId: { albumId, artistId: want.artistId } },
+          create: { albumId, artistId: want.artistId },
           update: {},
         });
       }

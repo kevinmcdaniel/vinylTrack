@@ -40,8 +40,10 @@ describe('/collection/[id]', () => {
     expect(out).toContain('href="/collection/c1/locations"');
   });
 
-  it('links to adding an album here', async () => {
+  // #123: you add a copy (picking or creating its album); an album alone is a want.
+  it('links to adding a copy here, not an album on its own', async () => {
     const out = renderToStaticMarkup(await CollectionPage({ params: Promise.resolve({ collectionId: 'c1' }), searchParams: Promise.resolve({}) }));
-    expect(out).toContain('href="/collection/c1/album/new"');
+    expect(out).toMatch(/href="\/collection\/c1\/copy\/new"[^>]*>Add copy</);
+    expect(out).not.toContain('/album/new');
   });
 });

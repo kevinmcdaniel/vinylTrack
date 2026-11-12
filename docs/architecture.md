@@ -59,6 +59,7 @@ Landed in [issue #2](https://github.com/kevinmcdaniel/vinylTrack/issues/2) and r
 - `fe/src/proxy.ts` — answers a request with no session cookie with a `307` to `/sign-in` before any rendering ([#94](https://github.com/kevinmcdaniel/vinylTrack/issues/94)). It's a cheap first pass, not the access check
 - `fe/src/lib/session.ts` — where pages check access (signed in? approved? admin?), right next to the data they fetch
 - `fe/src/lib/api.ts` — server-side BE client; signs a short-lived token for the current user on every call
+- `fe/src/app/(app)/collection/[collectionId]/copy/new/` — add a copy with an album already in the collection or a new one, saved together in one request ([#123](https://github.com/kevinmcdaniel/vinylTrack/issues/123)). There's no page that makes an album on its own: an album with no copy is a want, made from the want list
 
 ## Sign-in and access (#73, #74)
 
