@@ -632,6 +632,16 @@ describe('GET /api/album/matches', () => {
     expect(res.body.data).toEqual([]);
   });
 
+  // PR #130 review: a repeated param arrives as an array; it was a 500.
+  it.each([
+    ['artistIds', `collectionId=c&title=x&artistIds=a&artistIds=b`],
+    ['title', `collectionId=c&title=x&title=y`],
+    ['collectionId', `collectionId=c&collectionId=d&title=x`],
+  ])('returns 406, not 500, for a repeated %s', async (_name, qs) => {
+    const res = await request(app).get(`/api/album/matches?${qs}`).set(authHeader(owner.email));
+    expect(res.status).toBe(406);
+  });
+
   it.each([[{ title: 'x' }], [{ collectionId: 'c' }]])('returns 406 without collectionId and title (%j)', async (query) => {
     const res = await matches(owner.email, query as Record<string, string>);
     expect(res.status).toBe(406);

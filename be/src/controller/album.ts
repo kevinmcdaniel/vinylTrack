@@ -35,7 +35,13 @@ export const listAlbums = async (req: Request, res: Response, next: NextFunction
 // the one about to be created. Scoped like the list.
 export const listAlbumMatches = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { collectionId, title, artistIds } = req.query as Record<string, string | undefined>;
+    // Express hands a repeated param over as an array: one value each, or 406.
+    const one = (name: string) => {
+      const value = req.query[name];
+      if (value !== undefined && typeof value !== 'string') throw new ValidationError(`${name} must be given once.`);
+      return value;
+    };
+    const [collectionId, title, artistIds] = [one('collectionId'), one('title'), one('artistIds')];
     if (!collectionId) throw new ValidationError('collectionId is required.');
     if (!title) throw new ValidationError('title is required.');
     const scope = req.user!.isAdmin ? undefined : await accessibleCollectionIds(req.user!.id);
