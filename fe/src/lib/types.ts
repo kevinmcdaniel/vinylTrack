@@ -6,6 +6,8 @@ export type Collection = {
   name: string;
   kind: 'physical' | 'digital' | string;
   ownerId: string;
+  /** Who owns it (#125): enough for "Shared by", never an email. */
+  owner?: { id: string; name: string | null };
   notes: string | null;
   albumCount: number;
 };
