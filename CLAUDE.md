@@ -156,6 +156,7 @@ The voice rule that matters most: caveman the *prose*, never the facts. File pat
 
 ## Process rules for this repo
 
+- **Branch names carry the issue number** (`docs/process.md`, "Branch + PR per issue"): `<type>/issue-<N>-<short-slug>`, e.g. `feat/issue-2-core-schema`. A cloud session whose branch must start with a fixed prefix keeps that prefix and puts the rest after it: `mcclaude/issue-129-deps-audit`. `caveman-pr` reads `issue-(\d+)` from the branch to find the issue for the title and the `Closes`/`Refs` line. One issue per branch; work that has no issue yet gets one first.
 - **TDD-first**: lead every feature/bugfix with a failing test, then implement to green. A passing typecheck/build is not a substitute for a test.
 - **Design → review → plan → approve → TDD**: for any non-trivial feature, write up the design/approach first (this usually means a GitHub issue, iterated on) and get it reviewed before breaking it into implementation tasks. Get the task breakdown approved before writing code. TDD governs the coding step once a plan is approved — it isn't a replacement for the design/planning step.
 
