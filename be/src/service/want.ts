@@ -1,7 +1,8 @@
 import { prisma } from '../database.js';
 import type { Prisma } from '../generated/client/client.js';
 import { ValidationError } from '../common/errorHandler.js';
-import { assertLocationInCollection } from './copy.js';
+import { assertAlbumInCollection, assertLocationInCollection } from './copy.js';
+import type { AlbumFields } from '../common/fields.js';
 import { ownerForUserService } from './owner.js';
 
 const withRelations = {
@@ -147,6 +148,7 @@ export const createWantItemService = async (data: {
   priority: string;
   notes?: string;
 }) => {
+  if (data.albumId) await assertAlbumInCollection(data.albumId, data.collectionId, 'albumId is not an album in this collection.');
   return flattenWant(await prisma.want_item.create({ data, include: withRelations }));
 };
 
@@ -180,20 +182,19 @@ export const markWantItemFoundService = async (
     condition?: string;
     notes?: string;
     albumId?: string;
-    album?: {
-      title: string;
-      format?: string;
-      year?: number | null;
-      genre?: string;
-      notes?: string;
-      coverImageUrl?: string;
-    };
+    album?: AlbumFields;
   },
 ) => {
   const want = await prisma.want_item.findUniqueOrThrow({ where: { id } });
   const { locationId, ownerId, sourceId, dateAcquired, price, condition, notes, albumId, album } = data;
 
   await assertLocationInCollection(locationId, want.collectionId);
+  // The copy's album must be in the want's own collection: the want's album,
+  // or the one an artist want picks here (#123, #129 item 1).
+  const effectiveAlbumId = want.albumId ?? albumId;
+  if (effectiveAlbumId) {
+    await assertAlbumInCollection(effectiveAlbumId, want.collectionId, 'albumId is not an album in this want’s collection.');
+  }
 
   const resolvedOwnerId = ownerId ?? (await ownerForUserService(callerUserId))?.id;
   if (!resolvedOwnerId) {
