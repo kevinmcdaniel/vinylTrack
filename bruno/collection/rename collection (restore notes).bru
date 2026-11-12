@@ -1,0 +1,26 @@
+meta {
+  name: rename collection (restore notes)
+  type: http
+  seq: 10
+}
+
+patch {
+  url: {{baseUrl}}/api/collection/{{vinylCollectionId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "notes": null
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.data.notes: isNull
+}
