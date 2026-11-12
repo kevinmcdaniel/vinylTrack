@@ -1,0 +1,35 @@
+meta {
+  name: rename collection
+  type: http
+  seq: 9
+}
+
+patch {
+  url: {{baseUrl}}/api/collection/{{vinylCollectionId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "name": "Squakville Vinyl",
+    "notes": "_BRUNO_ notes"
+  }
+}
+
+assert {
+  res.status: eq 200
+  res.body.status: eq 200
+}
+
+tests {
+  test("saves the notes, keeps the kind, carries the owner without an email (#125)", function() {
+    expect(res.body.data.notes).to.equal("_BRUNO_ notes");
+    expect(res.body.data.kind).to.equal("physical");
+    expect(res.body.data.owner).to.have.keys(["id", "name"]);
+  });
+}

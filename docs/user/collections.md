@@ -18,6 +18,16 @@ A collection is either **physical** (records, CDs, tapes) or **digital** (music 
 
 Tap your name at the top right, then **New collection**. Give it a name, pick physical or digital, add notes if you like, and tap **Create collection**.
 
+## Renaming and sharing
+
+On a collection you own, tap **Settings**.
+
+- **Rename** it, or change its notes, and tap **Save**. Whether it's physical or digital can't change.
+- **Share with** someone: pick a family member who has been let in, and tap **Share**. They can see the collection and add to it: albums, copies, locations and wants. They can't rename it or share it on.
+- To stop sharing, tap **Remove** under their name, then **Stop sharing**. It's gone from their list straight away.
+
+A collection someone shared with you says whose it is under its name. Only its owner (or a family admin) sees **Settings**.
+
 ## Adding a record you have
 
 On a collection, tap **Add copy**. First say which album it is:

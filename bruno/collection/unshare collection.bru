@@ -1,0 +1,25 @@
+meta {
+  name: unshare collection
+  type: http
+  seq: 14
+}
+
+delete {
+  url: {{baseUrl}}/api/collection/{{vinylCollectionId}}/share/{{outsiderUserId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+  res.body.data: isNull
+}
+
+docs {
+  Undoes "share collection", so the outsider is an outsider again for every
+  folder after this one.
+}

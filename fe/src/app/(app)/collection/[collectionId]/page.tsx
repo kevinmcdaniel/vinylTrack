@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { apiGet, ApiError } from '@/lib/api';
 import { distinctArtists, distinctValues } from '@/lib/filters';
 import { albumFiltersFrom, filterOptionSource, hasActiveFilters } from '@/lib/searchParams';
+import { requireActiveUser } from '@/lib/session';
 import AlbumCard from '@/ui/AlbumCard';
 import CollectionSwitcher from '@/ui/CollectionSwitcher';
 import EmptyState from '@/ui/EmptyState';
@@ -20,9 +21,11 @@ export default async function CollectionPage({ params, searchParams }: Props) {
   const { collectionId } = await params;
   const search = await searchParams;
 
-  const collections = await apiGet<Collection[]>('/collection');
+  const [collections, me] = await Promise.all([apiGet<Collection[]>('/collection'), requireActiveUser()]);
   const current = collections.find((c) => c.id === collectionId);
   if (!current) notFound();
+  // Rename and sharing are the owner's (or an admin's), #125.
+  const canManage = me.isAdmin || current.ownerId === me.id;
 
   const filters = albumFiltersFrom(collectionId, search);
 
@@ -42,6 +45,11 @@ export default async function CollectionPage({ params, searchParams }: Props) {
   return (
     <div className="flex flex-col gap-4">
       <CollectionSwitcher collections={collections} currentId={collectionId} />
+      {current.ownerId !== me.id && (
+        <p className="-mt-2 text-sm text-text-muted">
+          {me.isAdmin ? 'Owned by' : 'Shared by'} {current.owner?.name ?? 'its owner'}
+        </p>
+      )}
 
       <FilterBar
         options={{
@@ -58,6 +66,9 @@ export default async function CollectionPage({ params, searchParams }: Props) {
         <div className="flex gap-3">
           <Link href={`/collection/${encodeURIComponent(collectionId)}/copy/new`} className="text-sm text-primary underline">Add copy</Link>
           <Link href={`/collection/${encodeURIComponent(collectionId)}/locations`} className="text-sm text-primary underline">Locations</Link>
+          {canManage && (
+            <Link href={`/collection/${encodeURIComponent(collectionId)}/settings`} className="text-sm text-primary underline">Settings</Link>
+          )}
         </div>
       </div>
 

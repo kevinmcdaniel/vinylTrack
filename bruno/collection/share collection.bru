@@ -1,0 +1,31 @@
+meta {
+  name: share collection
+  type: http
+  seq: 13
+}
+
+post {
+  url: {{baseUrl}}/api/collection/{{vinylCollectionId}}/share
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "userId": "{{outsiderUserId}}"
+  }
+}
+
+assert {
+  res.status: eq 201
+}
+
+tests {
+  test("lists the new share by name and email", function() {
+    expect(res.body.data.map(u => u.email)).to.include("jamie@example.com");
+  });
+}
