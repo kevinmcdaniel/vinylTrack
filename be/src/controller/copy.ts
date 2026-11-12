@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ValidationError, ConflictError, NotFoundError } from '../common/errorHandler.js';
 import { routeParam } from '../common/utils.js';
-import { parseDate, parsePrice, parseYear } from '../common/fields.js';
+import { parseAlbumFields, parseDate, parsePrice } from '../common/fields.js';
 import type { NewAlbum } from '../service/album.js';
 import { accessibleCollectionIds } from '../common/policy.js';
 import {
@@ -12,29 +12,13 @@ import {
   deleteCopyService,
 } from '../service/copy.js';
 
-// A new album sent with its copy (#123): the same fields POST /api/album takes.
+// A new album sent with its copy (#123): its collection, plus the fields
+// every new album takes, picked by name (#129).
 const parseNewAlbum = (value: unknown): NewAlbum => {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new ValidationError('album must be an object.');
-  const { collectionId, title, format, year, genre, notes, coverImageUrl, artistIds } = value as Record<string, unknown>;
+  const { collectionId, ...fields } = value as Record<string, unknown>;
   if (typeof collectionId !== 'string' || !collectionId) throw new ValidationError('album.collectionId is required.');
-  if (typeof title !== 'string' || !title.trim()) throw new ValidationError('album.title is required.');
-  if (artistIds !== undefined && !(Array.isArray(artistIds) && artistIds.every((id) => typeof id === 'string'))) {
-    throw new ValidationError('album.artistIds must be a list of ids.');
-  }
-  const optional = (v: unknown, field: string) => {
-    if (v === undefined || v === null || typeof v === 'string') return (v ?? undefined) as string | undefined;
-    throw new ValidationError(`album.${field} must be text.`);
-  };
-  return {
-    collectionId,
-    title,
-    format: optional(format, 'format'),
-    year: parseYear(year),
-    genre: optional(genre, 'genre'),
-    notes: optional(notes, 'notes'),
-    coverImageUrl: optional(coverImageUrl, 'coverImageUrl'),
-    artistIds: artistIds as string[] | undefined,
-  };
+  return { collectionId, ...parseAlbumFields(fields) };
 };
 
 const isPrismaError = (error: unknown, code: string): boolean =>
