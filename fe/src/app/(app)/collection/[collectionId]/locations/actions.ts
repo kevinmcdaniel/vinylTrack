@@ -11,16 +11,21 @@ const field = (formData: FormData, name: string) => {
 const back = (formData: FormData) => `/collection/${encodeURIComponent(field(formData, 'collectionId'))}/locations`;
 const locationPath = (formData: FormData) => `/location/${encodeURIComponent(field(formData, 'id'))}`;
 
+const editPage = (formData: FormData) => `/location/${encodeURIComponent(field(formData, 'id'))}/edit`;
+
 // The hidden collectionId only picks where to land afterwards; the BE decides
-// access from the location (or, on create, from that id) itself.
-async function run(formData: FormData, write: () => Promise<unknown>) {
+// access from the location (or, on create, from that id) itself. `refused` is
+// where a refusal lands: edit and delete live on the location's edit page
+// (#137), so they go back there, unless the location is gone.
+async function run(formData: FormData, write: () => Promise<unknown>, refused = back(formData)) {
   let code: ActionErrorCode | undefined;
   try {
     await write();
   } catch (error) {
     code = actionErrorCode(error);
   }
-  redirect(code ? `${back(formData)}?error=${code}` : back(formData));
+  const to = code === 'not-found' ? back(formData) : refused;
+  redirect(code ? `${to}?error=${code}` : back(formData));
 }
 
 export async function createLocation(formData: FormData) {
@@ -39,9 +44,9 @@ export async function updateLocation(formData: FormData) {
     name: field(formData, 'name'),
     kind: field(formData, 'kind'),
     parentLocationId: field(formData, 'parentLocationId') || null,
-  }));
+  }), editPage(formData));
 }
 
 export async function deleteLocation(formData: FormData) {
-  await run(formData, () => apiDelete(locationPath(formData)));
+  await run(formData, () => apiDelete(locationPath(formData)), editPage(formData));
 }

@@ -28,7 +28,10 @@ export default async function LocationPage({ params }: Props) {
     <section className="flex flex-col gap-4">
       <div>
         <Link href={`/collection/${encodeURIComponent(location.collectionId)}/locations`} className="text-sm text-primary underline">← Locations</Link>
-        <h1 className="mt-2 font-display text-lg font-semibold">{fullPath(location, byId)}</h1>
+        <div className="mt-2 flex items-baseline justify-between gap-3">
+          <h1 className="min-w-0 font-display text-lg font-semibold">{fullPath(location, byId)}</h1>
+          <Link href={`/location/${encodeURIComponent(location.id)}/edit`} className="shrink-0 text-sm text-primary underline">Edit</Link>
+        </div>
       </div>
       <LocationContents location={location} locations={locations} copies={copies} />
     </section>

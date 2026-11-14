@@ -46,6 +46,12 @@ describe('/location/[id]', () => {
     expect(call.searchParams.get('includeSublocations')).toBe('true');
   });
 
+  // #137: edit lives on its own page; reach it from here too.
+  it('links to its edit page', async () => {
+    signedIn();
+    expect(await html('s')).toContain('href="/location/s/edit"');
+  });
+
   it('404s for a location you cannot see', async () => {
     signedIn();
     await expect(html('nope')).rejects.toThrow('NOT_FOUND');

@@ -71,6 +71,22 @@ describe('updateLocation', () => {
       .rejects.toThrow('REDIRECT');
     expect(apiPatch.mock.calls[0]![1]).toEqual({ name: 'Shelf 4', kind: 'physical', parentLocationId: null });
   });
+
+  // #137: edit lives on its own page, so a refusal goes back there.
+  it.each([
+    [406, 'invalid'],
+    [403, 'forbidden'],
+  ])('sends a %i back to the edit page as ?error=%s', async (status, code) => {
+    apiPatch.mockRejectedValue(new ApiError(status, 'x'));
+    await expect(updateLocation(form({ collectionId: 'c1', id: 'l-2', name: '', kind: 'physical' })))
+      .rejects.toThrow(new RegExp(`^REDIRECT /location/l-2/edit\\?error=${code}$`));
+  });
+
+  it('sends a 404 to the list, since there is no page to go back to', async () => {
+    apiPatch.mockRejectedValue(new ApiError(404, 'gone'));
+    await expect(updateLocation(form({ collectionId: 'c1', id: 'l-2', name: 'n', kind: 'physical' })))
+      .rejects.toThrow(`REDIRECT ${back}?error=not-found`);
+  });
 });
 
 describe('deleteLocation', () => {
@@ -82,6 +98,6 @@ describe('deleteLocation', () => {
 
   it('turns a 409 (copies or children inside) into ?error=in-use', async () => {
     apiDelete.mockRejectedValue(new ApiError(409, 'location is still referenced by a copy or child location.'));
-    await expect(deleteLocation(form({ collectionId: 'c1', id: 'l-1' }))).rejects.toThrow(`REDIRECT ${back}?error=in-use`);
+    await expect(deleteLocation(form({ collectionId: 'c1', id: 'l-1' }))).rejects.toThrow('REDIRECT /location/l-1/edit?error=in-use');
   });
 });
