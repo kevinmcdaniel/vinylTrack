@@ -26,9 +26,17 @@ const isPrismaError = (error: unknown, code: string): boolean =>
 
 export const listCopies = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { albumId, locationId } = req.query as Record<string, string>;
+    // Express hands a repeated param over as an array: one value each, or 406 (#126).
+    const one = (name: string) => {
+      const value = req.query[name];
+      if (value !== undefined && typeof value !== 'string') throw new ValidationError(`${name} must be given once.`);
+      return value;
+    };
+    const [albumId, locationId] = [one('albumId'), one('locationId')];
+    const includeSublocations = one('includeSublocations') === 'true';
+    if (includeSublocations && !locationId) throw new ValidationError('includeSublocations needs a locationId.');
     const scope = req.user!.isAdmin ? undefined : await accessibleCollectionIds(req.user!.id);
-    const records = await listCopiesService({ albumId, locationId }, scope);
+    const records = await listCopiesService({ albumId, locationId, includeSublocations }, scope);
     res.json({ message: 'List of copies', data: records, status: 200 });
   } catch (error) {
     next(error);

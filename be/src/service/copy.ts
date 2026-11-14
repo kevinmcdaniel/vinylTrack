@@ -11,6 +11,30 @@ const withRelations = {
   source: true,
 } as const;
 
+// The list also names each copy's album (#126): what a location page shows.
+const withAlbum = {
+  ...withRelations,
+  album: { select: { id: true, title: true, format: true, artists: { select: { artist: { select: { id: true, name: true } } } } } },
+} as const;
+
+// A location and every location inside it, top down, each level by name (#126).
+// `seen` stops at a loop already in the data rather than spinning.
+const locationTree = async (rootId: string) => {
+  const order = [rootId];
+  const seen = new Set(order);
+  let frontier = order;
+  while (frontier.length) {
+    const children = await prisma.location.findMany({
+      where: { parentLocationId: { in: frontier } },
+      select: { id: true },
+      orderBy: { name: 'asc' },
+    });
+    frontier = children.map((c) => c.id).filter((id) => !seen.has(id));
+    for (const id of frontier) { seen.add(id); order.push(id); }
+  }
+  return order;
+};
+
 // album + location + collection are one chain (#53): an album belongs to a
 // collection and so does a location, so a copy may not straddle two of them.
 export const assertLocationInCollection = async (locationId: string, collectionId: string) => {
@@ -37,18 +61,24 @@ export const assertAlbumInCollection = async (albumId: string, collectionId: str
 // these collections. Copies have no collectionId of their own — scoping
 // goes through the album relation.
 export const listCopiesService = async (
-  filters: { albumId?: string; locationId?: string },
+  filters: { albumId?: string; locationId?: string; includeSublocations?: boolean },
   accessibleCollectionIds: string[] | undefined,
 ) => {
-  const { albumId, locationId } = filters;
-  return prisma.copy.findMany({
+  const { albumId, locationId, includeSublocations } = filters;
+  const locationIds = locationId && includeSublocations ? await locationTree(locationId) : undefined;
+  const copies = await prisma.copy.findMany({
     where: {
       ...(albumId ? { albumId } : {}),
-      ...(locationId ? { locationId } : {}),
+      ...(locationIds ? { locationId: { in: locationIds } } : locationId ? { locationId } : {}),
       ...(accessibleCollectionIds ? { album: { collectionId: { in: accessibleCollectionIds } } } : {}),
     },
-    include: withRelations,
+    include: withAlbum,
   });
+  const rank = new Map((locationIds ?? []).map((id, i) => [id, i]));
+  return copies
+    .map(({ album, ...copy }) => ({ ...copy, album: { ...album, artists: album.artists.map((a) => a.artist) } }))
+    // Shallowest location first, then by album title, so a shelf reads top down.
+    .sort((a, b) => (rank.get(a.locationId) ?? 0) - (rank.get(b.locationId) ?? 0) || a.album.title.localeCompare(b.album.title));
 };
 
 export const getCopyService = async (id: string) => {

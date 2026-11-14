@@ -23,7 +23,8 @@ describe('LocationsList', () => {
 
   it('shows each location by its full path, rows and picker alike', () => {
     view();
-    expect(screen.getByText('Basement → Shelf 3 → Bin', { selector: 'span' })).toBeInTheDocument();
+    // #126: each name opens what's in that location.
+    expect(screen.getByRole('link', { name: 'Basement → Shelf 3 → Bin' })).toHaveAttribute('href', '/location/x');
     const newParent = screen.getAllByRole('combobox', { name: 'Inside', hidden: true })[0]!;
     expect([...newParent.querySelectorAll('option')].map((o) => o.textContent)).toContain('Basement → Shelf 3 → Bin');
   });

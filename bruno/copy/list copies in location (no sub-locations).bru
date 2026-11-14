@@ -1,0 +1,26 @@
+meta {
+  name: list copies in location (no sub-locations)
+  type: http
+  seq: 16
+}
+
+get {
+  url: {{baseUrl}}/api/copy?locationId={{locationId}}
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("without includeSublocations, only the garage itself: the crate's copies stay out", function() {
+    const ids = res.body.data.map(c => c.id);
+    expect(ids).to.not.include(bru.getVar("copyId"));
+  });
+}
