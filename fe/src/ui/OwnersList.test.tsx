@@ -2,23 +2,30 @@ import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import OwnersList from './OwnersList';
 
-const actions = { create: vi.fn(), rename: vi.fn(), remove: vi.fn() };
-const owners = [{ id: 'o-2', name: 'Grandma Ruth', userId: null }];
+const actions = { create: vi.fn() };
+const owners = [
+  { id: 'o-1', name: 'Kevin', userId: 'u-1' },
+  { id: 'o-2', name: 'Grandma Ruth', userId: null },
+];
 
 describe('OwnersList', () => {
-  // #109/#110 review: a one-tap Delete beside Rename misfires on a phone.
-  // It sits inside the closed Edit disclosure, a deliberate second tap away.
-  it('keeps Delete inside the closed Edit disclosure', () => {
-    render(<OwnersList owners={owners} canDelete actions={actions} />);
-    const del = screen.getByRole('button', { name: 'Delete Grandma Ruth', hidden: true });
-    const details = del.closest('details');
-    expect(details).not.toBeNull();
-    expect(details!.open).toBe(false);
-    expect(details!.querySelector('summary')).toHaveTextContent('Edit');
+  // #137: one line per row, Edit on its own page.
+  it('gives each owner one row with an Edit link to its own page', () => {
+    render(<OwnersList owners={owners} actions={actions} />);
+    const edit = screen.getByRole('link', { name: 'Edit Grandma Ruth' });
+    expect(edit).toHaveAttribute('href', '/owners/o-2/edit');
+    expect(edit.closest('li')).toHaveTextContent(/^Grandma RuthEdit$/);
   });
 
-  it('offers no Delete to a member', () => {
-    render(<OwnersList owners={owners} canDelete={false} actions={actions} />);
-    expect(screen.queryByRole('button', { name: /Delete/, hidden: true })).toBeNull();
+  it('says only when an owner is linked to an account', () => {
+    render(<OwnersList owners={owners} actions={actions} />);
+    expect(screen.getByRole('link', { name: 'Edit Kevin' }).closest('li')).toHaveTextContent('Linked to an account');
+    expect(screen.queryByText('No account')).toBeNull();
+  });
+
+  it('has no rename or delete forms in the list', () => {
+    const { container } = render(<OwnersList owners={owners} actions={actions} />);
+    expect(container.querySelectorAll('details')).toHaveLength(0);
+    expect(container.querySelectorAll('form')).toHaveLength(1);
   });
 });

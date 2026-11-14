@@ -1,114 +1,59 @@
 import Link from 'next/link';
-import { fullPath, parentChoices } from '@/lib/locations';
+import { fullPath } from '@/lib/locations';
 import type { Collection, Location } from '@/lib/types';
 import FormError from './FormError';
+import ListRow from './ListRow';
+import LocationFields, { LOCATION_MESSAGES, locationPrimaryButton } from './LocationFields';
+import RowFilter from './RowFilter';
 
 type Action = (formData: FormData) => Promise<void>;
 
-const MESSAGES = {
-  'invalid': 'Give the location a name and a kind.',
-  'in-use': 'That location still has copies or locations inside it. Move them first.',
-  'forbidden': 'You can’t change locations in this collection.',
-  'not-found': 'That location no longer exists.',
-};
-
-const input = 'min-w-0 rounded-md border border-border bg-surface px-2 py-1 text-sm text-text';
-const primaryButton = 'rounded-md bg-primary px-3 py-1 text-sm font-medium text-primary-text';
-const quietButton = 'text-sm text-primary underline';
-
-function Fields({ location, locations, byId, defaultKind }: {
-  location?: Location;
-  locations: Location[];
-  byId: Map<string, Location>;
-  defaultKind: string;
-}) {
-  const suffix = location?.id ?? 'new';
-  const kind = location?.kind ?? defaultKind;
-  return (
-    <>
-      <label className="flex flex-col gap-1 text-sm text-text" htmlFor={`name-${suffix}`}>
-        Name
-        <input id={`name-${suffix}`} name="name" required defaultValue={location?.name} placeholder="e.g. Basement" className={input} />
-      </label>
-      <div className="flex gap-2">
-        <label className="flex flex-1 flex-col gap-1 text-sm text-text" htmlFor={`kind-${suffix}`}>
-          Kind
-          <select id={`kind-${suffix}`} name="kind" defaultValue={kind} className={input}>
-            <option value="physical">Physical</option>
-            <option value="digital">Digital</option>
-          </select>
-        </label>
-        <label className="flex flex-1 flex-col gap-1 text-sm text-text" htmlFor={`parent-${suffix}`}>
-          Inside
-          <select id={`parent-${suffix}`} name="parentLocationId" defaultValue={location?.parentLocationId ?? ''} className={input}>
-            <option value="">Nothing (top level)</option>
-            {parentChoices(locations, location?.id)
-              .map((l) => ({ id: l.id, path: fullPath(l, byId) }))
-              .sort((a, b) => a.path.localeCompare(b.path))
-              .map((l) => <option key={l.id} value={l.id}>{l.path}</option>)}
-          </select>
-        </label>
-      </div>
-    </>
-  );
-}
-
 /**
- * Add, edit and delete one collection's locations (#102). Plain forms posting
- * to Server Actions; each row's edit and delete sit behind one <details>.
+ * Add a location, and one line per location (#102, #137): the path opens
+ * what's in it (#126), **Edit** opens `/location/[id]/edit`. The kind shows
+ * only when it differs from the collection's, since it nearly never does.
  */
 export default function LocationsList({ collection, locations, error, actions }: {
   collection: Pick<Collection, 'id' | 'kind'>;
   locations: Location[];
   error?: string;
-  actions: { create: Action; update: Action; remove: Action };
+  actions: { create: Action };
 }) {
   const byId = new Map(locations.map((l) => [l.id, l]));
+  const collectionKind = collection.kind === 'digital' ? 'digital' : 'physical';
   const rows = locations
     .map((location) => ({ location, path: fullPath(location, byId) }))
     .sort((a, b) => a.path.localeCompare(b.path));
   return (
     <div className="flex flex-col gap-4">
-      <FormError code={error} messages={MESSAGES} />
+      <FormError code={error} messages={LOCATION_MESSAGES} />
 
       <details className="rounded-xl border border-border bg-surface px-3 py-2" open={locations.length === 0}>
-        <summary className={`${quietButton} cursor-pointer`}>Add location</summary>
+        <summary className="cursor-pointer text-sm text-primary underline">Add location</summary>
         <form action={actions.create} className="mt-2 flex flex-col gap-3">
           <input type="hidden" name="collectionId" value={collection.id} />
-          <Fields locations={locations} byId={byId} defaultKind={collection.kind === 'digital' ? 'digital' : 'physical'} />
-          <button type="submit" className={`${primaryButton} self-start`}>Add location</button>
+          <LocationFields locations={locations} byId={byId} defaultKind={collectionKind} />
+          <button type="submit" className={`${locationPrimaryButton} self-start`}>Add location</button>
         </form>
       </details>
 
       {rows.length === 0 ? (
         <p className="text-sm text-text-muted">No locations yet. Add the first one above.</p>
       ) : (
-        <ul className="flex flex-col divide-y divide-border rounded-xl border border-border bg-surface">
-          {rows.map(({ location, path }) => (
-            <li key={location.id} className="flex flex-col gap-2 px-3 py-2">
-              <div className="flex items-center justify-between gap-2">
-                {/* #126: the name opens what's in the location. */}
-                <Link href={`/location/${encodeURIComponent(location.id)}`} className="text-sm text-text underline decoration-border underline-offset-2">{path}</Link>
-                <span className="text-xs text-text-muted">{location.kind}</span>
-              </div>
-              {/* Delete lives inside Edit, a deliberate second tap away (PR #110 review). */}
-              <details>
-                <summary className={`${quietButton} cursor-pointer`}>Edit</summary>
-                <form action={actions.update} className="mt-2 flex flex-col gap-3">
-                  <input type="hidden" name="collectionId" value={collection.id} />
-                  <input type="hidden" name="id" value={location.id} />
-                  <Fields location={location} locations={locations} byId={byId} defaultKind={location.kind} />
-                  <button type="submit" className={`${primaryButton} self-start`}>Save</button>
-                </form>
-                <form action={actions.remove} className="mt-3">
-                  <input type="hidden" name="collectionId" value={collection.id} />
-                  <input type="hidden" name="id" value={location.id} />
-                  <button type="submit" className={quietButton} aria-label={`Delete ${path}`}>Delete</button>
-                </form>
-              </details>
-            </li>
-          ))}
-        </ul>
+        <RowFilter label="Filter locations" count={rows.length}>
+          <ul className="flex flex-col divide-y divide-border rounded-xl border border-border bg-surface">
+            {rows.map(({ location, path }) => (
+              <ListRow
+                key={location.id}
+                filterText={path}
+                meta={location.kind !== collectionKind ? location.kind : undefined}
+                action={<Link href={`/location/${encodeURIComponent(location.id)}/edit`} className="text-primary underline" aria-label={`Edit ${path}`}>Edit</Link>}
+              >
+                <Link href={`/location/${encodeURIComponent(location.id)}`} className="underline decoration-border underline-offset-2">{path}</Link>
+              </ListRow>
+            ))}
+          </ul>
+        </RowFilter>
       )}
     </div>
   );
