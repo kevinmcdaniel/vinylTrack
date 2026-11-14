@@ -12,15 +12,19 @@ const ownerPath = (formData: FormData) => `/owner/${encodeURIComponent(field(for
 
 // redirect() throws, so it runs after the try: only the BE call's own refusal
 // becomes an ?error= code, and anything unexpected reaches the error page.
-async function run(write: () => Promise<unknown>) {
+// `refused` is where a refusal lands: rename and delete live on the owner's
+// edit page (#137), so they go back there, unless the owner is gone.
+async function run(write: () => Promise<unknown>, refused = '/owners') {
   let code: ActionErrorCode | undefined;
   try {
     await write();
   } catch (error) {
     code = actionErrorCode(error);
   }
-  redirect(code ? `/owners?error=${code}` : '/owners');
+  const to = code === 'not-found' ? '/owners' : refused;
+  redirect(code ? `${to}?error=${code}` : '/owners');
 }
+const editPage = (formData: FormData) => `/owners/${encodeURIComponent(field(formData, 'id'))}/edit`;
 
 // Name only: linking an owner to an account is the admin's call on
 // /admin/requests (#102 task 0), so these forms never send userId.
@@ -29,9 +33,9 @@ export async function createOwner(formData: FormData) {
 }
 
 export async function renameOwner(formData: FormData) {
-  await run(() => apiPatch(ownerPath(formData), { name: field(formData, 'name') }));
+  await run(() => apiPatch(ownerPath(formData), { name: field(formData, 'name') }), editPage(formData));
 }
 
 export async function deleteOwner(formData: FormData) {
-  await run(() => apiDelete(ownerPath(formData)));
+  await run(() => apiDelete(ownerPath(formData)), editPage(formData));
 }
