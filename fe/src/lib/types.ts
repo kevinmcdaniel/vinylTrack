@@ -80,6 +80,11 @@ export type Copy = {
   notes: string | null;
 };
 
+/** GET /api/copy?locationId= (#126): a copy with the album it is a copy of. */
+export type LocationCopy = Copy & {
+  album: { id: string; title: string; format: string | null; artists: { id: string; name: string }[] };
+};
+
 /** GET /api/album/:id — adds the owning collection and every owned copy. */
 export type AlbumDetail = Album & {
   collection: CollectionRef & { kind: string };

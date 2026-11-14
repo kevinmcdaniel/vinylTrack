@@ -1,3 +1,4 @@
+import Link from 'next/link';
 import { fullPath, parentChoices } from '@/lib/locations';
 import type { Collection, Location } from '@/lib/types';
 import FormError from './FormError';
@@ -86,7 +87,8 @@ export default function LocationsList({ collection, locations, error, actions }:
           {rows.map(({ location, path }) => (
             <li key={location.id} className="flex flex-col gap-2 px-3 py-2">
               <div className="flex items-center justify-between gap-2">
-                <span className="text-sm text-text">{path}</span>
+                {/* #126: the name opens what's in the location. */}
+                <Link href={`/location/${encodeURIComponent(location.id)}`} className="text-sm text-text underline decoration-border underline-offset-2">{path}</Link>
                 <span className="text-xs text-text-muted">{location.kind}</span>
               </div>
               {/* Delete lives inside Edit, a deliberate second tap away (PR #110 review). */}
