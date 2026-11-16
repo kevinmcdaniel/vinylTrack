@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { apiGet, ApiError } from '@/lib/api';
 import type { Collection, Location } from '@/lib/types';
 import LocationsList from '@/ui/LocationsList';
-import { createLocation, deleteLocation, updateLocation } from './actions';
+import { createLocation } from './actions';
 
 export const dynamic = 'force-dynamic';
 
@@ -39,7 +39,7 @@ export default async function LocationsPage({ params, searchParams }: Props) {
         collection={collection}
         locations={locations}
         error={typeof error === 'string' ? error : undefined}
-        actions={{ create: createLocation, update: updateLocation, remove: deleteLocation }}
+        actions={{ create: createLocation }}
       />
     </section>
   );

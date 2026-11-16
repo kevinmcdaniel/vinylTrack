@@ -60,6 +60,7 @@ export default async function UserMenu() {
           {owner && <p className="text-xs text-text-muted">Owns records as {owner.name}</p>}
         </div>
         <ul className="flex flex-col gap-1.5">
+          <li><Link href="/collections" className={menuLink}>Collections</Link></li>
           <li><Link href="/collection/new" className={menuLink}>New collection</Link></li>
           <li><Link href="/owners" className={menuLink}>Owners</Link></li>
           <li><Link href="/help" className={menuLink}>Help</Link></li>

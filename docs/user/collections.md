@@ -8,7 +8,7 @@ You only see collections that are yours or that someone shared with you. If one 
 
 ## Switching
 
-On a collection page, the box at the top names the collection you're in and how many albums it has. That counts albums, not copies: one album can have several copies. Pick another collection from the box to switch.
+On a collection page, the box at the top names the collection you're in and how many albums it has. That counts albums, not copies: one album can have several copies. Pick another collection from the box to switch, or tap your name, then **Collections**, to see them all.
 
 ## Physical and digital
 
@@ -20,7 +20,7 @@ Tap your name at the top right, then **New collection**. Give it a name, pick ph
 
 ## Renaming and sharing
 
-On a collection you own, tap **Settings**.
+Tap your name at the top right, then **Collections**: every collection you can see, one line each, with how many albums it has. Tap a name to open it. On one you own, tap **Settings** (it's also on the collection page, next to **Locations**).
 
 - **Rename** it, or change its notes, and tap **Save**. Whether it's physical or digital can't change.
 - **Share with** someone: pick a family member who has been let in, and tap **Share**. They can see the collection and add to it: albums, copies, locations and wants. They can't rename it or share it on.

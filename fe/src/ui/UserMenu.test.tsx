@@ -75,6 +75,7 @@ describe('UserMenu', () => {
   });
 
   it.each([
+    ['Collections', '/collections'],
     ['New collection', '/collection/new'],
     ['Owners', '/owners'],
     ['Help', '/help'],
