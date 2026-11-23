@@ -6,6 +6,8 @@ export type Collection = {
   name: string;
   kind: 'physical' | 'digital' | string;
   ownerId: string;
+  /** Who owns it (#125): enough for "Shared by", never an email. */
+  owner?: { id: string; name: string | null };
   notes: string | null;
   albumCount: number;
 };
@@ -78,6 +80,11 @@ export type Copy = {
   notes: string | null;
 };
 
+/** GET /api/copy?locationId= (#126): a copy with the album it is a copy of. */
+export type LocationCopy = Copy & {
+  album: { id: string; title: string; format: string | null; artists: { id: string; name: string }[] };
+};
+
 /** GET /api/album/:id — adds the owning collection and every owned copy. */
 export type AlbumDetail = Album & {
   collection: CollectionRef & { kind: string };
@@ -121,6 +128,9 @@ export type WantItem = {
 
 /** GET /api/admin/summary — back-office action items as counts (#90). */
 export type AdminSummary = { pendingUsers: number; unlinkedOwners: number };
+
+/** An account as admin `GET /api/user` returns it (#124). */
+export type UserRow = { id: string; email: string; name: string | null; avatar: string | null; status: 'pending' | 'active' | 'denied'; isAdmin: boolean; createdAt: string };
 
 /** One workload in GET /api/admin/health. A failing one is `down`, never an error. */
 export type WorkloadHealth = {

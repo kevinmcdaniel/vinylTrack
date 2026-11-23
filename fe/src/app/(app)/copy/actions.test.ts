@@ -8,13 +8,15 @@ vi.mock('next/navigation', () => ({
 const apiPost = vi.fn();
 const apiPatch = vi.fn();
 const apiDelete = vi.fn();
+const apiGet = vi.fn();
 vi.mock('@/lib/api', () => ({
+  apiGet: (...a: unknown[]) => apiGet(...a),
   apiPost: (...a: unknown[]) => apiPost(...a),
   apiPatch: (...a: unknown[]) => apiPatch(...a),
   apiDelete: (...a: unknown[]) => apiDelete(...a),
 }));
 
-const { createCopy, updateCopy, deleteCopy, createOwnerInline, createLocationInline } = await import('./actions');
+const { createCopy, updateCopy, deleteCopy, createOwnerInline, createLocationInline, addCopy, searchAlbums, findAlbumMatches } = await import('./actions');
 
 const form = (fields: Record<string, string>) => {
   const f = new FormData();
@@ -22,7 +24,7 @@ const form = (fields: Record<string, string>) => {
   return f;
 };
 
-afterEach(() => { apiPost.mockReset(); apiPatch.mockReset(); apiDelete.mockReset(); });
+afterEach(() => { apiPost.mockReset(); apiPatch.mockReset(); apiDelete.mockReset(); apiGet.mockReset(); });
 
 describe('createCopy', () => {
   // The BE 500s a date-only string, so the day goes out as midnight UTC.
@@ -107,5 +109,76 @@ describe('createLocationInline', () => {
   it('answers a refusal with its code', async () => {
     apiPost.mockRejectedValue(new ApiError(403, 'x'));
     await expect(createLocationInline('c1', 'physical', 'x')).resolves.toEqual({ error: 'forbidden' });
+  });
+});
+
+// #123: add a copy from the collection page, with an existing album or a new one.
+describe('addCopy', () => {
+  const copyFields = { collectionId: 'c-1', locationId: 'l-1', ownerId: 'o-1', notes: ' first press ' };
+
+  it('posts an existing album by id and lands on it with the added notice', async () => {
+    apiPost.mockResolvedValue({ id: 'cp-9', albumId: 'a-1' });
+    await expect(addCopy(form({ ...copyFields, albumMode: 'existing', albumId: 'a-1', albumTitle: 'ignored' })))
+      .rejects.toThrow(/^REDIRECT \/album\/a-1\?added=cp-9$/);
+    expect(apiPost).toHaveBeenCalledWith('/copy', { albumId: 'a-1', locationId: 'l-1', ownerId: 'o-1', notes: 'first press' });
+  });
+
+  it('posts a new album with its own fields, reading only the new half', async () => {
+    apiPost.mockResolvedValue({ id: 'cp-10', albumId: 'a-new' });
+    const f = form({ ...copyFields, albumMode: 'new', albumId: 'a-1', albumTitle: ' Blue ', format: 'LP', year: '1971', genre: '', albumNotes: 'gatefold' });
+    f.append('artistIds', 'ar-1');
+    f.append('artistIds', 'ar-2');
+    await expect(addCopy(f)).rejects.toThrow(/^REDIRECT \/album\/a-new\?added=cp-10$/);
+    expect(apiPost).toHaveBeenCalledWith('/copy', {
+      album: { collectionId: 'c-1', title: 'Blue', format: 'LP', year: 1971, notes: 'gatefold', artistIds: ['ar-1', 'ar-2'] },
+      locationId: 'l-1', ownerId: 'o-1', notes: 'first press',
+    });
+  });
+
+  it.each([
+    ['existing with no album picked', { albumMode: 'existing' }, 'pick-album', ''],
+    ['new with no title', { albumMode: 'new', albumTitle: '  ' }, 'title', '&mode=new'],
+  ])('sends %s back with a fixed code and no request', async (_case, fields, code, mode) => {
+    await expect(addCopy(form({ ...copyFields, collectionId: 'c/1', ...fields })))
+      .rejects.toThrow(`REDIRECT /collection/c%2F1/copy/new?error=${code}${mode}`);
+    expect(apiPost).not.toHaveBeenCalled();
+  });
+
+  it.each([[406, 'invalid'], [403, 'forbidden'], [409, 'in-use']])('turns a %i into ?error=%s, keeping the mode', async (status, code) => {
+    apiPost.mockRejectedValue(new ApiError(status, 'x'));
+    await expect(addCopy(form({ ...copyFields, albumMode: 'new', albumTitle: 'Blue' })))
+      .rejects.toThrow(`REDIRECT /collection/c-1/copy/new?error=${code}&mode=new`);
+  });
+});
+
+describe('searchAlbums', () => {
+  it('asks for this collection\'s albums by title, up to 20, as picker rows', async () => {
+    apiGet.mockResolvedValue(Array.from({ length: 25 }, (_, i) => ({ id: `a-${i}`, title: `T${i}`, year: 1970, artists: [{ id: 'ar', name: 'Miles' }] })));
+    const rows = await searchAlbums('c-1', ' kind ');
+    expect(apiGet).toHaveBeenCalledWith('/album', { collectionId: 'c-1', q: 'kind' });
+    expect(rows).toHaveLength(20);
+    expect(rows[0]).toEqual({ id: 'a-0', title: 'T0', year: 1970, artists: ['Miles'] });
+  });
+
+  it('asks nothing for a blank query, and answers [] when the BE refuses', async () => {
+    expect(await searchAlbums('c-1', '  ')).toEqual([]);
+    expect(apiGet).not.toHaveBeenCalled();
+    apiGet.mockRejectedValue(new ApiError(500, 'down'));
+    expect(await searchAlbums('c-1', 'kind')).toEqual([]);
+  });
+});
+
+describe('findAlbumMatches', () => {
+  it('asks the BE for look-alikes with the artists joined', async () => {
+    apiGet.mockResolvedValue([{ id: 'a-1', title: 'Blue', year: null, artists: [{ id: 'ar-1', name: 'Joni' }], copyCount: 2 }]);
+    const rows = await findAlbumMatches('c-1', ' Blue ', ['ar-1', 'ar-2']);
+    expect(apiGet).toHaveBeenCalledWith('/album/matches', { collectionId: 'c-1', title: 'Blue', artistIds: 'ar-1,ar-2' });
+    expect(rows).toEqual([{ id: 'a-1', title: 'Blue', year: null, artists: ['Joni'], copyCount: 2 }]);
+  });
+
+  it('warns about nothing for a blank title or a BE refusal', async () => {
+    expect(await findAlbumMatches('c-1', '', [])).toEqual([]);
+    apiGet.mockRejectedValue(new ApiError(500, 'down'));
+    expect(await findAlbumMatches('c-1', 'Blue', [])).toEqual([]);
   });
 });

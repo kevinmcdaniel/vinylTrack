@@ -46,20 +46,15 @@ describe('/owners', () => {
     const out = await html();
     expect(out).toContain('Grandma Ruth');
     expect(out).toContain('Linked to an account');
-    expect(out).toContain('No account');
   });
 
-  it('lets any member add and rename, but not delete', async () => {
+  // #137: rename and delete are on each owner's edit page now.
+  it('lets any member add, and links each owner to its edit page', async () => {
     signedInAs();
     const out = await html();
     expect(out).toContain('Add owner');
-    expect(out).toMatch(/>Edit</);
+    expect(out).toContain('href="/owners/o-2/edit"');
     expect(out).not.toMatch(/>Delete</);
-  });
-
-  it('shows delete to an admin', async () => {
-    signedInAs({ isAdmin: true });
-    expect(await html()).toMatch(/>Delete</);
   });
 
   it('explains a known error code', async () => {

@@ -28,17 +28,6 @@ async function attempt(write: () => Promise<unknown>): Promise<ActionErrorCode |
   }
 }
 
-export async function createAlbum(formData: FormData) {
-  const collectionId = field(formData, 'collectionId');
-  let id = '';
-  const body: Record<string, unknown> = { collectionId, title: field(formData, 'title') };
-  for (const name of OPTIONAL) if (field(formData, name)) body[name] = field(formData, name);
-  if (year(formData) !== null) body.year = year(formData);
-  body.artistIds = artistIds(formData);
-  const code = await attempt(async () => { id = (await apiPost<{ id: string }>('/album', body)).id; });
-  redirect(code ? `/collection/${enc(collectionId)}/album/new?error=${code}` : `/album/${enc(id)}`);
-}
-
 // A blank field clears the value (null), and the artist list is replaced whole.
 export async function updateAlbum(formData: FormData) {
   const id = field(formData, 'id');

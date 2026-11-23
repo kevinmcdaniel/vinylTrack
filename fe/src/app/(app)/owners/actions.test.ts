@@ -63,7 +63,13 @@ describe('renameOwner', () => {
     expect(apiPatch.mock.calls[0]![0]).toBe('/owner/..%2Fuser%2Fx');
   });
 
-  it('turns a 404 into ?error=not-found', async () => {
+  // #137: rename lives on its own page, so a refusal goes back there.
+  it('sends a 406 back to the edit page', async () => {
+    apiPatch.mockRejectedValue(new ApiError(406, 'x'));
+    await expect(renameOwner(form({ id: 'o-1', name: '' }))).rejects.toThrow(/^REDIRECT \/owners\/o-1\/edit\?error=invalid$/);
+  });
+
+  it('turns a 404 into ?error=not-found on the list, since there is no page to go back to', async () => {
     apiPatch.mockRejectedValue(new ApiError(404, 'gone'));
     await expect(renameOwner(form({ id: 'o-x', name: 'n' }))).rejects.toThrow(/^REDIRECT \/owners\?error=not-found$/);
   });
@@ -81,6 +87,6 @@ describe('deleteOwner', () => {
     [403, 'forbidden'],
   ])('turns a %i into ?error=%s', async (status, code) => {
     apiDelete.mockRejectedValue(new ApiError(status, 'x'));
-    await expect(deleteOwner(form({ id: 'o-1' }))).rejects.toThrow(`REDIRECT /owners?error=${code}`);
+    await expect(deleteOwner(form({ id: 'o-1' }))).rejects.toThrow(`REDIRECT /owners/o-1/edit?error=${code}`);
   });
 });

@@ -1,7 +1,7 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ValidationError, ConflictError, NotFoundError } from '../common/errorHandler.js';
 import { routeParam } from '../common/utils.js';
-import { parseDate, parsePrice, parseYear } from '../common/fields.js';
+import { parseAlbumFields, parseDate, parsePrice } from '../common/fields.js';
 import { accessibleCollectionIds } from '../common/policy.js';
 import {
   listWantItemsService,
@@ -112,7 +112,7 @@ export const markWantItemFound = async (req: Request, res: Response, next: NextF
       condition,
       notes,
       albumId,
-      album: album && typeof album === 'object' ? { ...album, year: parseYear(album.year) } : album,
+      album: album === undefined ? undefined : parseAlbumFields(album),
     });
     res.status(201).json({ message: 'Want item marked as found', data: record, status: 201 });
   } catch (error) {

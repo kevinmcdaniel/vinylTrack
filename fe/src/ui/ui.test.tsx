@@ -50,6 +50,12 @@ describe('LocationPath', () => {
     render(<LocationPath location={location()} />);
     expect(screen.getByText('Basement → Shelf 3')).toBeInTheDocument();
   });
+
+  // #126: from an album's copy to everything else on that shelf.
+  it('links to what else is in that location', () => {
+    render(<LocationPath location={location()} />);
+    expect(screen.getByRole('link', { name: 'Basement → Shelf 3' })).toHaveAttribute('href', `/location/${location().id}`);
+  });
 });
 
 describe('CopyRow', () => {

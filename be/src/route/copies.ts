@@ -13,13 +13,19 @@ const resolveByCopyId = async (req: Request) => {
   return copy?.album.collectionId ?? null;
 };
 
-// `undefined` = no albumId sent (controller 406s); `null` = no such album, which
-// the guard treats as inaccessible so it can't be told apart from one (#45).
-const resolveByAlbumIdInBody = async (req: Request): Promise<string | null | undefined> => {
-  const albumId = req.body.albumId as string | undefined;
-  if (!albumId) return undefined;
-  const album = await prisma.album.findUnique({ where: { id: albumId }, select: { collectionId: true } });
-  return album?.collectionId ?? null;
+// `undefined` = no usable album reference (controller 406s); `null` = no such
+// album, which the guard treats as inaccessible so it can't be told apart
+// from one (#45). A new album (#123) names its collection directly.
+const resolveByAlbumInBody = async (req: Request): Promise<string | null | undefined> => {
+  const { albumId, album } = (req.body ?? {}) as { albumId?: unknown; album?: unknown };
+  if (album !== undefined) {
+    if (albumId !== undefined || typeof album !== 'object' || album === null) return undefined;
+    const { collectionId } = album as { collectionId?: unknown };
+    return typeof collectionId === 'string' && collectionId ? collectionId : undefined;
+  }
+  if (typeof albumId !== 'string' || !albumId) return undefined;
+  const existing = await prisma.album.findUnique({ where: { id: albumId }, select: { collectionId: true } });
+  return existing?.collectionId ?? null;
 };
 
 export const copyRoute = express.Router();
@@ -28,6 +34,6 @@ copyRoute.use(requireActiveUser);
 
 copyRoute.get('/', listCopies);
 copyRoute.get('/:id', requireCollectionAccess(resolveByCopyId), getCopy);
-copyRoute.post('/', requireCollectionAccessForCreate(resolveByAlbumIdInBody), createCopy);
+copyRoute.post('/', requireCollectionAccessForCreate(resolveByAlbumInBody), createCopy);
 copyRoute.patch('/:id', requireCollectionAccess(resolveByCopyId), updateCopy);
 copyRoute.delete('/:id', requireCollectionAccess(resolveByCopyId), deleteCopy);

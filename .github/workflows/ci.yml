@@ -67,6 +67,10 @@ jobs:
       # rather than inheriting whatever Node 24 happens to ship.
       - run: npm i -g npm@11.19.0
       - run: npm ci
+      # A shipped dependency with a high or critical advisory fails the job (#129).
+      # --omit=dev leaves out linters and test runners, but still covers the
+      # prisma CLI the migrate image runs (an optional peer of @prisma/client).
+      - run: npm audit --omit=dev --audit-level=high
       - run: npx prisma generate
       - run: npm run typecheck
       - run: npm run lint
@@ -226,6 +230,9 @@ jobs:
       # rather than inheriting whatever Node 24 happens to ship.
       - run: npm i -g npm@11.19.0
       - run: npm ci
+      # A shipped dependency with a high or critical advisory fails the job (#129).
+      # --omit=dev: linters and test runners never reach an image.
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test
@@ -246,6 +253,9 @@ jobs:
       # Same npm pin as be/fe (#44).
       - run: npm i -g npm@11.19.0
       - run: npm ci
+      # A shipped dependency with a high or critical advisory fails the job (#129).
+      # --omit=dev: linters and test runners never reach an image.
+      - run: npm audit --omit=dev --audit-level=high
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test

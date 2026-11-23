@@ -50,7 +50,13 @@ export const authConfig = (): NextAuthConfig => {
     providers: [
       { id: 'email', type: 'email', name: 'Email', maxAge: MAGIC_LINK_MAX_AGE, sendVerificationRequest: sendMagicLink } satisfies EmailConfig,
       ...(config.google
-        ? [Google({ clientId: config.google.clientId, clientSecret: config.google.clientSecret })]
+        // select_account: always show Google's chooser, so a device with one
+        // signed-in Google account can't pick the wrong one silently (#124).
+        ? [Google({
+            clientId: config.google.clientId,
+            clientSecret: config.google.clientSecret,
+            authorization: { params: { prompt: 'select_account' } },
+          })]
         : []),
       // "Sign in as a seeded user": development/test only, still decided by the BE.
       ...(config.devSignIn

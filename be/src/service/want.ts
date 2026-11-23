@@ -1,8 +1,10 @@
 import { prisma } from '../database.js';
 import type { Prisma } from '../generated/client/client.js';
 import { ValidationError } from '../common/errorHandler.js';
-import { assertLocationInCollection } from './copy.js';
+import { assertAlbumInCollection, assertLocationInCollection } from './copy.js';
+import type { AlbumFields } from '../common/fields.js';
 import { ownerForUserService } from './owner.js';
+import { createAlbumWith, normalizeTitle } from './album.js';
 
 const withRelations = {
   artist: true,
@@ -17,10 +19,7 @@ const flattenWant = (want: Prisma.want_itemGetPayload<{ include: typeof withRela
   return { ...want, album: { ...album, artists: artists.map((a) => a.artist) } };
 };
 
-// Two album rows are "the same record" (#13) when they sit in the same
-// collection, their titles match ignoring case and punctuation, and they
-// share an artist. Title alone would match every "Greatest Hits".
-const normalizeTitle = (title: string) => title.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, '');
+// The same-record rule (#13) lives in album.ts, shared with add-copy's warning (#123).
 
 type MatchAlbum = {
   id: string;
@@ -147,6 +146,7 @@ export const createWantItemService = async (data: {
   priority: string;
   notes?: string;
 }) => {
+  if (data.albumId) await assertAlbumInCollection(data.albumId, data.collectionId, 'albumId is not an album in this collection.');
   return flattenWant(await prisma.want_item.create({ data, include: withRelations }));
 };
 
@@ -180,20 +180,19 @@ export const markWantItemFoundService = async (
     condition?: string;
     notes?: string;
     albumId?: string;
-    album?: {
-      title: string;
-      format?: string;
-      year?: number | null;
-      genre?: string;
-      notes?: string;
-      coverImageUrl?: string;
-    };
+    album?: AlbumFields;
   },
 ) => {
   const want = await prisma.want_item.findUniqueOrThrow({ where: { id } });
   const { locationId, ownerId, sourceId, dateAcquired, price, condition, notes, albumId, album } = data;
 
   await assertLocationInCollection(locationId, want.collectionId);
+  // The copy's album must be in the want's own collection: the want's album,
+  // or the one an artist want picks here (#123, #129 item 1).
+  const effectiveAlbumId = want.albumId ?? albumId;
+  if (effectiveAlbumId) {
+    await assertAlbumInCollection(effectiveAlbumId, want.collectionId, 'albumId is not an album in this want’s collection.');
+  }
 
   const resolvedOwnerId = ownerId ?? (await ownerForUserService(callerUserId))?.id;
   if (!resolvedOwnerId) {
@@ -207,15 +206,18 @@ export const markWantItemFoundService = async (
       if (albumId) {
         resolvedAlbumId = albumId;
       } else if (album) {
-        const created = await tx.album.create({
-          data: { collectionId: want.collectionId, ...album },
+        // A new album credits the want's own artist alongside any picked.
+        const created = await createAlbumWith(tx, {
+          ...album,
+          collectionId: want.collectionId,
+          artistIds: [...(album.artistIds ?? []), ...(want.artistId ? [want.artistId] : [])],
         });
         resolvedAlbumId = created.id;
       }
-      if (want.artistId && resolvedAlbumId) {
+      if (want.artistId && albumId) {
         await tx.album_artist.upsert({
-          where: { albumId_artistId: { albumId: resolvedAlbumId, artistId: want.artistId } },
-          create: { albumId: resolvedAlbumId, artistId: want.artistId },
+          where: { albumId_artistId: { albumId, artistId: want.artistId } },
+          create: { albumId, artistId: want.artistId },
           update: {},
         });
       }

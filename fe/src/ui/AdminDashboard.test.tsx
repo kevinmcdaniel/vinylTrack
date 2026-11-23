@@ -39,6 +39,12 @@ describe('AdminDashboard', () => {
     expect(within(items).queryByText(/no linked account/)).not.toBeInTheDocument();
   });
 
+  // #124: approved accounts drop off /admin/requests, so they need a home.
+  it('links every account, whatever is waiting', () => {
+    renderIt();
+    expect(within(section('Accounts')).getByRole('link', { name: 'Users' })).toHaveAttribute('href', '/admin/users');
+  });
+
   it('uses the singular for one request', () => {
     renderIt({ summary: summary({ pendingUsers: 1 }) });
     expect(screen.getByRole('link', { name: '1 access request waiting' })).toBeInTheDocument();

@@ -26,6 +26,15 @@ describe('authConfig', () => {
     expect(config.pages?.verifyRequest).toBe('/sign-in/check-email');
   });
 
+  // #124: with one Google account on the device, Google skipped its chooser and
+  // signed in an account the person didn't mean, with nothing saying which.
+  it('always shows Google’s account chooser', () => {
+    vi.stubEnv('GOOGLE_OAUTH_CLIENT_ID', 'id.apps.googleusercontent.com');
+    vi.stubEnv('GOOGLE_OAUTH_CLIENT_SECRET', 'secret');
+    const google = authConfig().providers.find((p) => typeof p !== 'function' && p.id === 'google');
+    expect(google).toMatchObject({ options: { authorization: { params: { prompt: 'select_account' } } } });
+  });
+
   it('lets the link be sent without asking the BE: Turnstile runs when the BE is asked to send', async () => {
     const user: User = { id: 'random', email: 'a@example.com' };
     await expect(authConfig().callbacks!.signIn!({ user, account: emailAccount, email: { verificationRequest: true } })).resolves.toBe(true);

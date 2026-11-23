@@ -59,13 +59,14 @@ Landed in [issue #2](https://github.com/kevinmcdaniel/vinylTrack/issues/2) and r
 - `fe/src/proxy.ts` — answers a request with no session cookie with a `307` to `/sign-in` before any rendering ([#94](https://github.com/kevinmcdaniel/vinylTrack/issues/94)). It's a cheap first pass, not the access check
 - `fe/src/lib/session.ts` — where pages check access (signed in? approved? admin?), right next to the data they fetch
 - `fe/src/lib/api.ts` — server-side BE client; signs a short-lived token for the current user on every call
+- `fe/src/app/(app)/collection/[collectionId]/copy/new/` — add a copy with an album already in the collection or a new one, saved together in one request ([#123](https://github.com/kevinmcdaniel/vinylTrack/issues/123)). There's no page that makes an album on its own: an album with no copy is a want, made from the want list
 
 ## Sign-in and access (#73, #74)
 
 1. A visitor signs in with Google, or asks for a sign-in link by email (or, in dev, signs in as a seeded user). A Cloudflare Turnstile check rides along; the **BE** validates it. The emailed link is good for 15 minutes, once.
 2. The BE finds or creates the `user`. The very first user ever becomes the admin; everyone after that starts **pending**.
 3. A pending user sees "waiting for approval". An admin approves (optionally linking an existing `owner`) or denies at `/admin/requests`; a declined user can ask again.
-4. Admins work from `/admin` ([#90](https://github.com/kevinmcdaniel/vinylTrack/issues/90)): pending requests and owners with no linked account as counts (`GET /api/admin/summary`, which also feeds the header's **Admin** badge), and fe/be/db/mailer health with versions (`GET /api/admin/health`, which reports a failing workload as `down` rather than erroring). A down mailer links its re-authorize runbook, since it blocks releases.
+4. Admins work from `/admin` ([#90](https://github.com/kevinmcdaniel/vinylTrack/issues/90)): pending requests and owners with no linked account as counts (`GET /api/admin/summary`, which also feeds the pending badge in the account menu), and fe/be/db/mailer health with versions (`GET /api/admin/health`, which reports a failing workload as `down` rather than erroring). A down mailer links its re-authorize runbook, since it blocks releases. `/admin/requests` lists pending accounts only; `/admin/users` lists every account by email ([#124](https://github.com/kevinmcdaniel/vinylTrack/issues/124)), since two accounts can share a name.
 5. Every FE→BE call carries a token signed with a secret only the FE and BE share. The BE re-reads the user's status on every request, so approving or denying takes effect at once.
 
 The FE never touches the database. Sessions are JWTs, and the only things Auth.js stores — magic-link tokens, hashed — go through the BE.

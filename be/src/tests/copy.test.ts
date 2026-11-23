@@ -159,6 +159,76 @@ describe('POST /api/copy', () => {
 
 // ── GET /api/copy ─────────────────────────────────────────────────────────
 
+// #123: add a copy to a collection with a new album, in one request. The
+// album exists only if the copy does: every refusal leaves no album behind.
+describe('POST /api/copy with a new album', () => {
+  const albumsTitled = (title: string) => prisma.album.count({ where: { title } });
+  let artistId: string;
+  beforeAll(async () => {
+    artistId = (await prisma.artist.create({ data: { name: `${T}CopyNewAlbumArtist` } })).id;
+  });
+
+  it('creates the album, its credits and the copy together', async () => {
+    const res = await request(app)
+      .post('/api/copy')
+      .set(authHeader(owner.email))
+      .send({ album: { collectionId, title: `${T}NewWithCopy`, year: 1972, format: 'LP', artistIds: [artistId] }, locationId, ownerId });
+    expect(res.status).toBe(201);
+    const album = await prisma.album.findUniqueOrThrow({ where: { id: res.body.data.albumId }, include: { artists: true } });
+    expect(album).toMatchObject({ collectionId, title: `${T}NewWithCopy`, year: 1972, format: 'LP' });
+    expect(album.artists.map((a) => a.artistId)).toEqual([artistId]);
+    expect(res.body.data.locationId).toBe(locationId);
+  });
+
+  it.each([
+    ['both albumId and album', () => ({ albumId, album: { collectionId, title: `${T}Both` } })],
+    ['neither', () => ({})],
+    ['an album with no title', () => ({ album: { collectionId } })],
+    ['an album with no collectionId', () => ({ album: { title: `${T}NoColl` } })],
+    ['an album with a bad year', () => ({ album: { collectionId, title: `${T}BadYear`, year: 'soon' } })],
+    ['an album that is not an object', () => ({ album: 'nope' })],
+  ])('returns 406 for %s', async (_case, body) => {
+    const res = await request(app).post('/api/copy').set(authHeader(owner.email)).send({ ...body(), locationId, ownerId });
+    expect(res.status).toBe(406);
+  });
+
+  it('returns 403 to an outsider adding into a collection they cannot access', async () => {
+    const res = await request(app)
+      .post('/api/copy')
+      .set(authHeader(outsider.email))
+      .send({ album: { collectionId, title: `${T}OutsiderNew` }, locationId, ownerId });
+    expect(res.status).toBe(403);
+    expect(await albumsTitled(`${T}OutsiderNew`)).toBe(0);
+  });
+
+  it('returns 406 and makes no album when the location is in another collection', async () => {
+    const res = await request(app)
+      .post('/api/copy')
+      .set(authHeader(owner.email))
+      .send({ album: { collectionId, title: `${T}StraddleNew` }, locationId: foreignLocationId, ownerId });
+    expect(res.status).toBe(406);
+    expect(await albumsTitled(`${T}StraddleNew`)).toBe(0);
+  });
+
+  it('returns 406 and makes no album for a bad price', async () => {
+    const res = await request(app)
+      .post('/api/copy')
+      .set(authHeader(owner.email))
+      .send({ album: { collectionId, title: `${T}BadPriceNew` }, locationId, ownerId, price: 'free' });
+    expect(res.status).toBe(406);
+    expect(await albumsTitled(`${T}BadPriceNew`)).toBe(0);
+  });
+
+  it('returns 409 and rolls the album back when the copy insert fails', async () => {
+    const res = await request(app)
+      .post('/api/copy')
+      .set(authHeader(owner.email))
+      .send({ album: { collectionId, title: `${T}RollbackNew` }, locationId, ownerId: '00000000-0000-0000-0000-000000000000' });
+    expect(res.status).toBe(409);
+    expect(await albumsTitled(`${T}RollbackNew`)).toBe(0);
+  });
+});
+
 describe('GET /api/copy', () => {
   it('filters by albumId', async () => {
     const copy = await prisma.copy.create({ data: { albumId, locationId, ownerId } });

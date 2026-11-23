@@ -1,0 +1,31 @@
+meta {
+  name: rename collection (shared member)
+  type: http
+  seq: 11
+}
+
+patch {
+  url: {{baseUrl}}/api/collection/{{vinylCollectionId}}
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{sharedEmail}}
+}
+
+body:json {
+  {
+    "name": "_BRUNO_ taken over"
+  }
+}
+
+assert {
+  res.status: eq 403
+  res.body.status: eq 403
+}
+
+docs {
+  #125: a member can see the collection, so 403 (not 404) tells them nothing
+  new. Only the owner or an admin renames or shares.
+}

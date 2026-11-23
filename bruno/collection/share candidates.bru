@@ -1,0 +1,33 @@
+meta {
+  name: share candidates
+  type: http
+  seq: 12
+}
+
+get {
+  url: {{baseUrl}}/api/collection/{{vinylCollectionId}}/share/candidates
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+script:post-response {
+  const jamie = (res.body.data || []).find(u => u.email === "jamie@example.com");
+  if (jamie) bru.setVar("outsiderUserId", jamie.id);
+}
+
+tests {
+  test("offers the outsider, not the member it is already shared with", function() {
+    const emails = res.body.data.map(u => u.email);
+    expect(emails).to.include("jamie@example.com");
+    expect(emails).to.not.include("alex@example.com");
+    expect(emails).to.not.include("kevin@example.com");
+  });
+}

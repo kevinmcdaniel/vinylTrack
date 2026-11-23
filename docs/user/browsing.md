@@ -25,3 +25,7 @@ Tap an album to open it. You'll see its artists, format, year and genre, then ev
 ## An artist
 
 Tap an artist's name to see everything of theirs you can see, across your collections.
+
+## What's in a location
+
+Tap a location to see every copy kept there: on a collection's **Locations** page, tap its name, or tap where a copy is on an album page. A shelf also shows what's in the boxes on it, each marked with which box. Each row names the album, its artists and format, whose copy it is and, for a physical collection, its condition; tap the album to open it.

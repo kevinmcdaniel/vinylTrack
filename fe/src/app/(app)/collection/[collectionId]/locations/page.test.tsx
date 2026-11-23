@@ -48,12 +48,13 @@ describe('/collection/[id]/locations', () => {
     expect(locationCall?.searchParams.get('collectionId')).toBe('c1');
   });
 
-  it('offers add, edit and delete', async () => {
+  // #137: edit and delete are on each location's edit page now.
+  it('offers add, and links each location to its edit page', async () => {
     signedIn();
     const out = await html();
     expect(out).toContain('Add location');
-    expect(out).toMatch(/Edit/);
-    expect(out).toContain('aria-label="Delete Basement → Shelf 3"');
+    expect(out).toContain('href="/location/s/edit"');
+    expect(out).not.toContain('aria-label="Delete');
   });
 
   it('defaults a new location’s kind to the collection’s', async () => {

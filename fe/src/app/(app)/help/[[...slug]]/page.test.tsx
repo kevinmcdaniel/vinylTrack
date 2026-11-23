@@ -75,6 +75,13 @@ describe('/help', () => {
     expect(out).toContain('href="/help"');
   });
 
+  // #124: the only way out of help was the small title in the header.
+  it.each([[[]], [['getting-started']]])('links back to the app (slug %j)', async (slug) => {
+    signedInAs({});
+    const out = await html(...slug);
+    expect(out).toMatch(/<a[^>]*href="\/"[^>]*>← Back to vinylTrack<\/a>/);
+  });
+
   it('renders for an admin too', async () => {
     signedInAs({ isAdmin: true });
     expect(await html()).toContain('Start here');

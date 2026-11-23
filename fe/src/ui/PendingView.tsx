@@ -28,8 +28,10 @@ export default function PendingView({
           <button type="submit" className="rounded-md bg-text px-4 py-2 text-sm font-medium text-bg">Ask again</button>
         </form>
       )}
-      <form action={signOutAction}>
-        <button type="submit" className="text-sm underline">Sign out</button>
+      {/* Signing out lands on /sign-in, where Google always shows its account chooser (#124). */}
+      <form action={signOutAction} className="flex flex-col items-center gap-1">
+        <span className="text-xs opacity-70">Not the account you meant? This signs you out.</span>
+        <button type="submit" className="text-sm underline">Use a different account</button>
       </form>
     </div>
   );

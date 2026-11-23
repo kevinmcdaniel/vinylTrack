@@ -5,10 +5,10 @@
 //
 //   resource     | read (list/:id)          | create                    | update/delete
 //   -------------|---------------------------|---------------------------|---------------------------
-//   collection   | requireActiveUser +       | (not built — #26)         | (not built — #26)
-//                | scoped to accessible      |                           |
-//                | collections (list), or    |                           |
-//                | 404 if :id not accessible |                           |
+//   collection   | requireActiveUser +       | requireActiveUser (any    | requireCollectionOwner:
+//                | scoped to accessible      | active user owns what     | rename + shares (#125);
+//                | collections (list), or    | they start, #73)          | member 403, else 404.
+//                | 404 if :id not accessible |                           | delete not built (#26)
 //   artist/owner | requireActiveUser         | requireActiveUser         | requireAdmin (delete only)
 //                | (row is global; artist's  |                           |
 //                | linked albums are scoped) |                           |
@@ -91,6 +91,30 @@ export const requireCollectionAccessForCreate = (
         return next(new ForbiddenError('You do not have access to this collection.'));
       }
       next();
+    } catch (error) {
+      next(error);
+    }
+  };
+
+// Collection settings (#125): rename and shares are the owner's (or an
+// admin's). A shared member can already see the collection, so a 403 tells
+// them nothing new; anyone else gets the usual 404, existence masked.
+export const requireCollectionOwner = (resolveCollectionId: (req: Request) => Promise<string | null>) =>
+  async (req: Request, _res: Response, next: NextFunction) => {
+    try {
+      const collectionId = await resolveCollectionId(req);
+      const collection = collectionId && req.user
+        ? await prisma.collection.findUnique({
+          where: { id: collectionId },
+          select: { ownerId: true, shares: { where: { userId: req.user.id }, select: { userId: true } } },
+        })
+        : null;
+      // Looked up before the admin pass, so a missing id is a 404 for everyone
+      // rather than reaching Prisma's update as a 500 (PR #138 review).
+      if (!collection) return next(new NotFoundError('Resource not found.'));
+      if (req.user!.isAdmin || collection.ownerId === req.user!.id) return next();
+      if (collection.shares.length > 0) return next(new ForbiddenError('Only the collection\u2019s owner can change its settings.'));
+      next(new NotFoundError('Resource not found.'));
     } catch (error) {
       next(error);
     }

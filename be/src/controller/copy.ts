@@ -1,7 +1,8 @@
 import type { NextFunction, Request, Response } from 'express';
 import { ValidationError, ConflictError, NotFoundError } from '../common/errorHandler.js';
 import { routeParam } from '../common/utils.js';
-import { parseDate, parsePrice } from '../common/fields.js';
+import { parseAlbumFields, parseDate, parsePrice } from '../common/fields.js';
+import type { NewAlbum } from '../service/album.js';
 import { accessibleCollectionIds } from '../common/policy.js';
 import {
   listCopiesService,
@@ -11,14 +12,31 @@ import {
   deleteCopyService,
 } from '../service/copy.js';
 
+// A new album sent with its copy (#123): its collection, plus the fields
+// every new album takes, picked by name (#129).
+const parseNewAlbum = (value: unknown): NewAlbum => {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) throw new ValidationError('album must be an object.');
+  const { collectionId, ...fields } = value as Record<string, unknown>;
+  if (typeof collectionId !== 'string' || !collectionId) throw new ValidationError('album.collectionId is required.');
+  return { collectionId, ...parseAlbumFields(fields) };
+};
+
 const isPrismaError = (error: unknown, code: string): boolean =>
   typeof error === 'object' && error !== null && 'code' in error && (error as { code?: string }).code === code;
 
 export const listCopies = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { albumId, locationId } = req.query as Record<string, string>;
+    // Express hands a repeated param over as an array: one value each, or 406 (#126).
+    const one = (name: string) => {
+      const value = req.query[name];
+      if (value !== undefined && typeof value !== 'string') throw new ValidationError(`${name} must be given once.`);
+      return value;
+    };
+    const [albumId, locationId] = [one('albumId'), one('locationId')];
+    const includeSublocations = one('includeSublocations') === 'true';
+    if (includeSublocations && !locationId) throw new ValidationError('includeSublocations needs a locationId.');
     const scope = req.user!.isAdmin ? undefined : await accessibleCollectionIds(req.user!.id);
-    const records = await listCopiesService({ albumId, locationId }, scope);
+    const records = await listCopiesService({ albumId, locationId, includeSublocations }, scope);
     res.json({ message: 'List of copies', data: records, status: 200 });
   } catch (error) {
     next(error);
@@ -38,15 +56,18 @@ export const getCopy = async (req: Request, res: Response, next: NextFunction) =
 
 export const createCopy = async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const { albumId, locationId, ownerId, sourceId, dateAcquired, price, condition, notes } = req.body;
-    if (!albumId) throw new ValidationError('albumId is required.');
+    const { albumId, album, locationId, ownerId, sourceId, dateAcquired, price, condition, notes } = req.body;
+    // An existing album by id, or a new one created with the copy (#123): exactly one.
+    if (albumId !== undefined && album !== undefined) throw new ValidationError('Send albumId or album, not both.');
+    if (!albumId && album === undefined) throw new ValidationError('albumId or album is required.');
+    const newAlbum = album === undefined ? undefined : parseNewAlbum(album);
     if (!locationId) throw new ValidationError('locationId is required.');
     // Required here rather than in the column (#53): a non-null ownerId could
     // not be added to a populated table, so this is what enforces it until the
     // follow-up migration can.
     if (!ownerId) throw new ValidationError('ownerId is required.');
     const record = await createCopyService({
-      albumId,
+      ...(newAlbum ? { album: newAlbum } : { albumId }),
       locationId,
       ownerId,
       sourceId,

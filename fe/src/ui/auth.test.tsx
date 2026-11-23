@@ -120,7 +120,14 @@ describe('PendingView', () => {
     render(<PendingView user={{ ...user, status: 'pending' }} siteKey="k" requestAccessAction={action} signOutAction={action} />);
     expect(screen.getByRole('heading')).toHaveTextContent(/waiting for approval/i);
     expect(screen.queryByRole('button', { name: /ask again/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /sign out/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Use a different account' })).toBeInTheDocument();
+  });
+
+  // #124: landing here on the wrong Google account is how a mix-up shows.
+  it.each([['pending'], ['denied']] as const)('names the account and offers a different one (%s)', (status) => {
+    render(<PendingView user={{ ...user, status }} siteKey="k" requestAccessAction={action} signOutAction={action} />);
+    expect(screen.getByText(/a@example\.com/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Use a different account' })).toBeInTheDocument();
   });
 
   it('lets a denied user ask again, behind a bot check', () => {

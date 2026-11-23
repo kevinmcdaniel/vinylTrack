@@ -1,0 +1,30 @@
+meta {
+  name: list copies in location (with sub-locations)
+  type: http
+  seq: 15
+}
+
+get {
+  url: {{baseUrl}}/api/copy?locationId={{locationId}}&includeSublocations=true
+  body: none
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+assert {
+  res.status: eq 200
+}
+
+tests {
+  test("the garage shows the copies in the crate inside it, with their albums (#126)", function() {
+    const ids = res.body.data.map(c => c.id);
+    expect(ids).to.include(bru.getVar("copyId"));
+    expect(ids).to.include(bru.getVar("newAlbumCopyId"));
+    const row = res.body.data.find(c => c.id === bru.getVar("copyId"));
+    expect(row.album.title).to.equal("_BRUNO_ Test Album");
+    expect(row.album.artists).to.be.an("array");
+  });
+}

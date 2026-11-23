@@ -1,6 +1,8 @@
 # Keeps workflow actions on supported majors (#91: they sat on Node 20
 # versions until GitHub's deprecation warning surfaced it). Actions only;
-# npm and Docker base images are upgraded deliberately (#31, #47).
+# npm and Docker base images are upgraded deliberately (#31, #47). npm
+# advisories are caught by CI's `npm audit --omit=dev --audit-level=high`
+# step in be/fe/mailer instead (#129).
 version: 2
 updates:
   - package-ecosystem: github-actions

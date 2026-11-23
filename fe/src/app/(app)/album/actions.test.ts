@@ -14,7 +14,7 @@ vi.mock('@/lib/api', () => ({
   apiDelete: (...a: unknown[]) => apiDelete(...a),
 }));
 
-const { createAlbum, updateAlbum, deleteAlbum, createArtist } = await import('./actions');
+const { updateAlbum, deleteAlbum, createArtist } = await import('./actions');
 
 const form = (fields: Record<string, string | string[]>) => {
   const f = new FormData();
@@ -23,34 +23,6 @@ const form = (fields: Record<string, string | string[]>) => {
 };
 
 afterEach(() => { apiPost.mockReset(); apiPatch.mockReset(); apiDelete.mockReset(); });
-
-describe('createAlbum', () => {
-  it('posts trimmed fields, a numeric year and every picked artist, then opens the album', async () => {
-    apiPost.mockResolvedValue({ id: 'a-1' });
-    await expect(createAlbum(form({
-      collectionId: 'c1', title: ' Kind of Blue ', format: 'LP', year: '1959', genre: ' Jazz ', notes: '', artistIds: ['ar-1', 'ar-2'],
-    }))).rejects.toThrow(/^REDIRECT \/album\/a-1$/);
-    expect(apiPost).toHaveBeenCalledWith('/album', {
-      collectionId: 'c1', title: 'Kind of Blue', format: 'LP', year: 1959, genre: 'Jazz', artistIds: ['ar-1', 'ar-2'],
-    });
-  });
-
-  it('leaves out blank optional fields and a year that is not a number', async () => {
-    apiPost.mockResolvedValue({ id: 'a-2' });
-    await expect(createAlbum(form({ collectionId: 'c1', title: 'Untitled', year: 'soon' }))).rejects.toThrow('REDIRECT');
-    expect(apiPost.mock.calls[0]![1]).toEqual({ collectionId: 'c1', title: 'Untitled', artistIds: [] });
-  });
-
-  it.each([
-    [406, 'invalid'],
-    [403, 'forbidden'],
-    [409, 'in-use'],
-  ])('turns a %i into the new-album form with ?error=%s', async (status, code) => {
-    apiPost.mockRejectedValue(new ApiError(status, 'x'));
-    await expect(createAlbum(form({ collectionId: 'c/1', title: '' })))
-      .rejects.toThrow(`REDIRECT /collection/c%2F1/album/new?error=${code}`);
-  });
-});
 
 describe('updateAlbum', () => {
   // Blank means "clear it": null, not omitted, or an edit could never remove a value.

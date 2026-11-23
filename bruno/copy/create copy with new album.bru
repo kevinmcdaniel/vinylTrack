@@ -1,0 +1,43 @@
+meta {
+  name: create copy with new album
+  type: http
+  seq: 14
+}
+
+post {
+  url: {{baseUrl}}/api/copy
+  body: json
+  auth: inherit
+}
+
+headers {
+  x-user-email: {{ownerEmail}}
+}
+
+body:json {
+  {
+    "album": {
+      "collectionId": "{{vinylCollectionId}}",
+      "title": "_BRUNO_ New With Copy",
+      "year": 1972,
+      "artistIds": ["{{artistId}}"]
+    },
+    "locationId": "{{childLocationId}}",
+    "ownerId": "{{kevinOwnerId}}"
+  }
+}
+
+assert {
+  res.status: eq 201
+  res.body.status: eq 201
+}
+
+script:post-response {
+  bru.setVar("newAlbumCopyId", res.body.data.id);
+  bru.setVar("newAlbumId", res.body.data.albumId);
+}
+
+docs {
+  #123: an album sent in place of albumId is created with the copy, in one
+  transaction. Access is checked on album.collectionId.
+}
