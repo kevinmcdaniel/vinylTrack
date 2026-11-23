@@ -44,7 +44,7 @@ services:
       - vinylnet
       - mailnet
     ports:
-      - ${BE_PORT_EXT:-5202}:3000
+      - 127.0.0.1:${BE_PORT_EXT:-5202}:3000
     container_name: vinyl.be
     command: npm run dev
     depends_on:
@@ -105,7 +105,7 @@ services:
     secrets: [db_password]
     command: -p 5432
     ports:
-      - "${DB_PORT_EXT:-5204}:5432"
+      - "127.0.0.1:${DB_PORT_EXT:-5204}:5432"
     container_name: vinyl.db
     volumes:
       - vinyldb_vol:/var/lib/postgresql/data
@@ -152,7 +152,7 @@ services:
       - default
       - vinylnet
     ports:
-      - ${FE_PORT_EXT:-5201}:4000
+      - ${FE_BIND:-127.0.0.1}:${FE_PORT_EXT:-5201}:4000
     container_name: vinyl.fe
     command: npm run dev
     depends_on:
@@ -197,7 +197,7 @@ services:
       - default
       - vinylnet
     ports:
-      - ${STUDIO_PORT_EXT:-5203}:5555
+      - 127.0.0.1:${STUDIO_PORT_EXT:-5203}:5555
     container_name: vinyl.studio
     command: npx prisma studio -p 5555 -b none
     depends_on:

@@ -13,3 +13,5 @@ docker compose up      # no setup: dev secrets are committed fakes in dev-secret
 - FE: http://localhost:5201 (docs viewer at `/docs`)
 - BE: http://localhost:5202
 - Prisma Studio: http://localhost:5203
+
+Every port listens on `localhost` only (#135). To try the FE from a phone on the same Wi-Fi, set `FE_BIND=0.0.0.0` and `AUTH_URL=http://<this machine's LAN IP>:5201` in `.env` (otherwise sign-in redirects the phone to `localhost`). While it's set, the dev sign-in and the committed fake secrets are open to everyone on that network, so unset it afterwards.
