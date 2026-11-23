@@ -6,12 +6,12 @@ import configFor from './next.config';
 const prod = configFor(PHASE_PRODUCTION_BUILD);
 const dev = configFor(PHASE_DEVELOPMENT_SERVER);
 
-const headersOf = async (config: typeof prod) => {
-  const rules = await config.headers!();
-  expect(rules).toHaveLength(1);
-  expect(rules[0]!.source).toBe('/:path*');
-  return new Map(rules[0]!.headers.map((h) => [h.key, h.value]));
+const ruleFor = async (config: typeof prod, source: string) => {
+  const rule = (await config.headers!()).find((r) => r.source === source);
+  expect(rule, `a headers rule for ${source}`).toBeDefined();
+  return new Map(rule!.headers.map((h) => [h.key, h.value]));
 };
+const headersOf = (config: typeof prod) => ruleFor(config, '/:path*');
 const directives = (policy: string) =>
   new Map(policy.split(';').map((d) => d.trim()).filter(Boolean).map((d) => {
     const [name, ...values] = d.split(/\s+/);
@@ -23,6 +23,15 @@ describe('next.config', () => {
   // through unauthenticated, so the optimizer stays off.
   it('turns the image optimizer off', () => {
     expect(prod.images?.unoptimized).toBe(true);
+  });
+
+  // #9: a stale service worker would pin every phone to an old release, so
+  // the browser must always ask for /sw.js fresh.
+  it('serves /sw.js uncached, as JavaScript, for the whole site', async () => {
+    const sw = await ruleFor(prod, '/sw.js');
+    expect(sw.get('Cache-Control')).toBe('no-cache, no-store, must-revalidate');
+    expect(sw.get('Content-Type')).toBe('application/javascript; charset=utf-8');
+    expect(sw.get('Service-Worker-Allowed')).toBe('/');
   });
 
   it('keeps the standalone output the production image ships', () => {
