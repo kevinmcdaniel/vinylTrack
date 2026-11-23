@@ -61,6 +61,12 @@ ls /Users/_vinyltrack/backups/                 # pre-<tag>-<utc>.sql.gz, one per
 ssh vinyl.deploy status          # LAN; or through Access with the CI key (see hosting-remote-access.md)
 ```
 
+## Pins: actions and cloudflared
+
+Every third-party action in `.github/workflows/` is pinned to a commit SHA with its version as a comment (`actions/checkout@<sha> # v7.0.1`, #135). Dependabot's weekly `ci:` PR bumps both, and `host/tests/workflows.bats` fails CI on any action added by tag. To add one by hand, resolve the release's commit with `git ls-remote --tags https://github.com/<owner>/<repo>` (use the `^{}` line for an annotated tag).
+
+`deploy.yml` installs a pinned `cloudflared` through `host/libexec/install-cloudflared.sh`, which checks the `.deb`'s SHA-256 before `dpkg` runs and fails the deploy on a mismatch. The log shows `cloudflared.deb: OK (<hash>)`. Dependabot doesn't track it. To bump it, take the new version and the `cloudflared-linux-amd64.deb` line from the release notes' **SHA256 Checksums** block, and set both `CLOUDFLARED_VERSION` and `CLOUDFLARED_SHA256` in `deploy.yml`. If you can, download the `.deb` and run `sha256sum` on it to confirm the hash matches.
+
 ## What deploy.sh does, and when it stops
 
 `deploy.sh` runs as `_vinyltrack`, project `vinyltrack`, with host config from `/Users/_vinyltrack/.env` and secrets from `/Users/_vinyltrack/secrets/`. Each step must succeed before the next runs:
