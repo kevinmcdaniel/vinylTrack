@@ -38,6 +38,8 @@ Approve in GitHub: Actions → the *Release* run → *Review deployments* → ti
 
 **Check the run's tag before approving.** Deploys wait for approval for up to 30 days, so an older release's deploy can still be sitting in the queue: on #75, approving a forgotten `v0.1.0` deploy put pre-auth code back on the server. When you cut a newer release, cancel or reject any older deploy still waiting (`gh run cancel <id>`).
 
+**After a deploy, check the browser console** (#134). Open DevTools on the sign-in page, sign in with Google, then open a collection and the add-copy page. Look for `Content Security Policy` / `[Report Only]` messages. The full CSP is report-only for now, so a violation breaks nothing yet, but it names a source (often something Cloudflare injects) that has to be allowed in `fe/next.config.ts` before the policy can be enforced. Check the response headers once with `curl -sI https://<host>/sign-in`: `Content-Security-Policy`, `X-Frame-Options: DENY`, `Strict-Transport-Security`, and no `X-Powered-By`.
+
 **Redeploy or roll back** by running `deploy.yml` *from the tag you want*:
 
 ```bash
