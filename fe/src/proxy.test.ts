@@ -3,11 +3,14 @@ import { describe, it, expect } from 'vitest';
 import { NextRequest } from 'next/server';
 // The docs call it unstable_doesProxyMatch; this Next still ships the middleware name.
 import { getRedirectUrl, unstable_doesMiddlewareMatch } from 'next/experimental/testing/server';
-import nextConfig from '../next.config';
+import { PHASE_PRODUCTION_BUILD } from 'next/constants';
+import configFor from '../next.config';
 import { config, proxy, SESSION_COOKIES } from './proxy';
 // Auth.js's own cookie names, so ours can't drift from them on an upgrade.
 import { defaultCookies } from '../node_modules/@auth/core/lib/utils/cookie.js';
 
+// next.config is a function of the phase since #134.
+const nextConfig = configFor(PHASE_PRODUCTION_BUILD);
 const BASE = 'https://vinyl.example.com';
 const request = (path: string, cookies: Record<string, string> = {}) =>
   new NextRequest(`${BASE}${path}`, {
