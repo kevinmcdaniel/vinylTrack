@@ -12,3 +12,11 @@ describe('GET /api/health', () => {
     expect(res.body.data.version).toBe(getConfig().version);
   });
 });
+
+// #134: no "X-Powered-By: Express" on any response, even a 404 or a 401.
+describe('X-Powered-By', () => {
+  it.each(['/api/health', '/api/nope', '/api/album'])('is never sent (%s)', async (path) => {
+    const res = await request(app).get(path);
+    expect(res.headers['x-powered-by']).toBeUndefined();
+  });
+});
