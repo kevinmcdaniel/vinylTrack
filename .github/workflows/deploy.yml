@@ -50,10 +50,22 @@ jobs:
           fi
           [[ "$ACTION" == deploy || "$ACTION" == rollback ]] || { echo "::error::unknown action '$ACTION'"; exit 1; }
 
+      # Just the install script, at the tag being deployed; no token left behind.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: host/libexec/install-cloudflared.sh
+          sparse-checkout-cone-mode: false
+          persist-credentials: false
+
+      # Pinned and checksummed (#135): this job holds the SSH key and the Access
+      # token. Dependabot doesn't track it; bump both together from the release
+      # notes (docs/hosting-deploy.md).
       - name: Install cloudflared
+        env:
+          CLOUDFLARED_VERSION: 2026.11.1
+          CLOUDFLARED_SHA256: 744ce90be92adb361103d51c85f78646314c47e4a68bbaadfe12ab5acc16c9b6
         run: |
-          curl -fsSL -o cloudflared.deb https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64.deb
-          sudo dpkg -i cloudflared.deb
+          bash host/libexec/install-cloudflared.sh "$CLOUDFLARED_VERSION" "$CLOUDFLARED_SHA256"
           cloudflared --version
 
       - name: Write deploy key and pinned host key
